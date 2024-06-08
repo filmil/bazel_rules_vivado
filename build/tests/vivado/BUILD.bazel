@@ -1,0 +1,25 @@
+load("//build/vivado:rules.bzl",
+	"vivado_project",
+	"vivado_synthesis",
+	"vivado_place_and_route",
+)
+
+# A trivial test project for vivado synthesis.
+# Default part is xc7k70tfbv676-1. This should probably be configurable.
+vivado_project(
+		name = "blinky",
+		srcs = [ "blinky.sv", ],
+		xdcs = [ "blinky.xdc" ],
+		top_level = "up_counter",
+		defines = [ "FPGA_XILINX=1"],
+)
+
+vivado_synthesis(
+	name = "blinky_synth",
+	project = ":blinky",
+)
+
+vivado_place_and_route(
+	name = "blinky_pnr",
+	synthesis = ":blinky_synth",
+)
