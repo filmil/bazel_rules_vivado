@@ -16,20 +16,34 @@ import (
 )
 
 type XPRBinding struct {
+	// Project name.
 	Project string
+	// Fileset name.
 	Fileset string
 	// Top entity name.
 	Top string
-
+	// Verilog properties to set.
 	VerilogProperties []string
 
-	VerilogFiles       []string
-	VerilogHeaders     []string
+	// The list of pure Verilog files to load.
+	VerilogFiles []string
+	// The list of SystemVerilog files to load.
+	SystemVerilogFiles []string
+	// The list of SystemVerilog headers to load.
+	VerilogHeaders []string
+	// VerilogIncludeDirs is a list of include dirs to load.
 	VerilogIncludeDirs []string
-
+	// VHDLFiles is a list of VHDL files to load.
+	VHDLFiles []string
+	// XDCFiles is a list of constraints (.xdc files) to use.
 	XDCFiles []string
-
-	PWD, OutXpr string
+	// PWD is the working directory.
+	PWD string
+	// OutXpr is the name of the Vivado project file (.xpr) that will be generated.
+	OutXpr string
+	// Part is the designator of the FPGA part to be programmed.
+	// For example, "xc7a200tfbg484-2"
+	Part string
 }
 
 var (
@@ -64,10 +78,17 @@ create_project {{.Project}} -force
 set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset }} ]
 {{end}}
 
-# Verilog files
+# SystemVerilog files
+# Ordering is important.
+{{- range .SystemVerilogFiles}}
+read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
+{{- end}}
+# end: verilog files
+
+# SystemVerilog files
 # Ordering is important.
 {{- range .VerilogFiles}}
-read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
+read_verilog {{"{"}} {{- . -}} {{"}"}}
 {{- end}}
 # end: verilog files
 
@@ -76,6 +97,13 @@ read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
 {{- range .VerilogHeaders}}
 read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
 {{- end}}
+
+# VHDL files
+# Ordering is important.
+{{- range .VHDLFiles}}
+read_vhdl {{"{"}} {{- . -}} {{"}"}}
+{{- end}}
+# end: VHDL files
 
 # Verilog includes
 set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}}] [get_filesets {{ $fileset }}]
@@ -86,6 +114,10 @@ set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}
 read_xdc {{"{"}} {{- . -}} {{"}"}}
 {{- end}}
 # end: constraints files
+
+{{- if .Part}}
+set_property part {{ .Part }} [current_project]
+{{- end}}
 
 set_property top {{ .Top }} [current_fileset]
 set_property source_mgmt_mode None [current_project]
@@ -176,6 +208,7 @@ func main() {
 		dirDepth                                int
 		xprFileName, synthFileName, pnrFileName string
 		xdcFiles                                RepeatedString
+		part                                    string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -196,8 +229,12 @@ func main() {
 	flag.Var(&headers, "header", "list of header files")
 	flag.Var(&includeDirs, "include-dir", "list of include directories")
 	flag.Var(&defines, "define", "list of include directories")
+	flag.StringVar(&part, "part", "", "The FPGA part to use for synthesis")
 	flag.Parse()
 
+	if part == "" {
+		log.Fatalf("flag --part=... is required")
+	}
 	if projectName == "" {
 		log.Fatalf("flag --project-name=... is required")
 	}
@@ -216,9 +253,31 @@ func main() {
 	}
 	ppath := strings.Join(pPaths, "/")
 
-	var fFiles []string
+	var (
+		verilogFiles       []string
+		systemVerilogFiles []string
+		VHDLFiles          []string
+	)
+
+	const (
+		SystemVerilogExtension = ".sv"
+		VerilogExtension       = ".v"
+		VHDLExtension1         = ".vhd"
+		VHDLExtension2         = ".vhdl"
+	)
+
+	// Sort the different program files into their own file type lists. Order
+	// is significant.
 	for _, v := range sources.values {
-		fFiles = append(fFiles, path.Join(ppath, v))
+		if strings.HasSuffix(v, SystemVerilogExtension) {
+			systemVerilogFiles = append(systemVerilogFiles, path.Join(ppath, v))
+		}
+		if strings.HasSuffix(v, VerilogExtension) {
+			verilogFiles = append(verilogFiles, path.Join(ppath, v))
+		}
+		if strings.HasSuffix(v, VHDLExtension1) || strings.HasSuffix(v, VHDLExtension2) {
+			VHDLFiles = append(VHDLFiles, path.Join(ppath, v))
+		}
 	}
 
 	var vDirs []string
@@ -238,21 +297,24 @@ func main() {
 		Fileset:            filesetName,
 		Top:                topName,
 		VerilogProperties:  defines.values,
-		VerilogFiles:       fFiles,
+		SystemVerilogFiles: systemVerilogFiles,
+		VerilogFiles:       verilogFiles,
+		VHDLFiles:          VHDLFiles,
 		VerilogHeaders:     headers.values,
 		VerilogIncludeDirs: vDirs,
 		XDCFiles:           xdcFiles.values,
 		PWD:                pwd,
 		OutXpr:             xprFileName,
+		Part:               part,
 	}
 
 	if err := WriteFile(xprFileName, xprTpl, &xpr); err != nil {
-		log.Fatalf("while writing: %v: %v", xprFileName, err)
+		log.Fatalf("while writing XPR file: %v: %v", xprFileName, err)
 	}
 	if err := WriteFile(synthFileName, syntTpl, &xpr); err != nil {
-		log.Fatalf("while writing: %v: %v", synthFileName, err)
+		log.Fatalf("while writing synth file: %v: %v", synthFileName, err)
 	}
 	if err := WriteFile(pnrFileName, pnrTpl, &xpr); err != nil {
-		log.Fatalf("while writing: %v: %v", pnrFileName, err)
+		log.Fatalf("while writing PNR file: %v: %v", pnrFileName, err)
 	}
 }

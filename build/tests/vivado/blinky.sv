@@ -1,17 +1,21 @@
 module up_counter (
-  output reg [7:0] out
-, input  wire      enable
-, input  wire      clk
-, input  wire      reset
-);
+    output reg out
+    , input  wire      clk
+    , input  wire      reset
+    );
 
-always_ff @(posedge clk)
-if (reset) begin
-  out <= 8'b0;
-end else if (enable) begin
-  out++;
-end
+    reg [7:0] count;
 
-endmodule
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            count <= 8'b0;
+        end else begin
+            count++;
+        end
+    end
 
-// vim:ts=2
+    always_comb begin
+        out <= count[7];
+    end
+
+    endmodule

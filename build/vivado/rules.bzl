@@ -17,6 +17,7 @@ VivadoGenProvider = provider(
     "top_level": "The top level entity to process",
     "project_name": "The name of the project, after the target",
     "xpr_gen_output_dir": "The output directory from the xpr_gen step",
+    "part": "The part designator that is being targeted in this project",
   },
 )
 
@@ -217,6 +218,9 @@ def _vivado_project_impl(ctx):
     args.add("--out-synth", synth_tcl.path)
     args.add("--out-pnr", pnr_tcl.path)
 
+    part = ctx.attr.part
+    args.add("--part", part)
+
     #
     ctx.actions.run(
         outputs = outputs,
@@ -247,6 +251,7 @@ def _vivado_project_impl(ctx):
           pnr_tcl_script = pnr_tcl,
           project_name = name,
           xpr_gen_output_dir = xpr_gen_output_dir,
+          part = part,
         ),
     ]
 
@@ -256,6 +261,10 @@ vivado_project = rule(
     attrs = {
         "top_level": attr.string(
             doc = "Top level entity name",
+            mandatory = True,
+        ),
+        "part": attr.string(
+            doc = "The part that is targeted by this project",
             mandatory = True,
         ),
         "srcs": attr.label_list(

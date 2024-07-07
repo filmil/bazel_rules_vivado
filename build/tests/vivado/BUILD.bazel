@@ -5,12 +5,12 @@ load("//build/vivado:rules.bzl",
 )
 
 # A trivial test project for vivado synthesis.
-# Default part is xc7k70tfbv676-1. This should probably be configurable.
 vivado_project(
 		name = "blinky",
 		srcs = [ "blinky.sv", ],
-		xdcs = [ "blinky.xdc" ],
+		xdcs = [ "alinx-a200t-b.xdc" ],
 		top_level = "up_counter",
+        part = "xc7a200tfbg484-2",
 		defines = [ "FPGA_XILINX=1"],
 )
 
