@@ -394,7 +394,18 @@ def _vivado_synthesis_impl(ctx):
       cp --dereference {xpr_src} {xpr_file} && \
       chmod a+w {xpr_file} && \
       cp -R --dereference {xpr_gen_output_dir} $PWD && \
-      cp -R --dereference $(find . -name '*.sv*') {output_dir_path} && \
+      VHDL_FILES="$(find . -name '*.vhd?')" && \
+         if [[ "$VHDL_FILES" != "" ]]; then \
+            cp -R --dereference $VHDL_FILES {output_dir_path} ; \
+         fi && \
+      V_FILES="$(find . -name '*.v')" && \
+         if [[ "$V_FILES" != "" ]]; then \
+            cp -R --dereference $V_FILES {output_dir_path} ; \
+         fi && \
+      SV_FILES="$(find . -name '*.sv')" && \
+         if [[ "$SV_FILES" != "" ]]; then \
+            cp -R --dereference $SV_FILES {output_dir_path} ; \
+         fi && \
       mkdir -p {user_files_dir} && \
       mkdir -p {test_gen_dir}/sources_1 && \
       {script} \
