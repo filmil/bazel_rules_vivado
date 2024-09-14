@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "proggen_lib",
+    srcs = ["main.go"],
+    importpath = "cp/build/vivado/bin/proggen",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "proggen",
+    embed = [":proggen_lib"],
+    visibility = ["//visibility:public"],
+)

@@ -30,6 +30,13 @@ VivadoSynthProvider = provider(
   },
 )
 
+VivadoBitstreamProvider = provider(
+  "Information about the bitstream",
+  fields = {
+    "bitstream": "The bitstream to program into the FPGA",
+  },
+)
+
 # This needs to exist on your computer before we begin.
 CONTAINER = "xilinx-vivado:latest"
 
@@ -594,6 +601,7 @@ def _vivado_pnr_impl(ctx):
       files = depset(outputs),
       runfiles = ctx.runfiles(files = outputs),
     ),
+    VivadoBitstreamProvider(bitstream = bit_file),
   ]
 
 
@@ -621,4 +629,62 @@ vivado_place_and_route = rule(
     },
 )
 
+
+def _vivado_program_device(ctx):
+    # For now, only one bitstream.
+    bitstream = None
+    for target in ctx.attr.deps:
+        for file in target.files.to_list():
+            bitstream = file
+            break
+
+    # Needed binaries
+    script = ctx.attr._script.files.to_list()[0]
+    gotopt2 = ctx.attr._gotopt2.files.to_list()[0]
+    
+    # Generated script file.
+    outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
+
+    content = [
+        script.path,
+        gotopt2.path,
+    ]
+
+    ctx.actions.write(
+        output=outfile,
+        content="\n".join(content),
+    )
+
+    runfiles = ctx.runfiles(
+        files=[script, gotopt2],
+    )
+
+    return [
+        DefaultInfo(
+            files=depset([outfile]),
+            runfiles=runfiles,
+            executable = outfile,
+        )
+    ]
+
+vivado_program_device = rule(
+    implementation = _vivado_program_device,
+    executable = True,
+    attrs = {
+        "deps": attr.label_list(
+            providers = [VivadoBitstreamProvider],
+            doc = "The list of deps containing bitstream code",
+        ),
+        "_script": attr.label(
+            default="@bazel_rules_bid//build:docker_run",
+            executable=True,
+            cfg="host",
+        ),
+        "_gotopt2": attr.label(
+            default="@gotopt2//cmd/gotopt2",
+            executable=True,
+            cfg="host",
+        ),
+    },
+)
 

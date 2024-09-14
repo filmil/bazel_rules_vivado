@@ -1,5 +1,4 @@
-
 sh_binary(
     name = "vivado",
-    srcs = [ "vivado_load_container.sh" ],
+    srcs = ["vivado_load_container.sh"],
 )
