@@ -15,6 +15,13 @@ import (
 	"text/template"
 )
 
+const (
+	SystemVerilogExtension = ".sv"
+	VerilogExtension       = ".v"
+	VHDLExtension1         = ".vhd"
+	VHDLExtension2         = ".vhdl"
+)
+
 type XPRBinding struct {
 	// Project name.
 	Project string
@@ -26,15 +33,15 @@ type XPRBinding struct {
 	VerilogProperties []string
 
 	// The list of pure Verilog files to load.
-	VerilogFiles []string
+	VerilogFiles []FileLib
 	// The list of SystemVerilog files to load.
-	SystemVerilogFiles []string
+	SystemVerilogFiles []FileLib
 	// The list of SystemVerilog headers to load.
 	VerilogHeaders []string
 	// VerilogIncludeDirs is a list of include dirs to load.
 	VerilogIncludeDirs []string
 	// VHDLFiles is a list of VHDL files to load.
-	VHDLFiles []string
+	VHDLFiles []FileLib
 	// XDCFiles is a list of constraints (.xdc files) to use.
 	XDCFiles []string
 	// PWD is the working directory.
@@ -81,27 +88,27 @@ set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset 
 # SystemVerilog files
 # Ordering is important.
 {{- range .SystemVerilogFiles}}
-read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}}  -sv {{"{"}} {{- .Name -}} {{"}"}}
 {{- end}}
 # end: verilog files
 
 # SystemVerilog files
 # Ordering is important.
 {{- range .VerilogFiles}}
-read_verilog {{"{"}} {{- . -}} {{"}"}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
 {{- end}}
 # end: verilog files
 
 # Verilog headers
 # Ordering is important.
 {{- range .VerilogHeaders}}
-read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}} -sv {{"{"}} {{- .Name -}} {{"}"}}
 {{- end}}
 
 # VHDL files
 # Ordering is important.
 {{- range .VHDLFiles}}
-read_vhdl {{"{"}} {{- . -}} {{"}"}}
+read_vhdl {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
 {{- end}}
 # end: VHDL files
 
@@ -198,6 +205,30 @@ func WriteFile(fn string, tpl *template.Template, xpr *XPRBinding) error {
 	return nil
 }
 
+type FileLib struct {
+	// A file name.
+	Name string
+	// If empty, the library is "work" or whatever "current" is.
+	Library string
+}
+
+// AppendTo appends `fl` into one of the typed file lists.
+func AppendTo(systemVerilogFiles, verilogFiles, VHDLFiles *[]FileLib, fl FileLib) error {
+	if fl.Name == "" {
+		return fmt.Errorf("no file name in %+v", fl)
+	}
+	if strings.HasSuffix(fl.Name, SystemVerilogExtension) {
+		*systemVerilogFiles = append(*systemVerilogFiles, fl)
+	}
+	if strings.HasSuffix(fl.Name, VerilogExtension) {
+		*verilogFiles = append(*verilogFiles, fl)
+	}
+	if strings.HasSuffix(fl.Name, VHDLExtension1) || strings.HasSuffix(fl.Name, VHDLExtension2) {
+		*VHDLFiles = append(*VHDLFiles, fl)
+	}
+	return nil
+}
+
 func main() {
 	p := path.Base(os.Args[0])
 	log.SetPrefix(fmt.Sprintf("%v: ", p))
@@ -209,6 +240,7 @@ func main() {
 		xprFileName, synthFileName, pnrFileName string
 		xdcFiles                                RepeatedString
 		part                                    string
+		libraryFiles                            RepeatedString
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -229,6 +261,7 @@ func main() {
 	flag.Var(&headers, "header", "list of header files")
 	flag.Var(&includeDirs, "include-dir", "list of include directories")
 	flag.Var(&defines, "define", "list of include directories")
+	flag.Var(&libraryFiles, "library-file", "each is: library=file")
 	flag.StringVar(&part, "part", "", "The FPGA part to use for synthesis")
 	flag.Parse()
 
@@ -254,29 +287,23 @@ func main() {
 	ppath := strings.Join(pPaths, "/")
 
 	var (
-		verilogFiles       []string
-		systemVerilogFiles []string
-		VHDLFiles          []string
+		verilogFiles       []FileLib
+		systemVerilogFiles []FileLib
+		VHDLFiles          []FileLib
 	)
 
-	const (
-		SystemVerilogExtension = ".sv"
-		VerilogExtension       = ".v"
-		VHDLExtension1         = ".vhd"
-		VHDLExtension2         = ".vhdl"
-	)
+	for _, v := range libraryFiles.values {
+		s := strings.Split(v, "=")
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
+			log.Fatalf("while classifying: %v: %v", v, err)
+		}
+	}
 
 	// Sort the different program files into their own file type lists. Order
 	// is significant.
 	for _, v := range sources.values {
-		if strings.HasSuffix(v, SystemVerilogExtension) {
-			systemVerilogFiles = append(systemVerilogFiles, path.Join(ppath, v))
-		}
-		if strings.HasSuffix(v, VerilogExtension) {
-			verilogFiles = append(verilogFiles, path.Join(ppath, v))
-		}
-		if strings.HasSuffix(v, VHDLExtension1) || strings.HasSuffix(v, VHDLExtension2) {
-			VHDLFiles = append(VHDLFiles, path.Join(ppath, v))
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, FileLib{Name: v}); err != nil {
+			log.Fatalf("while classifying: %v: %v", v, err)
 		}
 	}
 

@@ -1,10 +1,21 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_rules_bid//build:rules.bzl", "run_docker_cmd")
 
+VivadoLibraryProvider = provider(
+    "A library of files used for vivado",
+    fields = {
+        "name": "The library name",
+        "files": "The list of files comprising this library",
+        "deps": "A depset of other providers",
+    }
+)
+
+
 VivadoGenProvider = provider(
-  "Infromation about generated vivado files",
+  "Information about generated vivado files",
   fields = {
     "sources": "The list of the module's source files",
+    "deps": "Libraries",
     "headers": "A list of header files. " +
       " Headers are present in the sandbox, but not on the command line",
     "constraints": "The list of constraints files to use",
@@ -76,6 +87,7 @@ def _xpr_gen(
   xdcs_files,
   include_dirs,
   xpr_tcl_script,
+  deps_files,
 ):
   # General
   name = ctx.attr.name
@@ -114,7 +126,7 @@ def _xpr_gen(
   project_file = ctx.actions.declare_file("{}.xpr".format(name))
   outputs += [project_file]
   tmp_project_file_path = "{}.xpr".format(name)
-  inputs = xdcs_files + srcs_files + hdrs_files + [xpr_tcl_script]
+  inputs = deps_files + xdcs_files + srcs_files + hdrs_files + [xpr_tcl_script]
 
   # Here is a zoo of directories that vivado creates and we need to preserve
   cache_dir_rpath = "{}.cache".format(name)
@@ -212,6 +224,7 @@ def _vivado_project_impl(ctx):
     pnr_tcl = ctx.actions.declare_file("{}.pnr.tcl".format(name))
     outputs += [pnr_tcl]
 
+
     # Prepare args
     args = ctx.actions.args()
     args.add("--project-name", name)
@@ -224,6 +237,16 @@ def _vivado_project_impl(ctx):
     args.add("--out-xpr", xpr.path)
     args.add("--out-synth", synth_tcl.path)
     args.add("--out-pnr", pnr_tcl.path)
+
+    # Get library deps.
+    deps_files = []
+    for dep in ctx.attr.deps:
+        provider = dep[VivadoLibraryProvider]
+        lib_name = provider.name
+        for file in provider.files.to_list():
+            inputs += [file]
+            deps_files += [file]
+            args.add("--library-file", "{}={}".format(lib_name, file.path))
 
     part = ctx.attr.part
     args.add("--part", part)
@@ -238,7 +261,7 @@ def _vivado_project_impl(ctx):
         progress_message = "XPRGEN {}",
     )
     project, other_outputs, xpr_gen_output_dir = _xpr_gen(
-      ctx, srcs_files, hdrs_files, xdcs_files, include_dirs, xpr)
+      ctx, srcs_files, hdrs_files, xdcs_files, include_dirs, xpr, deps_files)
     outputs += other_outputs + [project]
 
     return [
@@ -248,7 +271,7 @@ def _vivado_project_impl(ctx):
         ),
         VivadoGenProvider(
           headers = depset(hdrs_files),
-          sources = depset(srcs_files),
+          sources = depset(srcs_files+deps_files),
           constraints = depset(xdcs_files),
           include_dirs = include_dirs,
           xpr_tcl_script = xpr,
@@ -269,6 +292,10 @@ vivado_project = rule(
         "top_level": attr.string(
             doc = "Top level entity name",
             mandatory = True,
+        ),
+        "deps": attr.label_list(
+            providers = [VivadoLibraryProvider],
+            doc = "The list of library dependencies",
         ),
         "part": attr.string(
             doc = "The part that is targeted by this project",
@@ -721,6 +748,51 @@ vivado_program_device = rule(
             doc = "The program to generate a programming wrapper",
             providers = ["files"],
         )
+    },
+)
+
+
+def _vivado_library(ctx):
+    # First take care of deps.
+
+    transitive_list = []
+    direct_list = []
+    transitive_files = []
+    for dep in ctx.attr.deps:
+        provider = dep[VivadoLibraryProvider]
+        transitive_list += [ dep.deps ]
+        transitive_files += [ depset(dep.files) ]
+        direct_list += [provider]
+
+    files = []
+    for target in ctx.attr.srcs:
+        for file in target.files.to_list():
+            files += [file]
+
+    files_depset = depset(files, transitive=transitive_files)
+
+    return [
+        DefaultInfo(files=files_depset),
+        VivadoLibraryProvider(
+            name=ctx.attr.name,
+            files=files_depset,
+            deps=depset(direct_list, transitive=transitive_list),
+        ),
+    ]
+
+vivado_library = rule(
+    implementation = _vivado_library,
+    attrs = {
+        "srcs": attr.label_list(
+            # I think that Verilog does not have libraries.
+            allow_files = [ "vhd", "vhdl" ],
+            doc = "The list of files in this library",
+        ),
+        "deps": attr.label_list(
+            allow_files = True,
+            doc = "The list of files in this library",
+            providers = [VivadoLibraryProvider],
+        ),
     },
 )
 
