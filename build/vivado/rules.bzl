@@ -633,35 +633,60 @@ vivado_place_and_route = rule(
 def _vivado_program_device(ctx):
     # For now, only one bitstream.
     bitstream = None
+    bittarget = None
     for target in ctx.attr.deps:
+        bittarget = target
         for file in target.files.to_list():
             bitstream = file
             break
 
+
+    bitstream_provider = bittarget[VivadoBitstreamProvider]
+    bitfile = bitstream_provider.bitstream
+
     # Needed binaries
     script = ctx.attr._script.files.to_list()[0]
     gotopt2 = ctx.attr._gotopt2.files.to_list()[0]
-    
+    generator = ctx.attr._proggen.files.to_list()[0]
+
+    data = ctx.attr._data.files.to_list()
+    tpl1 = data[0]
+    yaml = data[1]
+
     # Generated script file.
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
 
-    content = [
-        script.path,
-        gotopt2.path,
-    ]
+    args = ctx.actions.args()
+    args.add("--outfile", outfile.path)
+    args.add("--gotopt2", gotopt2.path)
+    args.add("--run-docker", script.path)
+    args.add("--template", tpl1.path)
+    args.add("--bitfile", bitfile.short_path)
 
-    ctx.actions.write(
-        output=outfile,
-        content="\n".join(content),
+    ctx.actions.run(
+        inputs = [generator, gotopt2, script, bitstream],
+        outputs = [outfile],
+        executable = generator,
+        tools = [
+            gotopt2, script
+        ] + data,
+        arguments = [args],
+        mnemonic = "PROGGEN",
+        progress_message = "Generating programming script: {}".format(outfile.path),
     )
 
     runfiles = ctx.runfiles(
-        files=[script, gotopt2],
+        files=[script, gotopt2, yaml],
+        collect_data = True,
     )
+
+    runfiles = runfiles.merge(ctx.attr._script[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(ctx.attr._proggen[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(ctx.attr._data[DefaultInfo].default_runfiles)
 
     return [
         DefaultInfo(
-            files=depset([outfile]),
+            files=depset([outfile, yaml, gotopt2]),
             runfiles=runfiles,
             executable = outfile,
         )
@@ -685,6 +710,17 @@ vivado_program_device = rule(
             executable=True,
             cfg="host",
         ),
+        "_proggen": attr.label(
+            default=Label("//build/vivado/bin/proggen"),
+            executable=True,
+            cfg="host",
+            doc = "The program to generate a programming wrapper",
+        ),
+        "_data": attr.label(
+            default=Label("//build/vivado/bin/proggen:data"),
+            doc = "The program to generate a programming wrapper",
+            providers = ["files"],
+        )
     },
 )
 

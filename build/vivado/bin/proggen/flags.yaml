@@ -1,0 +1,8 @@
+# For some reason I could not place this directly into the template file.
+flags:
+- name: "hostport"
+  type: string
+- name: "device"
+  type: string
+  #Not sure what should be here.
+  #default: "*/xilinx_tcf/Digilent/210251130202"
