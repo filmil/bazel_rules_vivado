@@ -760,8 +760,8 @@ def _vivado_library(ctx):
     transitive_files = []
     for dep in ctx.attr.deps:
         provider = dep[VivadoLibraryProvider]
-        transitive_list += [ dep.deps ]
-        transitive_files += [ depset(dep.files) ]
+        transitive_list += [ provider.deps ]
+        transitive_files += [ provider.files ]
         direct_list += [provider]
 
     files = []
