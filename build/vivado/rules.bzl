@@ -463,7 +463,7 @@ def _vivado_synthesis_impl(ctx):
       test_hw_rpath = test_hw_rpath,
       xpr_file = xpr_file_base,
       output_xpr_file = output_xpr_file.path,
-      
+
       xpr_src = provider.xpr_file.path,
 
       # tools
@@ -471,7 +471,7 @@ def _vivado_synthesis_impl(ctx):
       user_files_dir = ip_user_files_dir_rpath,
       script = script,
       synth_tcl = synth_tcl_script.path,
-      
+
       project_name = provider.project_name,
     )
   )
@@ -753,8 +753,6 @@ vivado_program_device = rule(
 
 
 def _vivado_library(ctx):
-    # First take care of deps.
-
     transitive_list = []
     direct_list = []
     transitive_files = []
@@ -771,10 +769,14 @@ def _vivado_library(ctx):
 
     files_depset = depset(files, transitive=transitive_files)
 
+    library_name = ctx.attr.name
+    if ctx.attr.library_name:
+        library_name = ctx.attr.library_name
+
     return [
         DefaultInfo(files=files_depset),
         VivadoLibraryProvider(
-            name=ctx.attr.name,
+            name=library_name,
             files=files_depset,
             deps=depset(direct_list, transitive=transitive_list),
         ),
@@ -785,13 +787,17 @@ vivado_library = rule(
     attrs = {
         "srcs": attr.label_list(
             # I think that Verilog does not have libraries.
-            allow_files = [ "vhd", "vhdl" ],
+            allow_files = [ "vhd", "vhdl", "v", "sv" ]
             doc = "The list of files in this library",
         ),
         "deps": attr.label_list(
             allow_files = True,
             doc = "The list of files in this library",
             providers = [VivadoLibraryProvider],
+        ),
+        "library_name": attr.string(
+            doc = """An optional library name, in the case the target name
+                     can not be used for some reason.""
         ),
     },
 )
