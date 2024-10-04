@@ -278,7 +278,8 @@ def _vivado_project_impl(ctx):
         tools = [ generator ],
         executable = generator_path,
         arguments = [ args ],
-        progress_message = "XPRGEN {}",
+        progress_message = "Generating Vivado Project {}".format(name),
+        mnemonic = "XPRGEN"
     )
     project, other_outputs, xpr_gen_output_dir = _xpr_gen(
       ctx, srcs_files, hdrs_files, xdcs_files, include_dirs, xpr, deps_files)
@@ -286,8 +287,8 @@ def _vivado_project_impl(ctx):
 
     return [
         DefaultInfo(
-          files = depset(outputs),
-          runfiles = ctx.runfiles(files=outputs),
+          files = depset(outputs+srcs_files),
+          runfiles = ctx.runfiles(files=outputs+srcs_files),
         ),
         VivadoGenProvider(
           headers = depset(hdrs_files),
@@ -859,8 +860,7 @@ def vivado_generics(name, kvs, data=None, synth=None):
     params = []
     for k, v in kvs.items():
         params +=  [
-            "--generic",
-            "{}={}".format(k, v)
+            "--generic={}={}".format(k, v),
         ]
     if synth:
         params += ["--synth", synth]
@@ -870,8 +870,5 @@ def vivado_generics(name, kvs, data=None, synth=None):
         srcs=data,
         outs = [ out_name ],
         tools = [ Label("@rules_vivado//bin/genparams") ] + data,
-        cmd = """
-        $(location @rules_vivado//bin/genparams) \
-                {} > $@
-        """.format(" ".join(params)),
+        cmd = """$(location @rules_vivado//bin/genparams) {} > $@""".format(" ".join(params)),
     )

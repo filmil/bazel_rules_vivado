@@ -42,6 +42,8 @@ type XPRBinding struct {
 	VerilogIncludeDirs []string
 	// VHDLFiles is a list of VHDL files to load.
 	VHDLFiles []FileLib
+	// OtherFiles is a list of generic files to load.
+	OtherFiles []FileLib
 	// XDCFiles is a list of constraints (.xdc files) to use.
 	XDCFiles []string
 	// PWD is the working directory.
@@ -123,6 +125,12 @@ set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}
 # Ordering is important here, too.
 {{- range .XDCFiles}}
 read_xdc {{"{"}} {{- . -}} {{"}"}}
+{{- end}}
+# end: constraints files
+
+# Other files.
+{{- range .OtherFiles}}
+add_files -norecurse {{ . }}
 {{- end}}
 # end: constraints files
 
@@ -217,18 +225,17 @@ type FileLib struct {
 }
 
 // AppendTo appends `fl` into one of the typed file lists.
-func AppendTo(systemVerilogFiles, verilogFiles, VHDLFiles *[]FileLib, fl FileLib) error {
+func AppendTo(systemVerilogFiles, verilogFiles, VHDLFiles, otherFiles *[]FileLib, fl FileLib) error {
 	if fl.Name == "" {
 		return fmt.Errorf("no file name in %+v", fl)
-	}
-	if strings.HasSuffix(fl.Name, SystemVerilogExtension) {
+	} else if strings.HasSuffix(fl.Name, SystemVerilogExtension) {
 		*systemVerilogFiles = append(*systemVerilogFiles, fl)
-	}
-	if strings.HasSuffix(fl.Name, VerilogExtension) {
+	} else if strings.HasSuffix(fl.Name, VerilogExtension) {
 		*verilogFiles = append(*verilogFiles, fl)
-	}
-	if strings.HasSuffix(fl.Name, VHDLExtension1) || strings.HasSuffix(fl.Name, VHDLExtension2) {
+	} else if strings.HasSuffix(fl.Name, VHDLExtension1) || strings.HasSuffix(fl.Name, VHDLExtension2) {
 		*VHDLFiles = append(*VHDLFiles, fl)
+	} else {
+		*otherFiles = append(*otherFiles, fl)
 	}
 	return nil
 }
@@ -293,11 +300,12 @@ func main() {
 		verilogFiles       []FileLib
 		systemVerilogFiles []FileLib
 		VHDLFiles          []FileLib
+		OtherFiles         []FileLib
 	)
 
 	for _, v := range libraryFiles.values {
 		s := strings.Split(v, "=")
-		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, &OtherFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
 			log.Fatalf("while classifying: %v: %v", v, err)
 		}
 	}
@@ -305,7 +313,7 @@ func main() {
 	// Sort the different program files into their own file type lists. Order
 	// is significant.
 	for _, v := range sources.values {
-		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, FileLib{Name: v}); err != nil {
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, &OtherFiles, FileLib{Name: v}); err != nil {
 			log.Fatalf("while classifying: %v: %v", v, err)
 		}
 	}
@@ -330,6 +338,7 @@ func main() {
 		SystemVerilogFiles: systemVerilogFiles,
 		VerilogFiles:       verilogFiles,
 		VHDLFiles:          VHDLFiles,
+		OtherFiles:         OtherFiles,
 		VerilogHeaders:     headers.values,
 		VerilogIncludeDirs: vDirs,
 		XDCFiles:           xdcFiles.values,

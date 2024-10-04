@@ -38,7 +38,7 @@ var (
 
 {{$synth := .Synth}}
 {{range .Values}}
-    set_property generic {{.}} [current_fileset]
+    set_property generic { {{.}} } [ get_filesets {{$synth}} ]
 {{end}}
 
 # End.
@@ -62,7 +62,7 @@ func main() {
 	b.Values = generics.Iter()
 
 	if err := xdcTmpl.Execute(os.Stdout, b); err != nil {
-		fmt.Printf("error: %v", err)
+		fmt.Fprintf(os.Stderr, "error: %v", err)
 		os.Exit(1)
 	}
 }
