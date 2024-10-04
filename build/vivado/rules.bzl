@@ -7,6 +7,7 @@ VivadoLibraryProvider = provider(
         "name": "The library name",
         "files": "The list of files comprising this library",
         "deps": "A depset of other providers",
+        "deps_names": "A depset of library names contained in `deps`",
     }
 )
 
@@ -181,6 +182,8 @@ def _xpr_gen(
 
 
 def _vivado_project_impl(ctx):
+    args = ctx.actions.args()
+
     # General setup
     name = ctx.attr.name
     top_level = ctx.attr.top_level
@@ -191,22 +194,54 @@ def _vivado_project_impl(ctx):
 
     # Why is this data model so complicated?!
     inputs = []
+    xdcs_files = []
+    outputs = []
+    deps_files = []
+    srcs_files = []
+    hdrs_files = []
+
+    # Get library deps.
+    seen_libraries = []
+    for dep in ctx.attr.deps:
+        # process dep deps.
+        provider = dep[VivadoLibraryProvider]
+
+        for provider_dep in provider.deps.to_list():
+            lib_name = provider_dep.name
+            if lib_name not in seen_libraries:
+                seen_libraries += [lib_name]
+
+                print("project_: processing dependency lib:", lib_name)
+
+                for file in provider_dep.files.to_list():
+                    inputs += [file]
+                    deps_files += [file]
+                    args.add("--library-file", "{}={}".format(lib_name, file.path))
+
+        lib_name = provider.name
+        if lib_name not in seen_libraries:
+            seen_libraries += [lib_name]
+
+            print("project_: processing dependency lib:", lib_name)
+
+            for file in provider.files.to_list():
+                inputs += [file]
+                deps_files += [file]
+                args.add("--library-file", "{}={}".format(lib_name, file.path))
 
     # Process srcs
-    srcs_files = []
     for src_target in ctx.attr.srcs:
         srcs_files += src_target.files.to_list()
     inputs += srcs_files
     src_paths = [ f.path for f in srcs_files ]
+
     # Process hdrs
-    hdrs_files = []
     for hdrs_target in ctx.attr.hdrs:
         hdrs_files += hdrs_target.files.to_list()
     inputs += hdrs_files
     hdrs_paths = [ f.path for f in hdrs_files ]
 
     # Process constraints files (.xdc)
-    xdcs_files = []
     for xdcs_target in ctx.attr.xdcs:
         xdcs_files += xdcs_target.files.to_list()
     inputs += xdcs_files
@@ -216,7 +251,6 @@ def _vivado_project_impl(ctx):
     include_dirs = ctx.attr.include_dirs  # list(string)
 
     # Handle output files
-    outputs = []
     xpr = ctx.actions.declare_file("{}.xpr.tcl".format(name))
     outputs += [xpr]
     synth_tcl = ctx.actions.declare_file("{}.synth.tcl".format(name))
@@ -226,7 +260,6 @@ def _vivado_project_impl(ctx):
 
 
     # Prepare args
-    args = ctx.actions.args()
     args.add("--project-name", name)
     args.add("--top-name", top_level)
     args.add_all(src_paths, before_each="--source")
@@ -238,15 +271,6 @@ def _vivado_project_impl(ctx):
     args.add("--out-synth", synth_tcl.path)
     args.add("--out-pnr", pnr_tcl.path)
 
-    # Get library deps.
-    deps_files = []
-    for dep in ctx.attr.deps:
-        provider = dep[VivadoLibraryProvider]
-        lib_name = provider.name
-        for file in provider.files.to_list():
-            inputs += [file]
-            deps_files += [file]
-            args.add("--library-file", "{}={}".format(lib_name, file.path))
 
     part = ctx.attr.part
     args.add("--part", part)
@@ -752,42 +776,70 @@ vivado_program_device = rule(
 )
 
 
-def _vivado_library(ctx):
-    transitive_list = []
-    direct_list = []
+def _vivado_library_impl(ctx):
+    # Handle direct files.
+    files = []
+
+    srcs_targets = ctx.attr.srcs
+    if not len(srcs_targets):
+        fail("Target: {name} has either no srcs or empty srcs".format(name=ctx.attr.name))
+    for target in srcs_targets:
+        files += [file for file in target.files.to_list()]
+
+    provider_direct_list = []
+    provider_transitive_depsets = []
+
     transitive_files = []
+    deps_names_direct = []
+    deps_names_transitive = []
+    deps_names_transitive_depsets = []
     for dep in ctx.attr.deps:
         provider = dep[VivadoLibraryProvider]
-        transitive_list += [ provider.deps ]
-        transitive_files += [ provider.files ]
-        direct_list += [provider]
 
-    files = []
-    for target in ctx.attr.srcs:
-        for file in target.files.to_list():
-            files += [file]
+        dep_library_name = provider.name
 
-    files_depset = depset(files, transitive=transitive_files)
+        dep_names_depset = provider.deps_names
+        deps_names_transitive += dep_names_depset.to_list()
+        deps_names_transitive_depsets += [dep_names_depset]
 
+        if not dep_library_name in deps_names_transitive:
+            deps_names_direct += [dep_library_name]
+
+            transitive_files += [ provider.files ]
+
+            provider_direct_list += [provider]
+            provider_transitive_depsets += [provider.deps]
+
+    # Build correct depsets (hopefully...)
+    files_depset = depset(files, transitive=transitive_files, order="postorder") # All files, no library distinction.
+    deps_names=depset(deps_names_direct, transitive=deps_names_transitive_depsets, order="postorder") # All deps library names.
+    deps = depset(provider_direct_list, transitive=provider_transitive_depsets, order="postorder")
+
+    # Fixup library name. By default it is the target name. But if the target
+    # name for some reason can not be used, allow the user to specify
+    # library_name instead.
     library_name = ctx.attr.name
     if ctx.attr.library_name:
         library_name = ctx.attr.library_name
 
+    vivado_provider = VivadoLibraryProvider(
+        name=library_name,
+        files=depset(files), # Only direct files, not transitive.
+        deps=deps,
+        deps_names=deps_names,
+    )
+
     return [
         DefaultInfo(files=files_depset),
-        VivadoLibraryProvider(
-            name=library_name,
-            files=files_depset,
-            deps=depset(direct_list, transitive=transitive_list),
-        ),
+        vivado_provider,
     ]
 
 vivado_library = rule(
-    implementation = _vivado_library,
+    implementation = _vivado_library_impl,
     attrs = {
         "srcs": attr.label_list(
             # I think that Verilog does not have libraries.
-            allow_files = [ "vhd", "vhdl", "v", "sv" ]
+            allow_files = [ "vhd", "vhdl", "v", "sv" ],
             doc = "The list of files in this library",
         ),
         "deps": attr.label_list(
@@ -797,8 +849,31 @@ vivado_library = rule(
         ),
         "library_name": attr.string(
             doc = """An optional library name, in the case the target name
-                     can not be used for some reason.""
+                     can not be used for some reason."""
         ),
     },
 )
 
+
+
+def vivado_generics(name, kvs, data=None, synth=None):
+    out_name = "{}.xdc".format(name)
+    params = []
+    for k, v in kvs.items():
+        params +=  [
+            "--generic",
+            "{}={}".format(k, v)
+        ]
+    if synth:
+        params += ["--synth", synth]
+
+    native.genrule(
+        name=name,
+        srcs=data,
+        outs = [ out_name ],
+        tools = [ Label("@rules_vivado//bin/genparams") ] + data,
+        cmd = """
+        $(location @rules_vivado//bin/genparams) \
+                {} > $@
+        """.format(" ".join(params)),
+    )

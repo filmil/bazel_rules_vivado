@@ -51,6 +51,10 @@ type XPRBinding struct {
 	// Part is the designator of the FPGA part to be programmed.
 	// For example, "xc7a200tfbg484-2"
 	Part string
+
+	// VHDLStandard is the standard of language to use, e.g. "2008" (also the
+	// default).
+	VHDLStandard string
 }
 
 var (
@@ -108,7 +112,7 @@ read_verilog {{with .Library }} -library {{ . }} {{- end}} -sv {{"{"}} {{- .Name
 # VHDL files
 # Ordering is important.
 {{- range .VHDLFiles}}
-read_vhdl {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
+read_vhdl -vhdl2008 {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
 {{- end}}
 # end: VHDL files
 
@@ -241,6 +245,7 @@ func main() {
 		xdcFiles                                RepeatedString
 		part                                    string
 		libraryFiles                            RepeatedString
+		VHDLStandard                            string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -263,6 +268,7 @@ func main() {
 	flag.Var(&defines, "define", "list of include directories")
 	flag.Var(&libraryFiles, "library-file", "each is: library=file")
 	flag.StringVar(&part, "part", "", "The FPGA part to use for synthesis")
+	flag.StringVar(&VHDLStandard, "vhdl-standard", "2008", "The VHDL language standard to use")
 	flag.Parse()
 
 	if part == "" {
@@ -273,9 +279,6 @@ func main() {
 	}
 	if topName == "" {
 		log.Fatalf("flag --top-name=... is required")
-	}
-	if sources.Empty() {
-		log.Fatalf("at least one --source arg is required")
 	}
 
 	var (
@@ -333,6 +336,7 @@ func main() {
 		PWD:                pwd,
 		OutXpr:             xprFileName,
 		Part:               part,
+		VHDLStandard:       VHDLStandard,
 	}
 
 	if err := WriteFile(xprFileName, xprTpl, &xpr); err != nil {

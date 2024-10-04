@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 package(
-    default_visibility = ["//visibility:public"]
+    default_visibility = ["//visibility:public"],
 )
 
 go_library(
@@ -13,20 +13,22 @@ go_library(
 
 go_binary(
     name = "proggen",
-    embed = [":proggen_lib"],
-    visibility = ["//visibility:public"],
     data = [
         ":data",
-    ]
+    ],
+    embed = [":proggen_lib"],
+    visibility = ["//visibility:public"],
 )
 
 filegroup(
     name = "data",
-    srcs = [ "main_script.tpl.sh", "flags.yaml" ],
+    srcs = [
+        "flags.yaml",
+        "main_script.tpl.sh",
+    ],
 )
-
 
 filegroup(
     name = "prog_script",
-    srcs = [ "program.tcl" ],
+    srcs = ["program.tcl"],
 )
