@@ -4,7 +4,7 @@
 # Generated as:  {{ .Outfile }}
 # From template: {{ .TemplateFile }}
 #
-set -eo pipefail 
+set -eo pipefail
 
 readonly _this_dir="${0%/*}"
 
@@ -13,7 +13,7 @@ readonly _run_docker="external/bazel_rules_bid/build/docker_run.sh"
 readonly _gotopt2="external/gotopt2/cmd/gotopt2/gotopt2_/gotopt2"
 readonly _yaml_config="external/rules_vivado/build/vivado/bin/proggen/flags.yaml"
 readonly _bitfile="{{ .BitFile }}"
-GOTOPT2_OUTPUT=$($_gotopt2 $@ < $_yaml_config)
+GOTOPT2_OUTPUT=$(${_gotopt2} $@ < $_yaml_config)
 if [[ "$?" == "11" ]]; then
   # When --help option is used, gotopt2 exits with code 11.
   exit 1

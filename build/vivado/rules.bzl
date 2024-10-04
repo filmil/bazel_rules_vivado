@@ -211,8 +211,6 @@ def _vivado_project_impl(ctx):
             if lib_name not in seen_libraries:
                 seen_libraries += [lib_name]
 
-                print("project_: processing dependency lib:", lib_name)
-
                 for file in provider_dep.files.to_list():
                     inputs += [file]
                     deps_files += [file]
@@ -221,8 +219,6 @@ def _vivado_project_impl(ctx):
         lib_name = provider.name
         if lib_name not in seen_libraries:
             seen_libraries += [lib_name]
-
-            print("project_: processing dependency lib:", lib_name)
 
             for file in provider.files.to_list():
                 inputs += [file]
@@ -701,8 +697,10 @@ def _vivado_program_device(ctx):
     generator = ctx.attr._proggen.files.to_list()[0]
 
     data = ctx.attr._data.files.to_list()
-    tpl1 = data[0]
-    yaml = data[1]
+
+    # These do not seem to be stable; why?
+    tpl1 = data[1]
+    yaml = data[0]
 
     # Generated script file.
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))

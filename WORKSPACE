@@ -78,7 +78,7 @@ gotopt2_dependencies()
 
 git_repository(
     name = "rules_fusesoc",
-    commit = "6d944b3893b03d947f307b436cde79925c4b3052",
+    commit = "2c5a3598a35f2d8457470daff89f936de78a3e67",
     remote = "https://github.com/filmil/bazel_rules_fusesoc",
     shallow_since = "1717828162 -0700",
 )

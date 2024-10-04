@@ -5,4 +5,4 @@ flags:
 - name: "device"
   type: string
   #Not sure what should be here.
-  #default: "*/xilinx_tcf/Digilent/210251130202"
+  default: "*/xilinx_tcf/Digilent/210251130202"
