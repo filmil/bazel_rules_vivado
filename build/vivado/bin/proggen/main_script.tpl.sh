@@ -63,13 +63,11 @@ puts "INFO: Refresh."
 refresh_hw_device \$Device
 puts "INFO: Done."
 EOF
-
 env RUNFILES_DIR="$PWD/.." \
 "${_run_docker}" \
     --container=xilinx-vivado:latest \
     --dir-reference=${PWD} \
     --source-dir=${PWD} \
-    --scratch-dir=${PWD}:/.cache \
     --mounts=/tmp/.X11-unix:/tmp/.X11-unix:ro \
     --freeargs=--net=host,-e,HOME=/work,-w,/work \
     --src-mount=/work \

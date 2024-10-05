@@ -862,20 +862,26 @@ vivado_library = rule(
 
 
 
-def vivado_generics(name, kvs, data=None, synth=None):
+def vivado_generics(name, verilog_top=None, vhdl_top=None, params={}, generics={}, data=None, synth=None):
     out_name = "{}.tcl".format(name)
-    params = []
-    for k, v in kvs.items():
-        params +=  [
-            "--generic={}={}".format(k, v),
-        ]
-    if synth:
-        params += ["--synth", synth]
+    args = []
+    for k, v in params.items():
+        args +=  [
+            "--param={}={}".format(k, v),
+    ]
+    if verilog_top:
+        args += ["--verilog-top", verilog_top]
 
+    for k, v in generics.items():
+        args +=  [
+            "--generic={}={}".format(k, v),
+    ]
+    if vhdl_top:
+        args += ["--vhdl-top", vhdl_top]
     native.genrule(
         name=name,
         srcs=data,
         outs = [ out_name ],
         tools = [ Label("@rules_vivado//bin/genparams") ] + data,
-        cmd = """$(location @rules_vivado//bin/genparams) {} > $@""".format(" ".join(params)),
+        cmd = """$(location @rules_vivado//bin/genparams) {} > $@""".format(" ".join(args)),
     )
