@@ -38,7 +38,7 @@ var (
 
 {{$synth := .Synth}}
 {{range .Values}}
-    set_property generic { {{.}} } [ get_filesets {{$synth}} ]
+    set_property generic { {{.}} } [ current_fileset ]
 {{end}}
 
 # End.

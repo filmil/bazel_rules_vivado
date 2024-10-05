@@ -449,6 +449,10 @@ def _vivado_synthesis_impl(ctx):
       cp --dereference {xpr_src} {xpr_file} && \
       chmod a+w {xpr_file} && \
       cp -R --dereference {xpr_gen_output_dir} $PWD && \
+      TCL_FILES="$(find . -name '*.tcl')" && \
+         if [[ "$TCL_FILES" != "" ]]; then \
+            cp -R --dereference $TCL_FILES {output_dir_path} ; \
+         fi && \
       VHDL_FILES="$(find . -name '*.vhd?')" && \
          if [[ "$VHDL_FILES" != "" ]]; then \
             cp -R --dereference $VHDL_FILES {output_dir_path} ; \
@@ -561,6 +565,9 @@ def _vivado_pnr_impl(ctx):
   inputs += xdcs_files
   xdcs_paths = [ f.path for f in xdcs_files ]
   inputs += xdcs_files
+
+  # Process sources
+  inputs += [file for file in provider.sources.to_list()]
 
   # Outputs
   # Since Vivado very generously creates directories willy-nilly, we have to
@@ -856,7 +863,7 @@ vivado_library = rule(
 
 
 def vivado_generics(name, kvs, data=None, synth=None):
-    out_name = "{}.xdc".format(name)
+    out_name = "{}.tcl".format(name)
     params = []
     for k, v in kvs.items():
         params +=  [
