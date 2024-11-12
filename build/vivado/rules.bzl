@@ -6,8 +6,11 @@ VivadoLibraryProvider = provider(
     fields = {
         "name": "The library name",
         "files": "The list of files comprising this library",
+        "hdrs": "The list of headers in this library",
+        "includes": "The list of include dirs in this library.",
         "deps": "A depset of other providers",
         "deps_names": "A depset of library names contained in `deps`",
+        "library_dir": "A Vivado compiled library directory",
     }
 )
 
@@ -152,7 +155,7 @@ def _xpr_gen(
       {script} \
       LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
       {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-        -notrace -mode batch -source {xpr_tcl} && \
+        -notrace -mode batch -source {xpr_tcl} 1>&2 && \
       cp --dereference {xprsrc} {xprdest} && \
       cp --dereference {jou_file_rpath} {output_dir} && \
       cp --dereference {log_file_rpath} {output_dir} && \
@@ -470,7 +473,7 @@ def _vivado_synthesis_impl(ctx):
       {script} \
       LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
       {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-        -notrace -mode batch -source {synth_tcl} {xpr_file} && \
+        -notrace -mode batch -source {synth_tcl} {xpr_file} 1>&2 && \
       cp -R --dereference {runs_dir_rpath} {output_dir_path} && \
       cp -R --dereference {test_hw_rpath} {output_dir_path} && \
       cp -R --dereference {user_files_dir} {output_dir_path} && \
@@ -816,11 +819,6 @@ def _vivado_library_impl(ctx):
             provider_direct_list += [provider]
             provider_transitive_depsets += [provider.deps]
 
-    # Build correct depsets (hopefully...)
-    files_depset = depset(files, transitive=transitive_files, order="postorder") # All files, no library distinction.
-    deps_names=depset(deps_names_direct, transitive=deps_names_transitive_depsets, order="postorder") # All deps library names.
-    deps = depset(provider_direct_list, transitive=provider_transitive_depsets, order="postorder")
-
     # Fixup library name. By default it is the target name. But if the target
     # name for some reason can not be used, allow the user to specify
     # library_name instead.
@@ -828,11 +826,137 @@ def _vivado_library_impl(ctx):
     if ctx.attr.library_name:
         library_name = ctx.attr.library_name
 
+    outputs = []
+    # The directory to output the library info.  Will probably end up having
+    # subdirectories.
+    library_output_dir = ctx.actions.declare_directory(
+        "target-{}.lib-{}.hdlib".format(ctx.attr.name, library_name))
+    outputs += [library_output_dir]
+
+    # Not sure if all of these are required
+    output_dir_path = "_xvlog_gen.work.{}".format(ctx.attr.name)
+    output_dir = ctx.actions.declare_directory(output_dir_path)
+    outputs += [output_dir]
+    cache_dir = ctx.actions.declare_directory(
+      "_xvlog_gen.cache.{}".format(ctx.label.name))
+    outputs += [cache_dir]
+
+    # Process inputs to the compilation.
+    inputs = []
+
+    # Prepare to run xvlog/xvhdl
+    docker_run = ctx.executable._script
+    env = ctx.attr.env
+    mounts = {}
+    if ctx.attr.mount:
+      mounts.update(ctx.attr.mount)
+    mounts.update({
+      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+    })
+
+    script = _script_cmd(
+      docker_run.path,
+      output_dir.path,
+      cache_dir.path,
+      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
+      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
+      freeargs=[
+        "--net=host",
+        "-e", "HOME=/work",
+        "-w", "/work",
+      ],
+    )
+
+    args = [] # Not using ctx.actions.args() because of the very specific scripting.
+
+    inputs += files
+    # Header files are rule inputs, but they do not appear on the command line.
+    hdrs = []
+    for target in ctx.attr.hdrs:
+        hdrs += target.files.to_list()
+
+    # Determine the compilation command
+    command = None
+    library_type = None
+    for file in files:
+        if file.extension == "v": # Verilog (ordinary)
+            if command and command != "xvlog":
+                fail("can not mix VHDL and Verilog files in the same library")
+            command = "xvlog"
+            library_type = "Verilog"
+        if file.extension == "sv": # SystemVerilog
+            if command and command != "xvlog":
+                fail("can not mix VHDL and SystemVerilog files in the same library")
+            command = "xvlog"
+            args += ["--sv"]
+            library_type = "SystemVerilog"
+        if file.extension == "vhd" or file.extension == "vhdl": # Vhdl
+            if command and command != "xvhdl":
+                fail("cann ot mix VHDL  with Verilog in the same library")
+            command = "xvhdl"
+            library_type = "VHDL"
+
+    args += ["--work", "{}={}".format(library_name, library_output_dir.path)]
+
+    # Handle include directories
+    for include in ctx.attr.includes:
+        full_include = None
+        if include[:2] == "//":
+            full_include = include[2:]
+        elif include in ["", "."]:
+            full_include = ctx.attr.package
+        else:
+            full_include = "/".join([ctx.attr.package, include])
+        args += ["-i", full_include]
+
+    # Handle dependency libraries.
+    for dep in ctx.attr.deps:
+        provider = dep[VivadoLibraryProvider]
+        dep_library_name = provider.name
+        dep_library_dir = provider.library_dir
+        args += ["--lib", "{}={}".format(dep_library_name, dep_library_dir.path)]
+        inputs += [dep_library_dir]
+
+    # Macro values to define when analyzing this library.
+    for k, v in ctx.attr.defines:
+        args += ["-d", "{}={}".format(k,v)]
+
+    for file in files:
+        args += [file.path]
+
+    ctx.actions.run_shell(
+        progress_message = "Vivado compile {} library \"{}\"".format(
+            library_type, library_name),
+        inputs = inputs + hdrs + [docker_run],
+        outputs = outputs,
+        mnemonic = "Vivado{}".format(library_type),
+        tools = [docker_run],
+        command = """\
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
+            {args} 1>&2
+        """.format(
+            script=script,
+            vivado_path=VIVADO_PATH,
+            command=command,
+            args=" ".join(args),
+        ),
+    )
+
+    # Build correct depsets (hopefully...)
+    files_depset = depset(files+[library_output_dir], transitive=transitive_files, order="postorder") # All files, no library distinction.
+    deps_names=depset(deps_names_direct, transitive=deps_names_transitive_depsets, order="postorder") # All deps library names.
+    deps = depset(provider_direct_list, transitive=provider_transitive_depsets, order="postorder")
+
     vivado_provider = VivadoLibraryProvider(
         name=library_name,
         files=depset(files), # Only direct files, not transitive.
+        includes=depset(ctx.attr.includes),
+        hdrs=depset(hdrs),
         deps=deps,
         deps_names=deps_names,
+        library_dir=library_output_dir,
     )
 
     return [
@@ -848,14 +972,38 @@ vivado_library = rule(
             allow_files = [ "vhd", "vhdl", "v", "sv" ],
             doc = "The list of files in this library",
         ),
+        "hdrs": attr.label_list(
+            allow_files = [ "h", "vh", "svh", ],
+            doc = "The list of include files in this library",
+        ),
         "deps": attr.label_list(
             allow_files = True,
             doc = "The list of files in this library",
             providers = [VivadoLibraryProvider],
         ),
+        "includes": attr.string_list(
+            doc = "The list of additional directories to append to the include list",
+        ),
+        "defines": attr.string_dict(
+            doc = "The list of key-to-value mappings to apply to the compilation",
+        ),
         "library_name": attr.string(
             doc = """An optional library name, in the case the target name
                      can not be used for some reason."""
+        ),
+        # These parameters are part of the docker_run setup.
+        "env": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of env variables to define for the run."
+        ),
+        "mount": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of mounts to define for the run."
+        ),
+        "_script": attr.label(
+            default="@bazel_rules_bid//build:docker_run",
+            executable=True,
+            cfg="host",
         ),
     },
 )
