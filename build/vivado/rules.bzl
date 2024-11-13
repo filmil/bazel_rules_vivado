@@ -1033,3 +1033,178 @@ def vivado_generics(name, verilog_top=None, vhdl_top=None, params={}, generics={
         tools = [ Label("@rules_vivado//bin/genparams") ] + data,
         cmd = """$(location @rules_vivado//bin/genparams) {} > $@""".format(" ".join(args)),
     )
+
+
+def _vivado_simulation_impl(ctx):
+    args = []
+    files = []
+    # elaborate first
+
+    provider = ctx.attr.library[VivadoLibraryProvider]
+    deps_depset = provider.deps
+    args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
+    args += ["--debug", "typical"]
+    for dep in provider.deps.to_list():
+        dep_provider = dep[VivadoLibraryProvider]
+        files += [file for file in dep_provider.files.to_list()]
+        files += [dep_provider.library_dir]
+        args += ["-L", "{}={}".format(
+            dep_provider.name, dep_provider.library_dir.path)]
+
+    files += [file for file in provider.files.to_list()]
+    files += [provider.library_dir]
+
+    args += ["--top", "{}.{}".format(provider.name, ctx.attr.top)]
+
+    for k, v in ctx.attr.defines:
+        args += ["-d", "{}={}".format(k,v)]
+
+    # The unit to elaborate.
+    snapshot_name = "{}.{}.snapshot".format(provider.name, ctx.attr.top)
+    args += ["--snapshot", snapshot_name]
+
+    outputs = []
+    # This is where the snapshot is located.
+    xsim_dir = ctx.actions.declare_directory("{}.xsim.dir".format(ctx.label.name))
+    outputs += [xsim_dir]
+
+    # Prepare to run xelab.
+    docker_run = ctx.executable._script
+    env = ctx.attr.env
+    mounts = {}
+    if ctx.attr.mount:
+      mounts.update(ctx.attr.mount)
+    mounts.update({
+      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+    })
+
+    # Outputs
+    output_dir_path = "_xpr_gen.work.{}".format(ctx.label.name)
+    output_dir = ctx.actions.declare_directory(output_dir_path)
+    outputs += [output_dir]
+    cache_dir = ctx.actions.declare_directory(
+      "_xpr_gen.cache.{}".format(ctx.label.name))
+    outputs += [cache_dir]
+
+    script = _script_cmd(
+      docker_run.path,
+      output_dir.path,
+      cache_dir.path,
+      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
+      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
+      freeargs=[
+        "--net=host",
+        "-e", "HOME=/work",
+        "-w", "/work",
+      ],
+    )
+
+    # xelab apparently can not set the location of xsim.dir, so move it to a
+    # predictable place.
+    suffix = ["&&", "mv xsim.dir {}".format(xsim_dir.path)]
+
+    ctx.actions.run_shell(
+        progress_message = "Vivado elaborate library \"{}\"".format(provider.name),
+        inputs = files + [docker_run],
+        outputs = outputs,
+        mnemonic = "VivadoElab",
+        tools = [docker_run],
+        command = """\
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
+            {args} 1>&2 {suffix}
+        """.format(
+            script=script,
+            vivado_path=VIVADO_PATH,
+            command="xelab",
+            args=" ".join(args),
+            suffix=" ".join(suffix),
+        ),
+    )
+
+    # Template script file for running xsim
+    vcd_file = ctx.actions.declare_file(
+        "{}.vcd".format(ctx.label.name))
+    xsim_script_file = ctx.actions.declare_file(
+        "{}.xsim.tcl".format(ctx.label.name))
+    ctx.actions.expand_template(
+        output = xsim_script_file,
+        template = ctx.attr.template.files.to_list()[0],
+        substitutions = {
+            "{{VCD_FILE}}": vcd_file.path,
+            "{{TOP}}": ctx.attr.top,
+        },
+    )
+
+    args = []
+    inputs2 = [xsim_dir, xsim_script_file, provider.library_dir]
+    #args += ["--xsimdir", "{}/xsim.dir".format(xsim_dir.path)]
+    args += ["--tclbatch", xsim_script_file.path]
+    outputs2 = [vcd_file]
+    args += ["--vcdfile", vcd_file.path]
+    args += [snapshot_name]
+
+    # We must fix up the non-relocatability of xsim.dir.
+    prefix = ["cp -R {}/xsim.dir ./xsim.dir".format(xsim_dir.path), "&&"]
+
+    ctx.actions.run_shell(
+        progress_message = "Vivado simulate \"{}.{}\"".format(provider.name, ctx.attr.top),
+        inputs = inputs2 + [docker_run],
+        outputs = outputs2,
+        mnemonic = "VivadoXsim",
+        tools = [docker_run],
+        command = """\
+            {prefix} \
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
+            {args} 1>&2
+        """.format(
+            prefix=" ".join(prefix),
+            script=script,
+            vivado_path=VIVADO_PATH,
+            command="xsim",
+            args=" ".join(args),
+        ),
+    )
+
+    return [
+        DefaultInfo(
+          files = depset(outputs2),
+        ),
+    ]
+
+vivado_simulation = rule(
+    implementation = _vivado_simulation_impl,
+    attrs = {
+        "library": attr.label(
+            doc = "The library to run the simulation from",
+            providers = [VivadoLibraryProvider],
+        ),
+        "top": attr.string(
+            doc = "Name of the top level entity to simulate",
+        ),
+        "defines": attr.string_dict(
+            doc = "The list of key-to-value mappings to apply to the compilation",
+        ),
+        # These parameters are part of the docker_run setup.
+        "env": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of env variables to define for the run."
+        ),
+        "mount": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of mounts to define for the run."
+        ),
+        "_script": attr.label(
+            default="@bazel_rules_bid//build:docker_run",
+            executable=True,
+            cfg="host",
+        ),
+        "template": attr.label(
+            allow_single_file = [".tcl.template"],
+            default="xsim.tcl.template",
+        ),
+    },
+)

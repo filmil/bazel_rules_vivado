@@ -1,0 +1,18 @@
+load(
+    "//build/vivado:rules.bzl",
+    "vivado_library", "vivado_simulation"
+)
+
+vivado_library(
+    name = "test_library",
+    srcs = [
+        "adder.sv",
+        "tb.sv",
+    ]
+)
+
+vivado_simulation(
+    name = "sim",
+    library = ":test_library",
+    top = "tb",
+)
