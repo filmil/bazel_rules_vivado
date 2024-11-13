@@ -1,1 +1,1 @@
-exports_files(["xsim.tcl.template"])
+exports_files(["xsim.tcl.template", "compile_simlib.tcl.template"])
