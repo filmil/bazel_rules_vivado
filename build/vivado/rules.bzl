@@ -11,6 +11,7 @@ VivadoLibraryProvider = provider(
         "deps": "A depset of other providers",
         "deps_names": "A depset of library names contained in `deps`",
         "library_dir": "A Vivado compiled library directory",
+        "unisims_libs": "A boolean",
     }
 )
 
@@ -786,12 +787,12 @@ vivado_program_device = rule(
 
 
 def _vivado_library_impl(ctx):
+    args = [] # Not using ctx.actions.args() because of the very specific scripting.
+
     # Handle direct files.
     files = []
 
     srcs_targets = ctx.attr.srcs
-    if not len(srcs_targets):
-        fail("Target: {name} has either no srcs or empty srcs".format(name=ctx.attr.name))
     for target in srcs_targets:
         files += [file for file in target.files.to_list()]
 
@@ -805,19 +806,28 @@ def _vivado_library_impl(ctx):
     for dep in ctx.attr.deps:
         provider = dep[VivadoLibraryProvider]
 
-        dep_library_name = provider.name
-
-        dep_names_depset = provider.deps_names
-        deps_names_transitive += dep_names_depset.to_list()
-        deps_names_transitive_depsets += [dep_names_depset]
-
-        if not dep_library_name in deps_names_transitive:
-            deps_names_direct += [dep_library_name]
-
-            transitive_files += [ provider.files ]
+        # Special-casing unisims, will be processed below too.
+        if provider.unisims_libs:
+            dep_names_depset = provider.deps_names
+            deps_names_transitive += dep_names_depset.to_list()
+            deps_names_transitive_depsets += [dep_names_depset]
 
             provider_direct_list += [provider]
             provider_transitive_depsets += [provider.deps]
+        else:
+            dep_library_name = provider.name
+
+            dep_names_depset = provider.deps_names
+            deps_names_transitive += dep_names_depset.to_list()
+            deps_names_transitive_depsets += [dep_names_depset]
+
+            if not dep_library_name in deps_names_transitive:
+                deps_names_direct += [dep_library_name]
+
+                transitive_files += [ provider.files ]
+
+                provider_direct_list += [provider]
+                provider_transitive_depsets += [provider.deps]
 
     # Fixup library name. By default it is the target name. But if the target
     # name for some reason can not be used, allow the user to specify
@@ -867,8 +877,6 @@ def _vivado_library_impl(ctx):
       ],
     )
 
-    args = [] # Not using ctx.actions.args() because of the very specific scripting.
-
     inputs += files
     # Header files are rule inputs, but they do not appear on the command line.
     hdrs = []
@@ -912,10 +920,19 @@ def _vivado_library_impl(ctx):
     # Handle dependency libraries.
     for dep in ctx.attr.deps:
         provider = dep[VivadoLibraryProvider]
-        dep_library_name = provider.name
-        dep_library_dir = provider.library_dir
-        args += ["--lib", "{}={}".format(dep_library_name, dep_library_dir.path)]
-        inputs += [dep_library_dir]
+
+        if provider.unisims_libs:
+            unisims_dir=provider.library_dir
+            inputs += [unisims_dir]
+            for dep_library_name in provider.deps_names.to_list():
+                args += ["--lib", "{lib_name}={dir_path}/{lib_name}".format(
+                    dir_path=unisims_dir.path,
+                    lib_name=dep_library_name)]
+        else:
+            dep_library_name = provider.name
+            dep_library_dir = provider.library_dir
+            args += ["--lib", "{}={}".format(dep_library_name, dep_library_dir.path)]
+            inputs += [dep_library_dir]
 
     # Macro values to define when analyzing this library.
     for k, v in ctx.attr.defines:
@@ -923,6 +940,11 @@ def _vivado_library_impl(ctx):
 
     for file in files:
         args += [file.path]
+
+    # Special Vivado sauce.
+    if ctx.attr.use_glbl:
+        command = "xvlog"
+        args = ["{}/data/verilog/src/glbl.v".format(VIVADO_PATH)] + args
 
     ctx.actions.run_shell(
         progress_message = "Vivado compile {} library \"{}\"".format(
@@ -957,6 +979,7 @@ def _vivado_library_impl(ctx):
         deps=deps,
         deps_names=deps_names,
         library_dir=library_output_dir,
+        unisims_libs=False,
     )
 
     return [
@@ -990,6 +1013,9 @@ vivado_library = rule(
         "library_name": attr.string(
             doc = """An optional library name, in the case the target name
                      can not be used for some reason."""
+        ),
+        "use_glbl": attr.bool(
+            default=False,
         ),
         # These parameters are part of the docker_run setup.
         "env": attr.string_dict(
@@ -1045,11 +1071,19 @@ def _vivado_simulation_impl(ctx):
     args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
     args += ["--debug", "typical"]
     for dep in provider.deps.to_list():
-        dep_provider = dep[VivadoLibraryProvider]
-        files += [file for file in dep_provider.files.to_list()]
-        files += [dep_provider.library_dir]
-        args += ["-L", "{}={}".format(
-            dep_provider.name, dep_provider.library_dir.path)]
+        print("dep: ", dep)
+        dep_provider = dep
+        if dep_provider.unisims_libs:
+            files += [dep_provider.library_dir]
+            for unisim_lib in dep_provider.deps_names.to_list():
+                args += ["-L", "{lib_name}={dir_name}/{lib_name}".format(
+                    lib_name=unisim_lib,
+                    dir_name=dep_provider.library_dir.path)]
+        else:
+            files += [file for file in dep_provider.files.to_list()]
+            files += [dep_provider.library_dir]
+            args += ["-L", "{}={}".format(
+                dep_provider.name, dep_provider.library_dir.path)]
 
     files += [file for file in provider.files.to_list()]
     files += [provider.library_dir]
@@ -1205,6 +1239,178 @@ vivado_simulation = rule(
         "template": attr.label(
             allow_single_file = [".tcl.template"],
             default="xsim.tcl.template",
+        ),
+    },
+)
+
+
+def _vivado_unisims_library_impl(ctx):
+    # General
+    name = ctx.attr.name
+    docker_run = ctx.executable._script
+    env = ctx.attr.env
+    mounts = {}
+    if ctx.attr.mount:
+      mounts.update(ctx.attr.mount)
+    mounts.update({
+      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+    })
+
+    # Outputs
+    output_dir_path = "_xpr_gen.work.{}".format(name)
+    output_dir = ctx.actions.declare_directory(output_dir_path)
+    outputs = [output_dir]
+
+    cache_dir = ctx.actions.declare_directory(
+      "_xpr_gen.cache.{}".format(ctx.label.name))
+    outputs += [cache_dir]
+
+    script = _script_cmd(
+      docker_run.path,
+      output_dir.path,
+      cache_dir.path,
+      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
+      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
+      freeargs=[
+        "--net=host",
+        "-e", "HOME=/work",
+        "-w", "/work",
+      ],
+    )
+    output_dir2 = ctx.actions.declare_directory("{}.unisims.top".format(ctx.label.name))
+    outputs += [output_dir2]
+
+    inputs = []
+    compile_script_file = ctx.actions.declare_file(
+        "{}.compile.tcl".format(ctx.label.name))
+    inputs += [compile_script_file]
+
+    bool_flags = []
+    if ctx.attr.force:
+        bool_flags += ["-force"]
+    if ctx.attr.quiet:
+        bool_flags += ["-quiet"]
+    if ctx.attr.verbose:
+        bool_flags += ["-verbose"]
+    if ctx.attr.no_ip_compile:
+        bool_flags += ["-no_ip_compile"]
+    if ctx.attr.no_systemc_compile:
+        bool_flags += ["-no_systemc_compile"]
+
+    libraries = []
+    for lib in ctx.attr.libraries:
+        libraries+= ["-library", lib]
+
+    ctx.actions.expand_template(
+        output = compile_script_file,
+        template = ctx.attr.template.files.to_list()[0],
+        substitutions = {
+            "{{COMMENT}}": "Generated file do not edit.",
+            "{{SIMULATOR}}": ctx.attr.simulator,
+            "{{FAMILY}}": ctx.attr.family,
+            "{{LANGUAGE}}": ctx.attr.language,
+            "{{OUTPUT_DIR}}": output_dir2.path,
+            "{{LIBRARIES}}": " ".join(libraries),
+            "{{SKIP_LIBRARIES}}": " ".join(ctx.attr.skip_libraries),
+            "{{BOOL_FLAGS}}": " ".join(bool_flags),
+        },
+    )
+    #args = ["-batch", compile_script_file.path]
+    args = ["-mode", "batch", "-script", compile_script_file.path]
+    ctx.actions.run_shell(
+        progress_message = "Vivado compile unisims {}.{}.{}".format(
+            ctx.label.name, ctx.attr.family, ctx.attr.language),
+        inputs = inputs + [docker_run],
+        outputs = outputs,
+        mnemonic = "VivadoXsim",
+        tools = [docker_run],
+        command = """\
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
+            {args} # 1>&2
+        """.format(
+            script=script,
+            vivado_path=VIVADO_PATH,
+            command="vivado",
+            args=" ".join(args),
+        ),
+    )
+    return [
+        DefaultInfo(files=depset([output_dir2])),
+        VivadoLibraryProvider(
+            name="(unisims bundle)",
+            files=[],
+            hdrs=[],
+            includes=[],
+            deps=depset([]),
+            deps_names=depset(ctx.attr.export_libraries),
+            library_dir=output_dir2,
+            unisims_libs=True,
+        ),
+    ]
+
+
+vivado_unisims_library = rule(
+    implementation = _vivado_unisims_library_impl,
+    # Options of the compile_simlib script.
+    # See: https://docs.amd.com/r/en-US/ug835-vivado-tcl-commands/compile_simlib
+    attrs = {
+        "simulator": attr.string(
+            default = "xsim",
+            doc = "Name of the top level entity to simulate",
+        ),
+        "language": attr.string(
+            default = "vhdl",
+            doc = "The language to compile for: vhdl|verilog|all",
+        ),
+        "family": attr.string(
+            default = "artix7",
+            doc = "The device family to compile the library for.",
+        ),
+        "libraries": attr.string_list(
+            default = ["unisim"],
+            doc = "The libraries to compile: unisim|simprim|...|all",
+        ),
+        "export_libraries": attr.string_list(
+            default = ["unisim", "unimacro", "unifast"],
+            doc = "The libraries to make available to users.",
+        ),
+        "force": attr.bool(
+            default = False,
+        ),
+        "quiet": attr.bool(
+            default = False,
+        ),
+        "verbose": attr.bool(
+            default = False,
+        ),
+        "no_ip_compile": attr.bool(
+            default = False,
+        ),
+        "no_systemc_compile": attr.bool(
+            default = False,
+        ),
+        "skip_libraries": attr.string_list(
+            default = [],
+            doc = "The list of libraries NOT to compile",
+        ),
+        "template": attr.label(
+            allow_single_file = [".tcl.template"],
+            default="compile_simlib.tcl.template",
+        ),
+        "env": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of env variables to define for the run."
+        ),
+        "mount": attr.string_dict(
+            allow_empty = True,
+            doc = "A dictionary of mounts to define for the run."
+        ),
+        "_script": attr.label(
+            default="@bazel_rules_bid//build:docker_run",
+            executable=True,
+            cfg="host",
         ),
     },
 )

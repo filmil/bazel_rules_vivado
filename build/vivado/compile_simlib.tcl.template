@@ -1,0 +1,8 @@
+# {{COMMENT}}
+compile_simlib {{BOOL_FLAGS}} \
+    -simulator {{SIMULATOR}} \
+    -family {{FAMILY}} \
+    -language {{LANGUAGE}} \
+    -directory {{OUTPUT_DIR}} \
+    -skip_libraries [list {{SKIP_LIBRARIES}}] \
+    {{LIBRARIES}}
