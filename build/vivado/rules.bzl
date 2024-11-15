@@ -1071,7 +1071,6 @@ def _vivado_simulation_impl(ctx):
     args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
     args += ["--debug", "typical"]
     for dep in provider.deps.to_list():
-        print("dep: ", dep)
         dep_provider = dep
         if dep_provider.unisims_libs:
             files += [dep_provider.library_dir]
