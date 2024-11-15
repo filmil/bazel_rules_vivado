@@ -1089,6 +1089,7 @@ def _vivado_simulation_impl(ctx):
     files += [provider.library_dir]
 
     args += ["--top", "{}.{}".format(provider.name, ctx.attr.top)]
+    args += ctx.attr.extra_modules
 
     for k, v in ctx.attr.defines:
         args += ["-d", "{}={}".format(k,v)]
@@ -1218,6 +1219,9 @@ vivado_simulation = rule(
         ),
         "top": attr.string(
             doc = "Name of the top level entity to simulate",
+        ),
+        "extra_modules": attr.string_list(
+            doc = "Names of additional modules to co-simulate",
         ),
         "defines": attr.string_dict(
             doc = "The list of key-to-value mappings to apply to the compilation",
