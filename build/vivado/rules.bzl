@@ -1177,6 +1177,10 @@ def _vivado_simulation_impl(ctx):
     args += ["--tclbatch", xsim_script_file.path]
     outputs2 = [vcd_file]
     args += ["--vcdfile", vcd_file.path]
+    wdb_file = ctx.actions.declare_file(
+        "{}.wdb".format(ctx.label.name))
+    outputs2 += [wdb_file]
+    args += ["--wdb", wdb_file.path]
     args += [snapshot_name]
 
     # We must fix up the non-relocatability of xsim.dir.
@@ -1206,6 +1210,10 @@ def _vivado_simulation_impl(ctx):
     return [
         DefaultInfo(
           files = depset(outputs2),
+        ),
+        OutputGroupInfo(
+            vcd = [vcd_file],
+            wdb = [wdb_file],
         ),
     ]
 
