@@ -936,7 +936,12 @@ def _vivado_library_impl(ctx):
 
     # Macro values to define when analyzing this library.
     for k, v in ctx.attr.defines:
-        args += ["-d", "{}={}".format(k,v)]
+        if v:
+            # For `ifdef foo=bar
+            args += ["-d", "{}={}".format(k,v)]
+        else:
+            # For `ifdef foo
+            args += ["-d", "{}".format(k)]
 
     for file in files:
         args += [file.path]
@@ -1091,7 +1096,12 @@ def _vivado_simulation_impl(ctx):
     args += ctx.attr.extra_modules
 
     for k, v in ctx.attr.defines:
-        args += ["-d", "{}={}".format(k,v)]
+        if v:
+            # For `ifdef foo=bar
+            args += ["-d", "{}={}".format(k,v)]
+        else:
+            # For `ifdef foo
+            args += ["-d", "{}".format(k)]
 
     # The unit to elaborate.
     snapshot_name = "{}.{}.snapshot".format(provider.name, ctx.attr.top)
