@@ -935,7 +935,7 @@ def _vivado_library_impl(ctx):
             inputs += [dep_library_dir]
 
     # Macro values to define when analyzing this library.
-    for k, v in ctx.attr.defines:
+    for k, v in ctx.attr.defines.items():
         if v:
             # For `ifdef foo=bar
             args += ["-d", "{}={}".format(k,v)]
