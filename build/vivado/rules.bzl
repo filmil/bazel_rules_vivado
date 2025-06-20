@@ -788,9 +788,13 @@ vivado_program_device = rule(
 
 def _vivado_library_impl(ctx):
     args = [] # Not using ctx.actions.args() because of the very specific scripting.
-
+    # Process inputs to the compilation.
+    inputs = []
     # Handle direct files.
     files = []
+
+    for target in ctx.attr.data:
+        inputs += [file for file in target.files.to_list()]
 
     srcs_targets = ctx.attr.srcs
     for target in srcs_targets:
@@ -851,8 +855,6 @@ def _vivado_library_impl(ctx):
       "_xvlog_gen.cache.{}".format(ctx.label.name))
     outputs += [cache_dir]
 
-    # Process inputs to the compilation.
-    inputs = []
 
     # Prepare to run xvlog/xvhdl
     docker_run = ctx.executable._script
@@ -935,13 +937,16 @@ def _vivado_library_impl(ctx):
             inputs += [dep_library_dir]
 
     # Macro values to define when analyzing this library.
+    defines = []
     for k, v in ctx.attr.defines.items():
         if v:
             # For `ifdef foo=bar
-            args += ["-d", "{}={}".format(k,v)]
+            defines += ["-d", "{}={}".format(k,v)]
         else:
             # For `ifdef foo
-            args += ["-d", "{}".format(k)]
+            defines += ["-d", "{}".format(k)]
+    if command == "xvlog":
+        args += defines
 
     for file in files:
         args += [file.path]
@@ -1003,6 +1008,9 @@ vivado_library = rule(
         "hdrs": attr.label_list(
             allow_files = [ "h", "vh", "svh", ],
             doc = "The list of include files in this library",
+        ),
+        "data": attr.label_list(
+            doc = "The list of target that should be available for compilation.",
         ),
         "deps": attr.label_list(
             allow_files = True,
@@ -1095,10 +1103,11 @@ def _vivado_simulation_impl(ctx):
     args += ["--top", "{}.{}".format(provider.name, ctx.attr.top)]
     args += ctx.attr.extra_modules
 
-    for k, v in ctx.attr.defines:
+    print(ctx.attr.defines)
+    for (k, v) in ctx.attr.defines.items():
         if v:
             # For `ifdef foo=bar
-            args += ["-d", "{}={}".format(k,v)]
+            args += ["-d", "{}={}".format(k,ctx.expand_location(v, ctx.attr.data))]
         else:
             # For `ifdef foo
             args += ["-d", "{}".format(k)]
@@ -1260,6 +1269,8 @@ vivado_simulation = rule(
         "template": attr.label(
             allow_single_file = [".tcl.template"],
             default="xsim.tcl.template",
+        ),
+        "data": attr.label_list(
         ),
     },
 )

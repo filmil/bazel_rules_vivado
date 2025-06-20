@@ -1,5 +1,5 @@
 open_vcd {{VCD_FILE}}
-log_vcd [get_object /{{TOP}}/* ]
+log_vcd [get_objects -r /{{TOP}}/* ]
 run -all
 close_vcd
 exit
