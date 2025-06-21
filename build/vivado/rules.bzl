@@ -53,11 +53,11 @@ VivadoBitstreamProvider = provider(
   },
 )
 
+VIVADO_VERSION = "2023.2"
 # This needs to exist on your computer before we begin.
 CONTAINER = "xilinx-vivado:latest"
-
 # This is tied to the contents of the above CONTAINER.
-VIVADO_PATH = "/opt/Xilinx/Vivado/2023.2"
+VIVADO_PATH = "/opt/Xilinx/Vivado/{}".format(VIVADO_VERSION)
 
 
 def _script_cmd(
@@ -75,7 +75,7 @@ def _script_cmd(
         CONTAINER,
         script_path,
         dir_reference,
-        scratch_dir="{}:/.cache".format(cache_dir),
+        scratch_dir="{}:/tmp/.cache".format(cache_dir),
         source_dir=source_dir,
         mounts=mounts,
         envs=envs,
@@ -1111,11 +1111,14 @@ def _vivado_simulation_impl(ctx):
         else:
             # For `ifdef foo
             args += ["-d", "{}".format(k)]
-
     generic_tops = []
     for (k, v) in ctx.attr.generic_tops.items():
         # For `ifdef foo=bar
         generic_tops += ["-generic_top", "{}={}".format(k,ctx.expand_location(v, ctx.attr.data))]
+
+    data_files = []
+    for target in ctx.attr.data:
+        data_files += target.files.to_list()
 
     # The unit to elaborate.
     snapshot_name = "{}.{}.snapshot".format(provider.name, ctx.attr.top)
@@ -1167,7 +1170,7 @@ def _vivado_simulation_impl(ctx):
     suffix = ["&&", "mv xsim.dir {}".format(xsim_dir.path)]
     ctx.actions.run_shell(
         progress_message = "Vivado elaborate library \"{}\"".format(provider.name),
-        inputs = files + [docker_run],
+        inputs = files + data_files + [docker_run],
         outputs = outputs,
         mnemonic = "VivadoElab",
         tools = [docker_run],
@@ -1216,7 +1219,7 @@ def _vivado_simulation_impl(ctx):
 
     ctx.actions.run_shell(
         progress_message = "Vivado simulate \"{}.{}\"".format(provider.name, ctx.attr.top),
-        inputs = inputs2 + [docker_run],
+        inputs = inputs2 + [docker_run] + data_files ,
         outputs = outputs2,
         mnemonic = "VivadoXsim",
         tools = [docker_run],
