@@ -53,11 +53,11 @@ VivadoBitstreamProvider = provider(
   },
 )
 
-VIVADO_VERSION = "2023.2"
+VIVADO_VERSION = "2025.1"
 # This needs to exist on your computer before we begin.
-CONTAINER = "xilinx-vivado:latest"
+CONTAINER = "xilinx-vivado:{}".format(VIVADO_VERSION)
 # This is tied to the contents of the above CONTAINER.
-VIVADO_PATH = "/opt/Xilinx/Vivado/{}".format(VIVADO_VERSION)
+VIVADO_PATH = "/opt/Xilinx/{}/Vivado".format(VIVADO_VERSION)
 
 
 def _script_cmd(
