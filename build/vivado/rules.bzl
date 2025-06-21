@@ -1103,7 +1103,7 @@ def _vivado_simulation_impl(ctx):
     args += ["--top", "{}.{}".format(provider.name, ctx.attr.top)]
     args += ctx.attr.extra_modules
 
-    print(ctx.attr.defines)
+    #print(ctx.attr.defines)
     for (k, v) in ctx.attr.defines.items():
         if v:
             # For `ifdef foo=bar
@@ -1111,6 +1111,11 @@ def _vivado_simulation_impl(ctx):
         else:
             # For `ifdef foo
             args += ["-d", "{}".format(k)]
+
+    generic_tops = []
+    for (k, v) in ctx.attr.generic_tops.items():
+        # For `ifdef foo=bar
+        generic_tops += ["-generic_top", "{}={}".format(k,ctx.expand_location(v, ctx.attr.data))]
 
     # The unit to elaborate.
     snapshot_name = "{}.{}.snapshot".format(provider.name, ctx.attr.top)
@@ -1152,10 +1157,14 @@ def _vivado_simulation_impl(ctx):
       ],
     )
 
+    if ctx.attr.xelab_relaxed:
+        # Relaxed checks, sometimes needed with verilog modules.
+        args += ["--relax"]
+
+    args += generic_tops
     # xelab apparently can not set the location of xsim.dir, so move it to a
     # predictable place.
     suffix = ["&&", "mv xsim.dir {}".format(xsim_dir.path)]
-
     ctx.actions.run_shell(
         progress_message = "Vivado elaborate library \"{}\"".format(provider.name),
         inputs = files + [docker_run],
@@ -1252,6 +1261,9 @@ vivado_simulation = rule(
         "defines": attr.string_dict(
             doc = "The list of key-to-value mappings to apply to the compilation",
         ),
+        "generic_tops": attr.string_dict(
+            doc = "The list of key-to-value mappings to apply to the compilation",
+        ),
         # These parameters are part of the docker_run setup.
         "env": attr.string_dict(
             allow_empty = True,
@@ -1271,6 +1283,9 @@ vivado_simulation = rule(
             default="xsim.tcl.template",
         ),
         "data": attr.label_list(
+        ),
+        "xelab_relaxed": attr.bool(
+            doc = "Relax HDL checks, sometimes needed for Verilog modules",
         ),
     },
 )
