@@ -1100,7 +1100,10 @@ def _vivado_simulation_impl(ctx):
     files += [file for file in provider.files.to_list()]
     files += [provider.library_dir]
 
-    args += ["--top", "{}.{}".format(provider.name, ctx.attr.top)]
+    top_entity = ctx.attr.top
+    if ctx.attr.config:
+        top_entity = ctx.attr.config
+    args += ["--top", "'{}.{}'".format(provider.name, top_entity)]
     args += ctx.attr.extra_modules
 
     #print(ctx.attr.defines)
@@ -1191,13 +1194,15 @@ def _vivado_simulation_impl(ctx):
     # Template script file for running xsim
     vcd_file = ctx.actions.declare_file(
         "{}.vcd".format(ctx.label.name))
+    vcd_file_raw = ctx.actions.declare_file(
+        "{}.raw.vcd".format(ctx.label.name))
     xsim_script_file = ctx.actions.declare_file(
         "{}.xsim.tcl".format(ctx.label.name))
     ctx.actions.expand_template(
         output = xsim_script_file,
         template = ctx.attr.template.files.to_list()[0],
         substitutions = {
-            "{{VCD_FILE}}": vcd_file.path,
+            "{{VCD_FILE}}": vcd_file_raw.path,
             "{{TOP}}": ctx.attr.top,
         },
     )
@@ -1206,8 +1211,8 @@ def _vivado_simulation_impl(ctx):
     inputs2 = [xsim_dir, xsim_script_file, provider.library_dir]
     #args += ["--xsimdir", "{}/xsim.dir".format(xsim_dir.path)]
     args += ["--tclbatch", xsim_script_file.path]
-    outputs2 = [vcd_file]
-    args += ["--vcdfile", vcd_file.path]
+    outputs2 = [vcd_file_raw]
+    args += ["--vcdfile", vcd_file_raw.path]
     wdb_file = ctx.actions.declare_file(
         "{}.wdb".format(ctx.label.name))
     outputs2 += [wdb_file]
@@ -1238,9 +1243,28 @@ def _vivado_simulation_impl(ctx):
         ),
     )
 
+    # Create raw file
+    vcd_top = ctx.attr.top
+    vcd_cfg = ""
+    if ctx.attr.config:
+        vcd_cfg = "_" + ctx.attr.config
+    ctx.actions.run_shell(
+        progress_message = "Fixing up VCD",
+        inputs = [vcd_file_raw],
+        outputs = [vcd_file],
+        mnemonic = "FixVCD",
+        command = """
+            sed -e "s/^\\$scope module.*{top}.*{cfg}\\\\\\\\/\\$scope module {top}/g"  \\
+                    < {infile} > {outfile}
+        """.format(
+            infile=vcd_file_raw.path, outfile=vcd_file.path,
+            top=vcd_top, cfg=vcd_cfg,
+        )
+    )
+
     return [
         DefaultInfo(
-          files = depset(outputs2),
+          files = depset([wdb_file, vcd_file]),
         ),
         OutputGroupInfo(
             vcd = [vcd_file],
@@ -1257,6 +1281,10 @@ vivado_simulation = rule(
         ),
         "top": attr.string(
             doc = "Name of the top level entity to simulate",
+        ),
+        "config": attr.string(
+            doc = "If specified, the said named configuration will be selected (VHDL)",
+            mandatory = False,
         ),
         "extra_modules": attr.string_list(
             doc = "Names of additional modules to co-simulate",
