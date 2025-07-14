@@ -1,5 +1,6 @@
 open_vcd {{VCD_FILE}}
-log_vcd [get_objects -r /{{TOP}}/* ]
+# Top entity: {{TOP}}
+log_vcd [get_objects -r /* ]
 run -all
 close_vcd
 exit
