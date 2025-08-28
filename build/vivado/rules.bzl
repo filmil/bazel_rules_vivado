@@ -216,7 +216,7 @@ def _vivado_project_impl(ctx):
                 seen_libraries += [lib_name]
 
                 provider_dep_files = provider_dep.files
-                for file in provider_dep_files.to_list():
+                for file in provider_dep_files:
                     inputs += [file]
                     deps_files += [file]
                     args.add("--library-file", "{}={}".format(lib_name, file.path))
@@ -984,7 +984,7 @@ def _vivado_library_impl(ctx):
 
     vivado_provider = VivadoLibraryProvider(
         name=library_name,
-        files=depset(files), # Only direct files, not transitive.
+        files=files, # Only direct files, not transitive.
         includes=depset(ctx.attr.includes),
         hdrs=depset(hdrs),
         deps=deps,
@@ -1420,7 +1420,7 @@ def _vivado_unisims_library_impl(ctx):
         DefaultInfo(files=depset([output_dir2])),
         VivadoLibraryProvider(
             name="(unisims bundle)",
-            files=depset([]),
+            files=[],
             hdrs=[],
             includes=[],
             deps=depset([]),
