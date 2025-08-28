@@ -215,7 +215,8 @@ def _vivado_project_impl(ctx):
             if lib_name not in seen_libraries:
                 seen_libraries += [lib_name]
 
-                for file in provider_dep.files.to_list():
+                provider_dep_files = provider_dep.files
+                for file in provider_dep_files.to_list():
                     inputs += [file]
                     deps_files += [file]
                     args.add("--library-file", "{}={}".format(lib_name, file.path))
@@ -1117,7 +1118,8 @@ def _vivado_simulation_impl(ctx):
     generic_tops = []
     for (k, v) in ctx.attr.generic_tops.items():
         # For `ifdef foo=bar
-        generic_tops += ["-generic_top", "{}={}".format(k,ctx.expand_location(v, ctx.attr.data))]
+        generic_tops += ["-generic_top", '{}={}'.format(
+            k,ctx.expand_location(v, ctx.attr.data))]
 
     data_files = []
     for target in ctx.attr.data:
@@ -1418,7 +1420,7 @@ def _vivado_unisims_library_impl(ctx):
         DefaultInfo(files=depset([output_dir2])),
         VivadoLibraryProvider(
             name="(unisims bundle)",
-            files=[],
+            files=depset([]),
             hdrs=[],
             includes=[],
             deps=depset([]),
