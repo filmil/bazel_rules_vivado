@@ -144,6 +144,7 @@ func main() {
 		customFileName                          string
 		customTemplateFileName                  string
 		loadDcpName, saveDcpName                string
+		bitstreamName                           string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -172,6 +173,7 @@ func main() {
 	flag.StringVar(&customTemplateFileName, "custom-template", "", "Custom file template")
 	flag.StringVar(&loadDcpName, "load-dcp", "", "Input snapshot file")
 	flag.StringVar(&saveDcpName, "save-dcp", "", "Output snapshot file")
+	flag.StringVar(&bitstreamName, "bitstream", "", "Output bitstream file")
 	flag.Parse()
 
 	if part == "" {
@@ -261,6 +263,7 @@ func main() {
 		VHDLStandard:       VHDLStandard,
 		LoadDcpFile:        loadDcpName,
 		SaveDcpFile:        saveDcpName,
+		BitstreamName:      bitstreamName,
 	}
 
 	if xprFileName != "" {
