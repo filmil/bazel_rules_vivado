@@ -8,6 +8,6 @@ def rules_vivado_dependencies():
         name = "bazel_rules_bid",
         commit = "acac74fdccc8263117501e28fa6954bcc89f8f95",
         remote = "https://github.com/filmil/bazel-rules-bid.git",
-        shallow_since = "1706736734 -0800",
+        shallow_since = "1726367346 +0000",
     )
 
