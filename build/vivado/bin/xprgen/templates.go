@@ -41,7 +41,7 @@ read_verilog {{with .Library }} -library {{ . }} {{- end}}  -sv {{"{"}} {{- .Nam
 {{- end}}
 # end: verilog files
 
-# SystemVerilog files
+# Verilog files
 # Ordering is important.
 {{- range .VerilogFiles}}
 read_verilog {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}

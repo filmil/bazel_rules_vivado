@@ -1,0 +1,35 @@
+# GENERATED FILE, DO NOT EDIT
+#
+# Place and route runner file.
+#
+# Project name: "{{ .Project }}"
+# PWD:          "{{ .PWD }}"
+# implement.tcl
+
+# Step 1: Open the synthesized design checkpoint
+open_checkpoint {{ .LoadDcpName }}
+
+# Step 2: Add constraints files.
+# Ordering is important here, too.
+{{- range .XDCFiles}}
+read_xdc {{"{"}} {{- . -}} {{"}"}}
+{{- end}}
+# end: constraints files
+
+# Step 3: Place the design
+place_design
+
+# Step 4: Route the design
+route_design
+
+# Step 5 (Optional but Recommended): Write reports to check the results
+report_timing_summary -file ./{{ .Project}}.timing_summary_impl.rpt
+report_utilization -file ./{{ .Project }}.utilization_impl.rpt
+report_drc -file ./{{ .Project }}.drc_impl.rpt
+
+# Step 6: Write the final implemented design checkpoint
+write_checkpoint -force {{ .SaveDcpName }}
+
+# Step 7: Generate the final bitstream for the FPGA
+write_bitstream -force {{ .BitstreamName }}
+

@@ -1,0 +1,64 @@
+# GENERATED FILE, DO NOT EDIT
+#
+# Synthesis runner file.
+#
+# Project name: "{{ .Project }}"
+# PWD:          "{{ .PWD }}"
+
+# Verilog Properties
+{{$fileset := .Fileset -}}
+{{- range .VerilogProperties }}
+set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset }} ]
+{{end}}
+
+######################################################################
+## Begin files
+
+# SystemVerilog files
+# Ordering is important.
+{{- range .SystemVerilogFiles}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}}  -sv {{"{"}} {{- .Name -}} {{"}"}}
+{{- end}}
+# end: verilog files
+
+# Verilog files
+# Ordering is important.
+{{- range .VerilogFiles}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
+{{- end}}
+# end: verilog files
+
+# Verilog headers
+# Ordering is important.
+{{- range .VerilogHeaders}}
+read_verilog {{with .Library }} -library {{ . }} {{- end}} -sv {{"{"}} {{- .Name -}} {{"}"}}
+{{- end}}
+
+# VHDL files
+# Ordering is important.
+{{- range .VHDLFiles}}
+read_vhdl -vhdl2008 {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
+{{- end}}
+# end: VHDL files
+
+# Verilog includes
+set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}}] [get_filesets {{ $fileset }}]
+
+# Other files.
+{{- range .OtherFiles}}
+add_files -norecurse {{ . }}
+{{- end}}
+# end: constraints files
+
+## End files.
+######################################################################
+
+# Set the top-level entity/module and target part
+synth_design -top {{ .Top }} -part {{ .Part }}
+
+# Write the synthesized netlist
+write_checkpoint -force {{ .SaveDcpName }}
+
+# (Optional) Generate reports
+report_timing_summary -file ./{{ .Project }}.timing_summary_synth.rpt
+report_utilization -file ./{{ .Project }}.utilization_synth.rpt
