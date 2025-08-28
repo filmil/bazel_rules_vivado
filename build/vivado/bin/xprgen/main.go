@@ -8,6 +8,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -57,125 +58,12 @@ type XPRBinding struct {
 	// VHDLStandard is the standard of language to use, e.g. "2008" (also the
 	// default).
 	VHDLStandard string
+
+	// LoadDcp file is the checkpoint file for a previous step, if any.
+	LoadDcpFile string
+	// SaveDcp file is the checkpoint file for this step, if specified.
+	SaveDcpFile string
 }
-
-var (
-	// The synthesis TCL script.
-	syntTpl = template.Must(template.New("synth").Parse(
-		`# GENERATED FILE, DO NOT EDIT
-# Project synthesis script
-# Project name: "{{.Project}}"
-# PWD:          "{{ .PWD }}"
-# XPR path:     "{{ .OutXpr }}"
-
-launch_runs synth_1
-wait_on_run synth_1
-exit [regexp -nocase -- {synth_design (error|failed)} [get_property STATUS [get_runs synth_1]] match]
-
-# end
-`))
-
-	// The TCL script generating project file.
-	xprTpl = template.Must(template.New("xpr").Parse(
-		`# GENERATED FILE, DO NOT EDIT
-# Project TCL file
-# Project name: "{{ .Project }}"
-# PWD:          "{{ .PWD }}"
-# XPR path:     "{{ .OutXpr }}"
-
-create_project {{.Project}} -force
-
-# Verilog Properties
-{{$fileset := .Fileset -}}
-{{- range .VerilogProperties }}
-set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset }} ]
-{{end}}
-
-# SystemVerilog files
-# Ordering is important.
-{{- range .SystemVerilogFiles}}
-read_verilog {{with .Library }} -library {{ . }} {{- end}}  -sv {{"{"}} {{- .Name -}} {{"}"}}
-{{- end}}
-# end: verilog files
-
-# SystemVerilog files
-# Ordering is important.
-{{- range .VerilogFiles}}
-read_verilog {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
-{{- end}}
-# end: verilog files
-
-# Verilog headers
-# Ordering is important.
-{{- range .VerilogHeaders}}
-read_verilog {{with .Library }} -library {{ . }} {{- end}} -sv {{"{"}} {{- .Name -}} {{"}"}}
-{{- end}}
-
-# VHDL files
-# Ordering is important.
-{{- range .VHDLFiles}}
-read_vhdl -vhdl2008 {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}} {{"}"}}
-{{- end}}
-# end: VHDL files
-
-# Verilog includes
-set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}}] [get_filesets {{ $fileset }}]
-
-# Constraints files
-# Ordering is important here, too.
-{{- range .XDCFiles}}
-read_xdc {{"{"}} {{- . -}} {{"}"}}
-{{- end}}
-# end: constraints files
-
-# Other files.
-{{- range .OtherFiles}}
-add_files -norecurse {{ . }}
-{{- end}}
-# end: constraints files
-
-{{- if .Part}}
-set_property part {{ .Part }} [current_project]
-{{- end}}
-
-set_property top {{ .Top }} [current_fileset]
-set_property source_mgmt_mode None [current_project]
-
-# end
-`))
-
-	// The TCL script for bitstream generation.
-	pnrTpl = template.Must(template.New("pnr").Parse(
-		`# GENERATED FILE, DO NOT EDIT
-# Project TCL file
-# Project name: "{{ .Project }}"
-# PWD:          "{{ .PWD }}"
-# XPR path:     "{{ .OutXpr }}"
-
-set_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE true [get_runs impl_1]
-
-if { [get_property PROGRESS [get_runs impl_1]] != "100%"} {
-  launch_runs synth_1 -quiet
-
-  launch_runs impl_1 -to_step write_bitstream
-  wait_on_run impl_1
-  puts "Bitstream generation completed"
-} else {
-  puts "Bitstream generation already complete"
-}
-
-if { [get_property PROGRESS [get_runs impl_1]] != "100%"} {
-   puts "ERROR: Implementation and bitstream generation step failed."
-   exit 1
-}
-
-set vivadoDefaultBitstreamFile [ get_property DIRECTORY [current_run] ]/[ get_property top [current_fileset] ].bit
-file copy -force $vivadoDefaultBitstreamFile [pwd]/[current_project].bit
-
-
-# end
-`))
-)
 
 var _ flag.Value = (*RepeatedString)(nil)
 
@@ -253,6 +141,9 @@ func main() {
 		part                                    string
 		libraryFiles                            RepeatedString
 		VHDLStandard                            string
+		customFileName                          string
+		customTemplateFileName                  string
+		loadDcpName, saveDcpName                string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -276,6 +167,11 @@ func main() {
 	flag.Var(&libraryFiles, "library-file", "each is: library=file")
 	flag.StringVar(&part, "part", "", "The FPGA part to use for synthesis")
 	flag.StringVar(&VHDLStandard, "vhdl-standard", "2008", "The VHDL language standard to use")
+
+	flag.StringVar(&customFileName, "custom-filename", "", "Custom file to generate")
+	flag.StringVar(&customTemplateFileName, "custom-template", "", "Custom file template")
+	flag.StringVar(&loadDcpName, "load-dcp", "", "Input snapshot file")
+	flag.StringVar(&saveDcpName, "save-dcp", "", "Output snapshot file")
 	flag.Parse()
 
 	if part == "" {
@@ -288,6 +184,23 @@ func main() {
 		log.Fatalf("flag --top-name=... is required")
 	}
 
+	// Load a custom template if specified.
+	var customTemplate *template.Template
+
+	if customTemplateFileName != "" {
+		f, err := os.Open(customTemplateFileName)
+		if err != nil {
+			log.Fatalf("while opening: %v: %v", customTemplateFileName, err)
+		}
+		b, err := io.ReadAll(f)
+		if err != nil {
+			log.Fatalf("while reading: %v: %v", customTemplateFileName, err)
+		}
+		s := string(b)
+		customTemplate = template.Must(template.New("custom").Parse(s))
+	}
+
+	// Build the data model.
 	var (
 		pPaths []string
 	)
@@ -346,15 +259,28 @@ func main() {
 		OutXpr:             xprFileName,
 		Part:               part,
 		VHDLStandard:       VHDLStandard,
+		LoadDcpFile:        loadDcpName,
+		SaveDcpFile:        saveDcpName,
 	}
 
-	if err := WriteFile(xprFileName, xprTpl, &xpr); err != nil {
-		log.Fatalf("while writing XPR file: %v: %v", xprFileName, err)
+	if xprFileName != "" {
+		if err := WriteFile(xprFileName, xprTpl, &xpr); err != nil {
+			log.Fatalf("while writing XPR file: %v: %v", xprFileName, err)
+		}
 	}
-	if err := WriteFile(synthFileName, syntTpl, &xpr); err != nil {
-		log.Fatalf("while writing synth file: %v: %v", synthFileName, err)
+	if synthFileName != "" {
+		if err := WriteFile(synthFileName, syntTpl, &xpr); err != nil {
+			log.Fatalf("while writing synth file: %v: %v", synthFileName, err)
+		}
 	}
-	if err := WriteFile(pnrFileName, pnrTpl, &xpr); err != nil {
-		log.Fatalf("while writing PNR file: %v: %v", pnrFileName, err)
+	if pnrFileName != "" {
+		if err := WriteFile(pnrFileName, pnrTpl, &xpr); err != nil {
+			log.Fatalf("while writing PNR file: %v: %v", pnrFileName, err)
+		}
+	}
+	if customFileName != "" {
+		if err := WriteFile(customFileName, customTemplate, &xpr); err != nil {
+			log.Fatalf("while writing file: %v: %v", customFileName, err)
+		}
 	}
 }
