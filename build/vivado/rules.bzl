@@ -1,6 +1,22 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_rules_bid//build:rules.bzl", "run_docker_cmd")
 
+_DOCKER_RUN_SCRIPT_ATTRS = {
+    "env": attr.string_dict(
+        allow_empty = True,
+        doc = "A dictionary of env variables to define for the run."
+    ),
+    "mount": attr.string_dict(
+        allow_empty = True,
+        doc = "A dictionary of mounts to define for the run."
+    ),
+    "_script": attr.label(
+        default="@bazel_rules_bid//build:docker_run",
+        executable=True,
+        cfg="host",
+    ),
+}
+
 VivadoLibraryProvider = provider(
     "A library of files used for vivado",
     fields = {
@@ -43,6 +59,7 @@ VivadoSynthProvider = provider(
     "synth_output_dir": "",
     # It seems that Vivado wants to write into it.
     "synth_xpr_file": "The XPR file after synthesis",
+    "synth_dcp_file": "The DCP file of synthesis step"
   },
 )
 
@@ -354,7 +371,7 @@ vivado_project = rule(
             default = "//build/vivado/bin/xprgen:xprgen",
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default=Label("@bazel_rules_bid//build:docker_run"),
             executable=True,
             cfg="host",
         ),
@@ -369,6 +386,7 @@ def _vivado_synthesis_impl(ctx):
   provider = ctx.attr.project[VivadoGenProvider]
   # Project name is the name of the rule that generated the project.
   project_name = provider.project_name
+
   docker_run = ctx.executable._script
   env = ctx.attr.env
   mounts = {}
@@ -520,25 +538,229 @@ def _vivado_synthesis_impl(ctx):
 
 vivado_synthesis = rule(
     implementation = _vivado_synthesis_impl,
-    attrs = {
+    attrs = _DOCKER_RUN_SCRIPT_ATTRS | {
         "project": attr.label(
             doc = "The Vivado project to work on",
             mandatory = True,
             providers = [VivadoGenProvider],
         ),
-        "env": attr.string_dict(
+    },
+)
+
+
+def _vivado_synthesis2_impl(ctx):
+    args = ctx.actions.args()
+
+    # General setup
+    name = ctx.attr.name
+    top_level = ctx.attr.top
+
+    # Get tool path
+    generator = ctx.attr._generator.files
+    generator_path = generator.to_list()[0]
+
+    # Why is this data model so complicated?!
+    inputs = []
+    outputs = []
+    deps_files = []
+    srcs_files = []
+    hdrs_files = []
+    xdcs_files = []
+
+    # Template file.
+    template_file = ctx.attr._synth_batch_template.files.to_list()[0]
+    inputs += [template_file]
+
+    # Get library deps.
+    seen_libraries = []
+    for dep in ctx.attr.deps:
+        provider = dep[VivadoLibraryProvider]
+
+        for provider_dep in provider.deps.to_list():
+            lib_name = provider_dep.name
+            if lib_name not in seen_libraries:
+                seen_libraries += [lib_name]
+
+                provider_dep_files = provider_dep.files
+                for file in provider_dep_files:
+                    inputs += [file]
+                    deps_files += [file]
+                    args.add("--library-file", "{}={}".format(lib_name, file.path))
+
+        lib_name = provider.name
+        if lib_name not in seen_libraries:
+            seen_libraries += [lib_name]
+
+            for file in provider.files:
+                inputs += [file]
+                deps_files += [file]
+                args.add("--library-file", "{}={}".format(lib_name, file.path))
+
+    # Process srcs
+    for src_target in ctx.attr.srcs:
+        srcs_files += src_target.files.to_list()
+    inputs += srcs_files
+    src_paths = [ f.path for f in srcs_files ]
+
+    # Process hdrs
+    for hdrs_target in ctx.attr.hdrs:
+        hdrs_files += hdrs_target.files.to_list()
+    inputs += hdrs_files
+    hdrs_paths = [ f.path for f in hdrs_files ]
+
+    # Process constraints files (.xdc)
+    for xdcs_target in ctx.attr.xdcs:
+        xdcs_files += xdcs_target.files.to_list()
+    inputs += xdcs_files
+    xdcs_paths = [ f.path for f in xdcs_files ]
+    # Prepare include dirs
+    include_dirs = ctx.attr.include_dirs  # list(string)
+
+    # Handle output files
+    dcp_file = ctx.actions.declare_file("{}.dcp".format(name))
+    outputs += [dcp_file]
+
+    timing_summary_file = ctx.actions.declare_file("{}.timing_summary_synth.rpt".format(name))
+    outputs += [timing_summary_file]
+    utilization_file = ctx.actions.declare_file("{}.utilization_synth.rpt".format(name))
+    outputs += [utilization_file]
+
+    tcl_file = ctx.actions.declare_file("{}.synth.tcl".format(name))
+
+    # Prepare args
+    args.add("--custom-filename", tcl_file.path)
+    args.add("--custom-template", template_file.path)
+    args.add("--project-name", name)
+    args.add("--save-dcp", dcp_file.path)
+    args.add("--timing-report", timing_summary_file.path)
+    args.add("--top-name", top_level)
+    args.add("--utilization-report", utilization_file.path)
+    args.add_all(ctx.attr.defines, before_each="--define")
+    args.add_all(hdrs_paths, before_each="--header")
+    args.add_all(include_dirs, before_each="--include-dir")
+    args.add_all(src_paths, before_each="--source")
+    args.add_all(xdcs_paths, before_each="--constraints")
+
+
+    part = ctx.attr.part
+    args.add("--part", part)
+
+    # Generate `tcl_file` script for running the synth step.
+    ctx.actions.run(
+        outputs = [tcl_file],
+        inputs = inputs,
+        tools = [ generator ],
+        executable = generator_path,
+        arguments = [ args ],
+        progress_message = "Vivado XPRGEN {}".format(name),
+        mnemonic = "XPRGEN",
+    )
+
+    # Prepare the docker mount.
+    docker_run = ctx.executable._script
+    env = ctx.attr.env
+    mounts = {}
+    if ctx.attr.mount:
+      mounts.update(ctx.attr.mount)
+    mounts.update({
+      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+    })
+
+    output_dir_path = "_synthesis.work.{}".format(name)
+    output_dir = ctx.actions.declare_directory(output_dir_path)
+    cache_dir_rpath = "_synthesis.cache.{}".format(name)
+    cache_dir = ctx.actions.declare_directory(cache_dir_rpath)
+
+    script = _script_cmd(
+      docker_run.path,
+      output_dir.path,
+      cache_dir.path,
+      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
+      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
+      freeargs=[
+        "--net=host",
+        "-e", "HOME=/work",
+        "-w", "/work",
+      ],
+    )
+
+    inputs += [tcl_file]
+
+    ctx.actions.run_shell(
+        progress_message = "Vivado Synthesis {}".format(name),
+        inputs = inputs + [docker_run],
+        outputs = outputs + [output_dir, cache_dir],
+        tools = [docker_run],
+        mnemonic = "VivadoSynth",
+        command = """\
+            mkdir -p {cache} &&
+            mkdir -p {work} && \
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
+                -notrace -mode batch -source {synth_tcl} 1>&2
+        """.format(
+            script=script,
+            vivado_path=VIVADO_PATH,
+            synth_tcl=tcl_file.path,
+            cache=cache_dir.path,
+            work=output_dir.path,
+        ),
+    )
+
+    return [
+        DefaultInfo(
+            # DCP outfile, plus reports.
+            files = depset(outputs),
+        ),
+        VivadoSynthProvider(
+            synth_dcp_file = dcp_file,
+        ),
+    ]
+
+
+vivado_synthesis2 = rule(
+    implementation = _vivado_synthesis2_impl,
+    attrs = _DOCKER_RUN_SCRIPT_ATTRS | {
+        "srcs": attr.label_list(
+            allow_files = True,
+            doc = "The sources for the `work` library",
+        ),
+        "hdrs": attr.label_list(
+            doc = "The headers for the `work` library if verilog",
+        ),
+        "deps": attr.label_list(
+            doc = "The sources for the libraries",
+            providers = [VivadoLibraryProvider],
+        ),
+        "xdcs": attr.label_list(
+            doc = "Constraint files",
+        ),
+        "top": attr.string(
+            doc = "Mandatory name of the top level entity",
+            mandatory = True,
+        ),
+        "part": attr.string(
+            doc = "The part that is targeted by this project",
+            mandatory = True,
+        ),
+        "defines": attr.string_list(
             allow_empty = True,
-            doc = "A dictionary of env variables to define for the run."
         ),
-        "mount": attr.string_dict(
+        "include_dirs": attr.string_list(
             allow_empty = True,
-            doc = "A dictionary of mounts to define for the run."
         ),
-        "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
-            executable=True,
-            cfg="host",
+        "_generator": attr.label(
+            doc = "xprgen binary",
+            default = Label("//build/vivado/bin/xprgen"),
+            executable = True,
+            cfg = "host",
         ),
+        "_synth_batch_template": attr.label(
+            doc = "synth template",
+            default = Label("//build/vivado:synth_batch_tcl_template"),
+        ),
+        # Probably need verilog top level params and vhdl top level generics.
     },
 )
 
@@ -829,7 +1051,7 @@ def _vivado_library_impl(ctx):
             if not dep_library_name in deps_names_transitive:
                 deps_names_direct += [dep_library_name]
 
-                transitive_files += [ provider.files ]
+                transitive_files += [ depset(direct=provider.files) ]
 
                 provider_direct_list += [provider]
                 provider_transitive_depsets += [provider.deps]
@@ -978,7 +1200,10 @@ def _vivado_library_impl(ctx):
     )
 
     # Build correct depsets (hopefully...)
-    files_depset = depset(files+[library_output_dir], transitive=transitive_files, order="postorder") # All files, no library distinction.
+    files_depset = depset(
+        files+[library_output_dir],
+        transitive=transitive_files,
+        order="postorder") # All files, no library distinction.
     deps_names=depset(deps_names_direct, transitive=deps_names_transitive_depsets, order="postorder") # All deps library names.
     deps = depset(provider_direct_list, transitive=provider_transitive_depsets, order="postorder")
 
