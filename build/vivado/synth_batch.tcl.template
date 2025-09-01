@@ -6,10 +6,10 @@
 # PWD:          "{{ .PWD }}"
 
 # Verilog Properties
-{{$fileset := .Fileset -}}
-{{- range .VerilogProperties }}
-set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset }} ]
-{{end}}
+#{{$fileset := .Fileset -}}
+#{{- range .VerilogProperties }}
+#set_property verilog_define {{"{"}} {{- . -}} {{"}"}} [get_filesets {{ $fileset }} ]
+#{{end}}
 
 ######################################################################
 ## Begin files
@@ -57,8 +57,9 @@ add_files -norecurse {{ . }}
 synth_design -top {{ .Top }} -part {{ .Part }}
 
 # Write the synthesized netlist
-write_checkpoint -force {{ .SaveDcpName }}
+write_checkpoint -force {{ .SaveDcpFile }}
 
 # (Optional) Generate reports
-report_timing_summary -file ./{{ .Project }}.timing_summary_synth.rpt
-report_utilization -file ./{{ .Project }}.utilization_synth.rpt
+report_timing_summary -file {{ .TimingSummaryFile }}
+report_utilization -file {{ .UtilizationFile }}
+

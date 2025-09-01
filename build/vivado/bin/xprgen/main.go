@@ -63,6 +63,10 @@ type XPRBinding struct {
 	LoadDcpFile string
 	// SaveDcp file is the checkpoint file for this step, if specified.
 	SaveDcpFile string
+	// BistreamName is an optional name of the bitstream to generate.
+	BitstreamName string
+
+	TimingSummaryFile, UtilizationFile string
 }
 
 var _ flag.Value = (*RepeatedString)(nil)
@@ -145,6 +149,7 @@ func main() {
 		customTemplateFileName                  string
 		loadDcpName, saveDcpName                string
 		bitstreamName                           string
+		timingSummaryName, utilizationName      string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -174,6 +179,8 @@ func main() {
 	flag.StringVar(&loadDcpName, "load-dcp", "", "Input snapshot file")
 	flag.StringVar(&saveDcpName, "save-dcp", "", "Output snapshot file")
 	flag.StringVar(&bitstreamName, "bitstream", "", "Output bitstream file")
+	flag.StringVar(&timingSummaryName, "timing-report", "", "")
+	flag.StringVar(&utilizationName, "utilization-report", "", "")
 	flag.Parse()
 
 	if part == "" {
@@ -264,6 +271,8 @@ func main() {
 		LoadDcpFile:        loadDcpName,
 		SaveDcpFile:        saveDcpName,
 		BitstreamName:      bitstreamName,
+		TimingSummaryFile:  timingSummaryName,
+		UtilizationFile:    utilizationName,
 	}
 
 	if xprFileName != "" {
