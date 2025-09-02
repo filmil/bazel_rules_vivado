@@ -936,6 +936,7 @@ def _vivado_place_and_route2_impl(ctx):
     outputs += [timing_summary_file]
     utilization_file = ctx.actions.declare_file("{}.utilization.pnr.rpt".format(name))
     outputs += [utilization_file]
+    bit_file = ctx.actions.declare_file("{}.bit".format(name))
 
     args.add("--custom-filename", tcl_file.path)
     args.add("--custom-template", template_file.path)
@@ -945,6 +946,7 @@ def _vivado_place_and_route2_impl(ctx):
     args.add("--utilization-report", utilization_file.path)
     args.add("--drc-report", drc_report_file.path)
     args.add("--top-name", name)
+    args.add("--bitstream", bit_file.path)
 
     ctx.actions.run(
         outputs = [tcl_file],
@@ -952,11 +954,11 @@ def _vivado_place_and_route2_impl(ctx):
         tools = [ generator ],
         executable = generator_path,
         arguments = [ args ],
-        progress_message = "Vivado XPRGEN {}".format(name),
+        progress_message = "Vivado PNR XPRGEN {}".format(name),
         mnemonic = "XPRGEN",
     )
+
     # PNR step here.
-    bit_file = ctx.actions.declare_file("{}.bit".format(name))
 
     # Prepare the docker mount.
     docker_run = ctx.executable._script
@@ -968,9 +970,9 @@ def _vivado_place_and_route2_impl(ctx):
       "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
     })
 
-    output_dir_path = "_synthesis.work.{}".format(name)
+    output_dir_path = "_pnr.work.{}".format(name)
     output_dir = ctx.actions.declare_directory(output_dir_path)
-    cache_dir_rpath = "_synthesis.cache.{}".format(name)
+    cache_dir_rpath = "_pnr.cache.{}".format(name)
     cache_dir = ctx.actions.declare_directory(cache_dir_rpath)
 
     script = _script_cmd(
