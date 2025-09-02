@@ -912,6 +912,143 @@ vivado_place_and_route = rule(
 )
 
 
+def _vivado_place_and_route2_impl(ctx):
+    args = ctx.actions.args()
+    name = ctx.attr.name
+    generator = ctx.attr._generator.files
+    generator_path = generator.to_list()[0]
+    inputs = []
+    outputs = []
+
+    template_file = ctx.attr._batch_template.files.to_list()[0]
+    inputs += [template_file]
+
+    tcl_file = ctx.actions.declare_file("{}.pnr.tcl".format(name))
+    outputs += [tcl_file]
+
+    input_dcp_file = ctx.attr.synthesis[VivadoSynthProvider].synth_dcp_file
+
+    output_dcp_file = ctx.actions.declare_file("{}.pnr.dcp".format(name))
+    outputs += [output_dcp_file]
+    drc_report_file = ctx.actions.declare_file("{}.drc.rpt".format(name))
+
+    timing_summary_file = ctx.actions.declare_file("{}.timing_summary.pnr.rpt".format(name))
+    outputs += [timing_summary_file]
+    utilization_file = ctx.actions.declare_file("{}.utilization.pnr.rpt".format(name))
+    outputs += [utilization_file]
+
+    args.add("--custom-filename", tcl_file.path)
+    args.add("--custom-template", template_file.path)
+    args.add("--load-dcp", input_dcp_file.path)
+    args.add("--save-dcp", output_dcp_file.path)
+    args.add("--timing-report", timing_summary_file.path)
+    args.add("--utilization-report", utilization_file.path)
+    args.add("--drc-report", drc_report_file.path)
+    args.add("--top-name", name)
+
+    ctx.actions.run(
+        outputs = [tcl_file],
+        inputs = inputs,
+        tools = [ generator ],
+        executable = generator_path,
+        arguments = [ args ],
+        progress_message = "Vivado XPRGEN {}".format(name),
+        mnemonic = "XPRGEN",
+    )
+    # PNR step here.
+    bit_file = ctx.actions.declare_file("{}.bit".format(name))
+
+    # Prepare the docker mount.
+    docker_run = ctx.executable._script
+    env = ctx.attr.env
+    mounts = {}
+    if ctx.attr.mount:
+      mounts.update(ctx.attr.mount)
+    mounts.update({
+      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+    })
+
+    output_dir_path = "_synthesis.work.{}".format(name)
+    output_dir = ctx.actions.declare_directory(output_dir_path)
+    cache_dir_rpath = "_synthesis.cache.{}".format(name)
+    cache_dir = ctx.actions.declare_directory(cache_dir_rpath)
+
+    script = _script_cmd(
+      docker_run.path,
+      output_dir.path,
+      cache_dir.path,
+      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
+      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
+      freeargs=[
+        "--net=host",
+        "-e", "HOME=/work",
+        "-w", "/work",
+      ],
+    )
+
+    outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
+    inputs = [tcl_file, input_dcp_file]
+
+    ctx.actions.run_shell(
+        progress_message = "Vivado Synthesis {}".format(name),
+        inputs = inputs + [docker_run],
+        outputs = outputs + [output_dir, cache_dir],
+        tools = [docker_run],
+        mnemonic = "VivadoSynth",
+        command = """\
+            mkdir -p {cache} &&
+            mkdir -p {work} && \
+            {script} \
+            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
+            {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
+                -notrace -mode batch -source {tcl} 1>&2
+        """.format(
+            script=script,
+            vivado_path=VIVADO_PATH,
+            tcl=tcl_file.path,
+            cache=cache_dir.path,
+            work=output_dir.path,
+        ),
+    )
+    return [
+        DefaultInfo(files=depset([
+            bit_file,
+            utilization_file,
+            timing_summary_file,
+            drc_report_file,
+            output_dcp_file,
+        ])),
+        VivadoBitstreamProvider(
+            bitstream = bit_file,
+        ),
+    ]
+
+
+vivado_place_and_route2 = rule(
+    implementation = _vivado_place_and_route2_impl,
+    attrs = _DOCKER_RUN_SCRIPT_ATTRS | {
+        "synthesis": attr.label(
+            doc = "The mandatory synth2 target to use",
+            mandatory = True,
+            providers = [VivadoSynthProvider],
+        ),
+        "xdcs": attr.label_list(
+            doc = "Constraint files",
+        ),
+        "_generator": attr.label(
+            doc = "xprgen binary",
+            default = Label("//build/vivado/bin/xprgen"),
+            executable = True,
+            cfg = "host",
+        ),
+        "_batch_template": attr.label(
+            doc = "pnr template",
+            default = Label("//build/vivado:pnr_batch_tcl_template"),
+        ),
+    },
+)
+
+
 def _vivado_program_device(ctx):
     # For now, only one bitstream.
     bitstream = None

@@ -66,7 +66,7 @@ type XPRBinding struct {
 	// BistreamName is an optional name of the bitstream to generate.
 	BitstreamName string
 
-	TimingSummaryFile, UtilizationFile string
+	TimingSummaryFile, UtilizationFile, DRCFile string
 }
 
 var _ flag.Value = (*RepeatedString)(nil)
@@ -137,19 +137,19 @@ func main() {
 	log.SetPrefix(fmt.Sprintf("%v: ", p))
 
 	var (
-		sources, headers, includeDirs, defines  RepeatedString
-		projectName, filesetName, topName       string
-		dirDepth                                int
-		xprFileName, synthFileName, pnrFileName string
-		xdcFiles                                RepeatedString
-		part                                    string
-		libraryFiles                            RepeatedString
-		VHDLStandard                            string
-		customFileName                          string
-		customTemplateFileName                  string
-		loadDcpName, saveDcpName                string
-		bitstreamName                           string
-		timingSummaryName, utilizationName      string
+		sources, headers, includeDirs, defines      RepeatedString
+		projectName, filesetName, topName           string
+		dirDepth                                    int
+		xprFileName, synthFileName, pnrFileName     string
+		xdcFiles                                    RepeatedString
+		part                                        string
+		libraryFiles                                RepeatedString
+		VHDLStandard                                string
+		customFileName                              string
+		customTemplateFileName                      string
+		loadDcpName, saveDcpName                    string
+		bitstreamName                               string
+		timingSummaryName, utilizationName, drcName string
 	)
 
 	// Vivado is unable to create a project in any directory other than its
@@ -181,17 +181,8 @@ func main() {
 	flag.StringVar(&bitstreamName, "bitstream", "", "Output bitstream file")
 	flag.StringVar(&timingSummaryName, "timing-report", "", "")
 	flag.StringVar(&utilizationName, "utilization-report", "", "")
+	flag.StringVar(&drcName, "drc-report", "", "")
 	flag.Parse()
-
-	if part == "" {
-		log.Fatalf("flag --part=... is required")
-	}
-	if projectName == "" {
-		log.Fatalf("flag --project-name=... is required")
-	}
-	if topName == "" {
-		log.Fatalf("flag --top-name=... is required")
-	}
 
 	// Load a custom template if specified.
 	var customTemplate *template.Template
@@ -273,6 +264,7 @@ func main() {
 		BitstreamName:      bitstreamName,
 		TimingSummaryFile:  timingSummaryName,
 		UtilizationFile:    utilizationName,
+		DRCFile:            drcName,
 	}
 
 	if xprFileName != "" {

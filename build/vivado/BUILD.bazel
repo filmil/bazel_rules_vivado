@@ -2,7 +2,6 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files([
     "compile_simlib.tcl.template",
-    "pnr_batch.tcl.template",
     "xsim.tcl.template",
 ])
 
@@ -10,5 +9,12 @@ filegroup(
     name = "synth_batch_tcl_template",
     srcs = [
         "synth_batch.tcl.template",
+    ]
+)
+
+filegroup(
+    name = "pnr_batch_tcl_template",
+    srcs = [
+        "pnr_batch.tcl.template",
     ]
 )

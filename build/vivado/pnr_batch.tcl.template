@@ -7,7 +7,7 @@
 # implement.tcl
 
 # Step 1: Open the synthesized design checkpoint
-open_checkpoint {{ .LoadDcpName }}
+open_checkpoint {{ .LoadDcpFile }}
 
 # Step 2: Add constraints files.
 # Ordering is important here, too.
@@ -23,12 +23,12 @@ place_design
 route_design
 
 # Step 5 (Optional but Recommended): Write reports to check the results
-report_timing_summary -file ./{{ .Project}}.timing_summary_impl.rpt
-report_utilization -file ./{{ .Project }}.utilization_impl.rpt
-report_drc -file ./{{ .Project }}.drc_impl.rpt
+report_timing_summary -file {{ .TimingSummaryFile }}
+report_utilization -file {{ .UtilizationFile }}
+report_drc -file {{ .DRCFile }}
 
 # Step 6: Write the final implemented design checkpoint
-write_checkpoint -force {{ .SaveDcpName }}
+write_checkpoint -force {{ .SaveDcpFile }}
 
 # Step 7: Generate the final bitstream for the FPGA
 write_bitstream -force {{ .BitstreamName }}
