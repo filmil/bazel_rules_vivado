@@ -54,9 +54,9 @@ add_files -norecurse {{ . }}
 ######################################################################
 
 # Set the top-level entity/module and target part
-synth_design -top {{ .Top }} -part {{ .Part }} {{with .VHDLGenerics }} \
-  -generic   "{ {{- range .}} {{.}} {{end}}  }" {{end}} {{with .VerilogProperties }} \
-  -parameter "{ {{- range .}} {{.}} {{end}}  }" {{end}}
+synth_design -top {{ .Top }} -part {{ .Part }} {{range .VHDLGenerics }} \
+  -generic   {{.}} {{end}} {{range .VerilogProperties }} \
+  -parameter {{.}} {{end}}
 
 # Write the synthesized netlist
 write_checkpoint -force {{ .SaveDcpFile }}
