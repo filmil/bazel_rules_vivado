@@ -629,10 +629,12 @@ def _vivado_synthesis2_impl(ctx):
 
     processed_defines = []
     for k, v in ctx.attr.defines.items():
-        processed_defines += ["{}={}".format(k, ctx.expand_location(v))]
+        expanded = ctx.expand_location(v, targets = ctx.attr.data)
+        processed_defines += ["{}={}".format(k, expanded)]
     processed_generics = []
     for k, v in ctx.attr.generics.items():
-        processed_generics += ["{}={}".format(k, ctx.expand_location(v))]
+        expanded = ctx.expand_location(v, targets = ctx.attr.data)
+        processed_generics += ["{}={}".format(k, expanded)]
 
     # Prepare args
     args.add("--custom-filename", tcl_file.path)
@@ -740,6 +742,9 @@ vivado_synthesis2 = rule(
         "deps": attr.label_list(
             doc = "The sources for the libraries",
             providers = [VivadoLibraryProvider],
+        ),
+        "data": attr.label_list(
+            doc = "Other data",
         ),
         "xdcs": attr.label_list(
             doc = "Constraint files",
