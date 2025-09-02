@@ -32,7 +32,8 @@ type XPRBinding struct {
 	Top string
 	// Verilog properties to set.
 	VerilogProperties []string
-
+	// VHDL generics to set
+	VHDLGenerics []string
 	// The list of pure Verilog files to load.
 	VerilogFiles []FileLib
 	// The list of SystemVerilog files to load.
@@ -54,11 +55,9 @@ type XPRBinding struct {
 	// Part is the designator of the FPGA part to be programmed.
 	// For example, "xc7a200tfbg484-2"
 	Part string
-
 	// VHDLStandard is the standard of language to use, e.g. "2008" (also the
 	// default).
 	VHDLStandard string
-
 	// LoadDcp file is the checkpoint file for a previous step, if any.
 	LoadDcpFile string
 	// SaveDcp file is the checkpoint file for this step, if specified.
@@ -67,6 +66,7 @@ type XPRBinding struct {
 	BitstreamName string
 
 	TimingSummaryFile, UtilizationFile, DRCFile string
+	SynthFileName, PnrFileName, CustomFileName  string
 }
 
 var _ flag.Value = (*RepeatedString)(nil)
@@ -136,52 +136,56 @@ func main() {
 	p := path.Base(os.Args[0])
 	log.SetPrefix(fmt.Sprintf("%v: ", p))
 
-	var (
-		sources, headers, includeDirs, defines      RepeatedString
-		projectName, filesetName, topName           string
-		dirDepth                                    int
-		xprFileName, synthFileName, pnrFileName     string
-		xdcFiles                                    RepeatedString
-		part                                        string
-		libraryFiles                                RepeatedString
-		VHDLStandard                                string
-		customFileName                              string
-		customTemplateFileName                      string
-		loadDcpName, saveDcpName                    string
-		bitstreamName                               string
-		timingSummaryName, utilizationName, drcName string
-	)
+	var xpr XPRBinding
 
 	// Vivado is unable to create a project in any directory other than its
 	// PWD. So we need to account for that when generating.
+	var dirDepth int
 	flag.IntVar(&dirDepth, "dir-depth", 0, "The depth of the directory structure")
 
-	flag.StringVar(&xprFileName, "out-xpr", "", "output XPR file")
-	flag.StringVar(&synthFileName, "out-synth", "", "output synth file")
-	flag.StringVar(&pnrFileName, "out-pnr", "", "output synth file")
+	flag.StringVar(&xpr.OutXpr, "out-xpr", "", "output XPR file")
+	flag.StringVar(&xpr.SynthFileName, "out-synth", "", "output synth file")
+	flag.StringVar(&xpr.PnrFileName, "out-pnr", "", "output synth file")
 
-	flag.StringVar(&projectName, "project-name", "", "the name of the top-level project")
+	flag.StringVar(&xpr.Project, "project-name", "", "the name of the top-level project")
 	// Vivado requires this value, not sure if its name makes a difference.
-	flag.StringVar(&filesetName, "fileset-name", "sources_1", "the name of the file set to create")
-	flag.StringVar(&topName, "top-name", "", "the name of the top level entity")
+	flag.StringVar(&xpr.Fileset, "fileset-name", "sources_1", "the name of the file set to create")
+	flag.StringVar(&xpr.Top, "top-name", "", "the name of the top level entity")
 
+	var sources RepeatedString
 	flag.Var(&sources, "source", "list of source files")
-	flag.Var(&xdcFiles, "constraints", "lists of constraint files [.xdc]")
-	flag.Var(&headers, "header", "list of header files")
-	flag.Var(&includeDirs, "include-dir", "list of include directories")
-	flag.Var(&defines, "define", "list of include directories")
-	flag.Var(&libraryFiles, "library-file", "each is: library=file")
-	flag.StringVar(&part, "part", "", "The FPGA part to use for synthesis")
-	flag.StringVar(&VHDLStandard, "vhdl-standard", "2008", "The VHDL language standard to use")
 
-	flag.StringVar(&customFileName, "custom-filename", "", "Custom file to generate")
+	var xdcFiles RepeatedString
+	flag.Var(&xdcFiles, "constraints", "lists of constraint files [.xdc]")
+
+	var headers RepeatedString
+	flag.Var(&headers, "header", "list of header files")
+
+	var includeDirs RepeatedString
+	flag.Var(&includeDirs, "include-dir", "list of include directories")
+
+	var libraryFiles RepeatedString
+	flag.Var(&libraryFiles, "library-file", "each is: library=file")
+	flag.StringVar(&xpr.Part, "part", "", "The FPGA part to use for synthesis")
+	flag.StringVar(&xpr.VHDLStandard, "vhdl-standard", "2008", "The VHDL language standard to use")
+
+	flag.StringVar(&xpr.CustomFileName, "custom-filename", "", "Custom file to generate")
+
+	var customTemplateFileName string
 	flag.StringVar(&customTemplateFileName, "custom-template", "", "Custom file template")
-	flag.StringVar(&loadDcpName, "load-dcp", "", "Input snapshot file")
-	flag.StringVar(&saveDcpName, "save-dcp", "", "Output snapshot file")
-	flag.StringVar(&bitstreamName, "bitstream", "", "Output bitstream file")
-	flag.StringVar(&timingSummaryName, "timing-report", "", "")
-	flag.StringVar(&utilizationName, "utilization-report", "", "")
-	flag.StringVar(&drcName, "drc-report", "", "")
+
+	flag.StringVar(&xpr.LoadDcpFile, "load-dcp", "", "Input snapshot file")
+	flag.StringVar(&xpr.SaveDcpFile, "save-dcp", "", "Output snapshot file")
+	flag.StringVar(&xpr.BitstreamName, "bitstream", "", "Output bitstream file")
+	flag.StringVar(&xpr.TimingSummaryFile, "timing-report", "", "The file to write the timing report to")
+	flag.StringVar(&xpr.UtilizationFile, "utilization-report", "", "The file to write the utilization report to")
+	flag.StringVar(&xpr.DRCFile, "drc-report", "", "The file to write the desitn rule check report to")
+
+	var defines RepeatedString
+	flag.Var(&defines, "define", "list of (System)Verilog defines")
+
+	var generics RepeatedString
+	flag.Var(&generics, "generic", "a VHDL generic in KEY=VALUE format")
 	flag.Parse()
 
 	// Load a custom template if specified.
@@ -209,16 +213,12 @@ func main() {
 	}
 	ppath := strings.Join(pPaths, "/")
 
-	var (
-		verilogFiles       []FileLib
-		systemVerilogFiles []FileLib
-		VHDLFiles          []FileLib
-		OtherFiles         []FileLib
-	)
+	var verilogFiles, systemVerilogFiles, VHDLFiles, OtherFiles []FileLib
 
 	for _, v := range libraryFiles.values {
 		s := strings.Split(v, "=")
-		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, &OtherFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles,
+			&OtherFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
 			log.Fatalf("while classifying: %v: %v", v, err)
 		}
 	}
@@ -226,7 +226,8 @@ func main() {
 	// Sort the different program files into their own file type lists. Order
 	// is significant.
 	for _, v := range sources.values {
-		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles, &OtherFiles, FileLib{Name: v}); err != nil {
+		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles,
+			&OtherFiles, FileLib{Name: v}); err != nil {
 			log.Fatalf("while classifying: %v: %v", v, err)
 		}
 	}
@@ -243,48 +244,37 @@ func main() {
 	if err != nil {
 		log.Fatalf("can not get PWD: %v", err)
 	}
-	xpr := XPRBinding{
-		Project:            projectName,
-		Fileset:            filesetName,
-		Top:                topName,
-		VerilogProperties:  defines.values,
-		SystemVerilogFiles: systemVerilogFiles,
-		VerilogFiles:       verilogFiles,
-		VHDLFiles:          VHDLFiles,
-		OtherFiles:         OtherFiles,
-		VerilogHeaders:     headers.values,
-		VerilogIncludeDirs: vDirs,
-		XDCFiles:           xdcFiles.values,
-		PWD:                pwd,
-		OutXpr:             xprFileName,
-		Part:               part,
-		VHDLStandard:       VHDLStandard,
-		LoadDcpFile:        loadDcpName,
-		SaveDcpFile:        saveDcpName,
-		BitstreamName:      bitstreamName,
-		TimingSummaryFile:  timingSummaryName,
-		UtilizationFile:    utilizationName,
-		DRCFile:            drcName,
-	}
 
-	if xprFileName != "" {
-		if err := WriteFile(xprFileName, xprTpl, &xpr); err != nil {
-			log.Fatalf("while writing XPR file: %v: %v", xprFileName, err)
+	// Fill out the values that aren't directly available in flags.
+	xpr.VerilogProperties = defines.values
+	xpr.SystemVerilogFiles = systemVerilogFiles
+	xpr.VerilogFiles = verilogFiles
+	xpr.VHDLFiles = VHDLFiles
+	xpr.OtherFiles = OtherFiles
+	xpr.VerilogHeaders = headers.values
+	xpr.VerilogIncludeDirs = vDirs
+	xpr.XDCFiles = xdcFiles.values
+	xpr.PWD = pwd
+	xpr.VHDLGenerics = generics.values
+
+	if xpr.OutXpr != "" {
+		if err := WriteFile(xpr.OutXpr, xprTpl, &xpr); err != nil {
+			log.Fatalf("while writing XPR file: %v: %v", xpr.OutXpr, err)
 		}
 	}
-	if synthFileName != "" {
-		if err := WriteFile(synthFileName, syntTpl, &xpr); err != nil {
-			log.Fatalf("while writing synth file: %v: %v", synthFileName, err)
+	if xpr.SynthFileName != "" {
+		if err := WriteFile(xpr.SynthFileName, syntTpl, &xpr); err != nil {
+			log.Fatalf("while writing synth file: %v: %v", xpr.SynthFileName, err)
 		}
 	}
-	if pnrFileName != "" {
-		if err := WriteFile(pnrFileName, pnrTpl, &xpr); err != nil {
-			log.Fatalf("while writing PNR file: %v: %v", pnrFileName, err)
+	if xpr.PnrFileName != "" {
+		if err := WriteFile(xpr.PnrFileName, pnrTpl, &xpr); err != nil {
+			log.Fatalf("while writing PNR file: %v: %v", xpr.PnrFileName, err)
 		}
 	}
-	if customFileName != "" {
-		if err := WriteFile(customFileName, customTemplate, &xpr); err != nil {
-			log.Fatalf("while writing file: %v: %v", customFileName, err)
+	if xpr.CustomFileName != "" {
+		if err := WriteFile(xpr.CustomFileName, customTemplate, &xpr); err != nil {
+			log.Fatalf("while writing file: %v: %v", xpr.CustomFileName, err)
 		}
 	}
 }
