@@ -627,6 +627,13 @@ def _vivado_synthesis2_impl(ctx):
 
     tcl_file = ctx.actions.declare_file("{}.synth.tcl".format(name))
 
+    processed_defines = []
+    for k, v in ctx.attr.defines.items():
+        processed_defines += ["{}={}".format(k, ctx.expand_location(v))]
+    processed_generics = []
+    for k, v in ctx.attr.generics.items():
+        processed_generics += ["{}={}".format(k, ctx.expand_location(v))]
+
     # Prepare args
     args.add("--custom-filename", tcl_file.path)
     args.add("--custom-template", template_file.path)
@@ -635,7 +642,8 @@ def _vivado_synthesis2_impl(ctx):
     args.add("--timing-report", timing_summary_file.path)
     args.add("--top-name", top_level)
     args.add("--utilization-report", utilization_file.path)
-    args.add_all(ctx.attr.defines, before_each="--define")
+    args.add_all(processed_defines, before_each="--define")
+    args.add_all(processed_generics, before_each="--generic")
     args.add_all(hdrs_paths, before_each="--header")
     args.add_all(include_dirs, before_each="--include-dir")
     args.add_all(src_paths, before_each="--source")
@@ -652,7 +660,7 @@ def _vivado_synthesis2_impl(ctx):
         tools = [ generator ],
         executable = generator_path,
         arguments = [ args ],
-        progress_message = "Vivado XPRGEN {}".format(name),
+        progress_message = "Vivado Synth XPRGEN {}".format(name),
         mnemonic = "XPRGEN",
     )
 
@@ -744,7 +752,10 @@ vivado_synthesis2 = rule(
             doc = "The part that is targeted by this project",
             mandatory = True,
         ),
-        "defines": attr.string_list(
+        "defines": attr.string_dict(
+            allow_empty = True,
+        ),
+        "generics": attr.string_dict(
             allow_empty = True,
         ),
         "include_dirs": attr.string_list(
