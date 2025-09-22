@@ -968,7 +968,6 @@ def _vivado_place_and_route2_impl(ctx):
     for target in ctx.attr.xdcs:
         xdc_files_paths += [ file.path for file in target.files.to_list() ]
         xdc_files += target.files.to_list()
-    print("XDCS:", xdc_files, xdc_files_paths)
     inputs += xdc_files
 
     args.add("--custom-filename", tcl_file.path)
