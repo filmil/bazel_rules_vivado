@@ -1022,7 +1022,7 @@ def _vivado_place_and_route2_impl(ctx):
     )
 
     outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
-    inputs = [tcl_file, input_dcp_file]
+    inputs = [tcl_file, input_dcp_file] + xdc_files
 
     ctx.actions.run_shell(
         progress_message = "Vivado Synthesis {}".format(name),
