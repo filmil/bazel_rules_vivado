@@ -963,6 +963,14 @@ def _vivado_place_and_route2_impl(ctx):
     outputs += [utilization_file]
     bit_file = ctx.actions.declare_file("{}.bit".format(name))
 
+    xdc_files = []
+    xdc_files_paths = []
+    for target in ctx.attr.xdcs:
+        xdc_files_paths += [ file.path for file in target.files.to_list() ]
+        xdc_files += target.files.to_list()
+    print("XDCS:", xdc_files, xdc_files_paths)
+    inputs += xdc_files
+
     args.add("--custom-filename", tcl_file.path)
     args.add("--custom-template", template_file.path)
     args.add("--load-dcp", input_dcp_file.path)
@@ -972,6 +980,7 @@ def _vivado_place_and_route2_impl(ctx):
     args.add("--drc-report", drc_report_file.path)
     args.add("--top-name", name)
     args.add("--bitstream", bit_file.path)
+    args.add_all(xdc_files_paths, before_each = "--constraints")
 
     ctx.actions.run(
         outputs = [tcl_file],
