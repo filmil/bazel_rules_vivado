@@ -1495,7 +1495,7 @@ def _vivado_simulation_impl(ctx):
             args += ["-L", "{}={}".format(
                 dep_provider.name, dep_provider.library_dir.path)]
 
-    files += [file for file in provider.files.to_list()]
+    files += [file for file in provider.files]
     files += [provider.library_dir]
 
     top_entity = ctx.attr.top
