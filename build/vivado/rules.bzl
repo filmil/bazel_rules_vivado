@@ -1162,7 +1162,7 @@ vivado_program_device = rule(
             cfg="host",
         ),
         "_gotopt2": attr.label(
-            default="@gotopt2//cmd/gotopt2",
+            default="@gotopt2//:bin",
             executable=True,
             cfg="host",
         ),

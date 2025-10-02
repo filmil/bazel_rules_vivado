@@ -10,7 +10,7 @@ readonly _this_dir="${0%/*}"
 
 # These should be immune to path changes.
 readonly _run_docker="external/bazel_rules_bid/build/docker_run.sh"
-readonly _gotopt2="external/gotopt2/cmd/gotopt2/gotopt2_/gotopt2"
+readonly _gotopt2="{{ .GotoptFile }}"
 readonly _yaml_config="external/rules_vivado/build/vivado/bin/proggen/flags.yaml"
 readonly _bitfile="{{ .BitFile }}"
 GOTOPT2_OUTPUT=$(${_gotopt2} $@ < $_yaml_config)
