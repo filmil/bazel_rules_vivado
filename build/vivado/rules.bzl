@@ -242,7 +242,7 @@ def _vivado_project_impl(ctx):
         if lib_name not in seen_libraries:
             seen_libraries += [lib_name]
 
-            for file in provider.files.to_list():
+            for file in provider.files:
                 inputs += [file]
                 deps_files += [file]
                 args.add("--library-file", "{}={}".format(lib_name, file.path))
@@ -1490,7 +1490,7 @@ def _vivado_simulation_impl(ctx):
                     lib_name=unisim_lib,
                     dir_name=dep_provider.library_dir.path)]
         else:
-            files += [file for file in dep_provider.files.to_list()]
+            files += [file for file in dep_provider.files]
             files += [dep_provider.library_dir]
             args += ["-L", "{}={}".format(
                 dep_provider.name, dep_provider.library_dir.path)]
