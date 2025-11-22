@@ -48,6 +48,12 @@ set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}
 {{- range .OtherFiles}}
 add_files -norecurse {{ . }}
 {{- end}}
+
+# Add constraints files
+# Ordering is important here, too.
+{{- range .XDCFiles}}
+read_xdc {{"{"}} {{- . -}} {{"}"}}
+{{- end}}
 # end: constraints files
 
 ## End files.
