@@ -1109,7 +1109,25 @@ def _vivado_program_device(ctx):
     tpl1 = data[1]
     yaml = data[0]
 
+
     # Generated script file.
+    daemon_inputs = []
+    daemon_outputs = []
+    if ctx.attr.prog_daemon:
+        daemon_file = ctx.actions.declare_file("{}.daemon".format(ctx.attr.name))
+        daemon_outputs = [daemon_file]
+        args_daemon = ctx.actions.args()
+        args.add("--stamp-file", daemon_file.path)
+        ctx.actions.run(
+            inputs = [],
+            outputs = daemon_outputs,
+            executable = ctx.attr.prog_daemon.files.to_list()[0],
+            arguments = [args],
+            mnemonic = "DAEMON",
+            progress_message = "Running programming daemon: {}".format(daemon_file.path),
+        )
+
+
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
 
     args = ctx.actions.args()
@@ -1120,7 +1138,7 @@ def _vivado_program_device(ctx):
     args.add("--bitfile", bitfile.short_path)
 
     ctx.actions.run(
-        inputs = [generator, gotopt2, script, bitstream],
+        inputs = [generator, gotopt2, script, bitstream] + daemon_outputs,
         outputs = [outfile],
         executable = generator,
         tools = [
@@ -1176,6 +1194,10 @@ vivado_program_device = rule(
             default=Label("//build/vivado/bin/proggen:data"),
             doc = "The program to generate a programming wrapper",
             providers = ["files"],
+        )
+        "prog_daemon": attr.label(
+            doc = "The binary to start before programming",
+            executable = True,
         )
     },
 )
