@@ -1121,10 +1121,18 @@ def _vivado_program_device(ctx):
         if ctx.attr.prog_daemon_args:
             subst = [ ctx.expand_location(t) for t in ctx.attr.data]
             args_daemon.add_all(subst)
+        daemon_inputs = []
+        runfiles = ctx.runfiles(files=ctx.files.data)
+        transitive_runfiles = []
+        for target in ctx.attr.data:
+            daemon_inputs += target.files.to_list()
+            transitive_runfiles.append(target[DefaultInfo].default_runfiles)
+        runfiles = runfiles.merge_all(transitive_runfiles)
+
         ctx.actions.run(
-            inputs = [],
+            inputs = daemon_inputs + runfiles,
             outputs = daemon_outputs,
-            executable = ctx.attr.prog_daemon.files.to_list()[0],
+            executable = ctx.file.prog_daemon,
             arguments = [args_daemon],
             mnemonic = "DAEMON",
             progress_message = "Running programming daemon: {}".format(daemon_file.path),
