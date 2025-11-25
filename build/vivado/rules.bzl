@@ -1117,19 +1117,21 @@ def _vivado_program_device(ctx):
         daemon_file = ctx.actions.declare_file("{}.daemon".format(ctx.attr.name))
         daemon_outputs = [daemon_file]
         args_daemon = ctx.actions.args()
-        args.add("--stamp-file", daemon_file.path)
+        args_daemon.add("--stamp-file", daemon_file.path)
+        if ctx.attr.prog_daemon_args:
+            subst = [ ctx.expand_location(t) for t in ctx.attr.data]
+            args_daemon.add_all(subst)
         ctx.actions.run(
             inputs = [],
             outputs = daemon_outputs,
             executable = ctx.attr.prog_daemon.files.to_list()[0],
-            arguments = [args],
+            arguments = [args_daemon],
             mnemonic = "DAEMON",
             progress_message = "Running programming daemon: {}".format(daemon_file.path),
+            tools = ctx.attr.data,
         )
 
-
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
-
     args = ctx.actions.args()
     args.add("--outfile", outfile.path)
     args.add("--gotopt2", gotopt2.path)
@@ -1194,11 +1196,18 @@ vivado_program_device = rule(
             default=Label("//build/vivado/bin/proggen:data"),
             doc = "The program to generate a programming wrapper",
             providers = ["files"],
-        )
+        ),
         "prog_daemon": attr.label(
             doc = "The binary to start before programming",
             executable = True,
-        )
+            cfg = "host",
+        ),
+        "prog_daemon_args": attr.string_list(
+            doc = "The args to give to prog_daemon, subject to make var substitution",
+        ),
+        "data": attr.label_list(
+            doc = "The list of dependencies to expand",
+        ),
     },
 )
 
