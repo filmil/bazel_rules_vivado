@@ -1148,7 +1148,7 @@ def _vivado_program_device(ctx):
     args.add("--bitfile", bitfile.short_path)
 
     ctx.actions.run(
-        inputs = [generator, gotopt2, script, bitstream] + daemon_outputs,
+        inputs = [generator, gotopt2, script, bitfile] + daemon_outputs,
         outputs = [outfile],
         executable = generator,
         tools = [
@@ -1160,13 +1160,14 @@ def _vivado_program_device(ctx):
     )
 
     runfiles = ctx.runfiles(
-        files=[script, gotopt2, yaml],
+        files=[script, gotopt2, yaml, bitfile],
         collect_data = True,
     )
 
     runfiles = runfiles.merge(ctx.attr._script[DefaultInfo].default_runfiles)
     runfiles = runfiles.merge(ctx.attr._proggen[DefaultInfo].default_runfiles)
     runfiles = runfiles.merge(ctx.attr._data[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(ctx.attr._gotopt2[DefaultInfo].default_runfiles)
 
     return [
         DefaultInfo(
