@@ -81,7 +81,22 @@ readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
 
 echo "Creating script file: ${_tcl_script_file}"
 echo "Using bitfile:        ${_bitfile}"
-echo "Requested bitfile:        {{ .BitFile }}"
+echo "Requested bitfile:    {{ .BitFile }}"
+
+# Now, run the daemon.
+readonly _prog_runner_binary="{{ .ProgRunnerBinary }}"
+if [[ "${_prog_runner_binary}" != "" ]]; then
+    if [[ ! -x "${_prog_runner_binary}" ]]; then
+        echo "runner binary specified but does not exist"
+        exit 1
+    fi
+    readonly _prog_runner_args="{{ .ProgRunnerArgs }}"
+    # The args must be without quotes so that the spaces are expanded.
+    echo "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
+    "${_prog_runner_binary}" ${_prog_runner_args} &
+else
+    echo "No programmer binary, skipping"
+fi
 
 cat <<EOF > "${_tcl_script_file}"
 # Vivado tcl script here.

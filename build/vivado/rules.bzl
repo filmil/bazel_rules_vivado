@@ -1113,31 +1113,42 @@ def _vivado_program_device(ctx):
     # Generated script file.
     daemon_inputs = []
     daemon_outputs = []
-    if ctx.attr.prog_daemon:
-        daemon_file = ctx.actions.declare_file("{}.daemon".format(ctx.attr.name))
-        daemon_outputs = [daemon_file]
-        args_daemon = ctx.actions.args()
-        args_daemon.add("--stamp-file", daemon_file.path)
-        if ctx.attr.prog_daemon_args:
-            subst = [ ctx.expand_location(t) for t in ctx.attr.data]
-            args_daemon.add_all(subst)
-        daemon_inputs = []
-        runfiles = ctx.runfiles(files=ctx.files.data)
-        transitive_runfiles = []
-        for target in ctx.attr.data:
-            daemon_inputs += target.files.to_list()
-            transitive_runfiles.append(target[DefaultInfo].default_runfiles)
-        runfiles = runfiles.merge_all(transitive_runfiles)
+    default_runfiles = []
+    #if ctx.attr.prog_daemon:
+        #daemon_runfiles = ctx.attr.prog_daemon[DefaultInfo].default_runfiles
+        #default_runfiles += [daemon_runfiles]
+        #daemon_file = ctx.actions.declare_file("{}.daemon".format(ctx.attr.name))
+        #daemon_outputs = [daemon_file]
+        #args_daemon = ctx.actions.args()
+        #args_daemon.add("--stamp-file", daemon_file.path)
+        #if ctx.attr.prog_daemon_args:
+            #subst = [ ctx.expand_location(t, targets=ctx.attr.data) for t in ctx.attr.prog_daemon_args]
+            #args_daemon.add_all(subst)
+        #daemon_inputs = []
+        #runfiles = ctx.runfiles(files=ctx.files.data)
+        #transitive_runfiles = default_runfiles
+        #data_files = []
+        #for target in ctx.attr.data:
+            #daemon_inputs += target.files.to_list()
+            #transitive_runfiles.append(target[DefaultInfo].default_runfiles)
+            #data_files += target[DefaultInfo].data_runfiles.files.to_list()
+        #runfiles = runfiles.merge_all(transitive_runfiles)
 
-        ctx.actions.run(
-            inputs = daemon_inputs + runfiles,
-            outputs = daemon_outputs,
-            executable = ctx.file.prog_daemon,
-            arguments = [args_daemon],
-            mnemonic = "DAEMON",
-            progress_message = "Running programming daemon: {}".format(daemon_file.path),
-            tools = ctx.attr.data,
-        )
+        #print("runfiles: ", runfiles.files)
+
+        #for t in ctx.attr.data:
+            #data_files += t.files.to_list()
+
+        #print("data files: ", data_files)
+
+        #ctx.actions.run(
+            #inputs = daemon_inputs + data_files + runfiles.files.to_list(),
+            #outputs = daemon_outputs,
+            #executable = ctx.attr.prog_daemon.files.to_list()[0],
+            #arguments = [args_daemon],
+            #mnemonic = "DAEMON",
+            #progress_message = "Running programming daemon: {}".format(daemon_file.path),
+        #)
 
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
     args = ctx.actions.args()
@@ -1146,6 +1157,13 @@ def _vivado_program_device(ctx):
     args.add("--run-docker", script.path)
     args.add("--template", tpl1.path)
     args.add("--bitfile", bitfile.short_path)
+
+    # Add runner arguments here.
+    prog_runner_args = ctx.expand_location(
+        " ".join(ctx.attr.prog_daemon_args),
+        targets=ctx.attr.data)
+    args.add("--prog-runner-args={}".format(prog_runner_args))
+    args.add("--prog-runner-binary", ctx.attr.prog_daemon.files.to_list()[0].short_path)
 
     ctx.actions.run(
         inputs = [generator, gotopt2, script, bitfile] + daemon_outputs,
@@ -1164,10 +1182,15 @@ def _vivado_program_device(ctx):
         collect_data = True,
     )
 
-    runfiles = runfiles.merge(ctx.attr._script[DefaultInfo].default_runfiles)
-    runfiles = runfiles.merge(ctx.attr._proggen[DefaultInfo].default_runfiles)
-    runfiles = runfiles.merge(ctx.attr._data[DefaultInfo].default_runfiles)
-    runfiles = runfiles.merge(ctx.attr._gotopt2[DefaultInfo].default_runfiles)
+    default_runfiles += [
+        ctx.attr._script[DefaultInfo].default_runfiles,
+        ctx.attr._proggen[DefaultInfo].default_runfiles,
+        ctx.attr._data[DefaultInfo].default_runfiles,
+        ctx.attr._gotopt2[DefaultInfo].default_runfiles,
+        ctx.attr.prog_daemon[DefaultInfo].default_runfiles,
+    ]
+
+    runfiles = runfiles.merge_all(default_runfiles)
 
     return [
         DefaultInfo(
