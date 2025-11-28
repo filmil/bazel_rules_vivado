@@ -15,6 +15,9 @@ type Args struct {
 	RunDockerFile string
 	GotoptFile    string
 	BitFile       string
+
+	ProgRunnerArgs   string
+	ProgRunnerBinary string
 }
 
 func printEnv() {
@@ -68,6 +71,8 @@ func main() {
 	flag.StringVar(&args.RunDockerFile, "run-docker", "", "The script for running docker")
 	flag.StringVar(&args.GotoptFile, "gotopt2", "", "the gotopt2 binary to use")
 	flag.StringVar(&args.BitFile, "bitfile", "", "")
+	flag.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
+	flag.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
 
 	flag.Parse()
 
