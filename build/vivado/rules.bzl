@@ -1104,6 +1104,9 @@ def _vivado_program_device(ctx):
     generator = ctx.attr._proggen.files.to_list()[0]
 
     data = ctx.attr._data.files.to_list()
+    for target in ctx.attr._tools:
+        data += target.files.to_list()
+    print(data)
 
     # These do not seem to be stable; why?
     tpl1 = data[1]
@@ -1114,41 +1117,6 @@ def _vivado_program_device(ctx):
     daemon_inputs = []
     daemon_outputs = []
     default_runfiles = []
-    #if ctx.attr.prog_daemon:
-        #daemon_runfiles = ctx.attr.prog_daemon[DefaultInfo].default_runfiles
-        #default_runfiles += [daemon_runfiles]
-        #daemon_file = ctx.actions.declare_file("{}.daemon".format(ctx.attr.name))
-        #daemon_outputs = [daemon_file]
-        #args_daemon = ctx.actions.args()
-        #args_daemon.add("--stamp-file", daemon_file.path)
-        #if ctx.attr.prog_daemon_args:
-            #subst = [ ctx.expand_location(t, targets=ctx.attr.data) for t in ctx.attr.prog_daemon_args]
-            #args_daemon.add_all(subst)
-        #daemon_inputs = []
-        #runfiles = ctx.runfiles(files=ctx.files.data)
-        #transitive_runfiles = default_runfiles
-        #data_files = []
-        #for target in ctx.attr.data:
-            #daemon_inputs += target.files.to_list()
-            #transitive_runfiles.append(target[DefaultInfo].default_runfiles)
-            #data_files += target[DefaultInfo].data_runfiles.files.to_list()
-        #runfiles = runfiles.merge_all(transitive_runfiles)
-
-        #print("runfiles: ", runfiles.files)
-
-        #for t in ctx.attr.data:
-            #data_files += t.files.to_list()
-
-        #print("data files: ", data_files)
-
-        #ctx.actions.run(
-            #inputs = daemon_inputs + data_files + runfiles.files.to_list(),
-            #outputs = daemon_outputs,
-            #executable = ctx.attr.prog_daemon.files.to_list()[0],
-            #arguments = [args_daemon],
-            #mnemonic = "DAEMON",
-            #progress_message = "Running programming daemon: {}".format(daemon_file.path),
-        #)
 
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
     args = ctx.actions.args()
@@ -1181,6 +1149,11 @@ def _vivado_program_device(ctx):
         files=[script, gotopt2, yaml, bitfile],
         collect_data = True,
     )
+    tools_files = []
+    for target in ctx.attr._tools:
+        tools_files += target.files.to_list()
+
+    tools_runfiles = ctx.runfiles(files=tools_files, collect_data=True)
 
     default_runfiles += [
         ctx.attr._script[DefaultInfo].default_runfiles,
@@ -1188,6 +1161,7 @@ def _vivado_program_device(ctx):
         ctx.attr._data[DefaultInfo].default_runfiles,
         ctx.attr._gotopt2[DefaultInfo].default_runfiles,
         ctx.attr.prog_daemon[DefaultInfo].default_runfiles,
+        tools_runfiles,
     ]
 
     runfiles = runfiles.merge_all(default_runfiles)
@@ -1238,6 +1212,13 @@ vivado_program_device = rule(
             doc = "The args to give to prog_daemon, subject to make var substitution",
         ),
         "data": attr.label_list(
+            doc = "The list of dependencies to expand",
+        ),
+        "_tools": attr.label_list(
+            default = [
+                Label("@bazel_tools//tools/bash/runfiles"),
+                Label("@fshlib//:log"),
+            ],
             doc = "The list of dependencies to expand",
         ),
     },

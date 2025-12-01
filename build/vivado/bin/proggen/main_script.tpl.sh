@@ -6,9 +6,6 @@
 #
 set -eo pipefail
 
-readonly _this_dir="${0%/*}"
-echo this_dir: ${_this_dir}
-
 # --- begin runfiles.bash initialization ---
 # Copy-pasted from Bazel's Bash runfiles library (tools/bash/runfiles/runfiles.bash).
 if [[ ! -d "${RUNFILES_DIR:-/dev/null}" && ! -f "${RUNFILES_MANIFEST_FILE:-/dev/null}" ]]; then
@@ -31,6 +28,11 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
+readonly _log_bash_loc="$(rlocation fshlib~/log.bash)"
+source "${_log_bash_loc}"
+
+readonly _this_dir="${0%/*}"
+log::debug "this_dir: ${_this_dir}"
 
 # These should be immune to path changes.
 readonly _run_docker="$(rlocation bazel_rules_bid/build/docker_run.sh)"
@@ -79,23 +81,23 @@ readonly _tcl_script_file="prog.tcl"
 readonly _vivado_version="2025.1"
 readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
 
-echo "Creating script file: ${_tcl_script_file}"
-echo "Using bitfile:        ${_bitfile}"
-echo "Requested bitfile:    {{ .BitFile }}"
+log::info "Creating script file: ${_tcl_script_file}"
+log::info "Using bitfile:        ${_bitfile}"
+log::info "Requested bitfile:    {{ .BitFile }}"
 
 # Now, run the daemon.
 readonly _prog_runner_binary="{{ .ProgRunnerBinary }}"
 if [[ "${_prog_runner_binary}" != "" ]]; then
     if [[ ! -x "${_prog_runner_binary}" ]]; then
-        echo "runner binary specified but does not exist"
+        log::error "programmer runner binary specified, but does not exist: "${_prog_runner_binary}
         exit 1
     fi
     readonly _prog_runner_args="{{ .ProgRunnerArgs }}"
     # The args must be without quotes so that the spaces are expanded.
-    echo "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
+    log::info "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
     "${_prog_runner_binary}" ${_prog_runner_args} &
 else
-    echo "No programmer binary, skipping"
+    log::warn "No programmer binary, skipping"
 fi
 
 cat <<EOF > "${_tcl_script_file}"
@@ -139,5 +141,7 @@ env RUNFILES_DIR="$PWD/.." \
     LD_LIBRARY_PATH="${_vivado_root}/lib/lnx64.o" \
     "${_vivado_root}/bin/setEnvAndRunCmd.sh" vivado \
     -notrace -mode batch \
-    -source "/work/${_tcl_script_file}"
+    -source "/work/${_tcl_script_file}" | log::prefix "[vivado] " \
+    && log::info "OK" \
+    || log::error "Programmming error"
 
