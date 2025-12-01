@@ -81,9 +81,8 @@ readonly _tcl_script_file="prog.tcl"
 readonly _vivado_version="2025.1"
 readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
 
-log::info "Creating script file: ${_tcl_script_file}"
-log::info "Using bitfile:        ${_bitfile}"
-log::info "Requested bitfile:    {{ .BitFile }}"
+log::debug "Creating script file: ${_tcl_script_file}"
+log::debug "Using bitfile:        ${_bitfile}"
 
 # Now, run the daemon.
 readonly _prog_runner_binary="{{ .ProgRunnerBinary }}"
@@ -94,7 +93,7 @@ if [[ "${_prog_runner_binary}" != "" ]]; then
     fi
     readonly _prog_runner_args="{{ .ProgRunnerArgs }}"
     # The args must be without quotes so that the spaces are expanded.
-    log::info "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
+    log::debug "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
     "${_prog_runner_binary}" ${_prog_runner_args} &
 else
     log::warn "No programmer binary, skipping"
