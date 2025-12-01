@@ -15,6 +15,8 @@ go_binary(
     name = "proggen",
     data = [
         ":data",
+        "@bazel_tools//tools/bash/runfiles",
+        "@fshlib//:log",
     ],
     embed = [":proggen_lib"],
     visibility = ["//visibility:public"],
@@ -32,3 +34,4 @@ filegroup(
     name = "prog_script",
     srcs = ["program.tcl"],
 )
+
