@@ -1363,6 +1363,10 @@ def _vivado_library_impl(ctx):
                 fail("cann ot mix VHDL  with Verilog in the same library")
             command = "xvhdl"
             library_type = "VHDL"
+            # VHDL 2008 is used by default, use bool flag `vhdl1993 = True`
+            # to revert to 1993.
+            if not ctx.attr.vhdl1993:
+                args += ["--2008"]
 
     args += ["--work", "{}={}".format(library_name, library_output_dir.path)]
 
@@ -1504,6 +1508,10 @@ vivado_library = rule(
             default="@bazel_rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+        ),
+        "vhdl1993": attr.bool(
+            default=False,
+            doc = "Use VHDL-1993 standard else use VHDL-2008",
         ),
     },
 )
