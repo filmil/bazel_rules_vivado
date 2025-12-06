@@ -1106,7 +1106,6 @@ def _vivado_program_device(ctx):
     data = ctx.attr._data.files.to_list()
     for target in ctx.attr._tools:
         data += target.files.to_list()
-    print(data)
 
     # These do not seem to be stable; why?
     tpl1 = data[1]
@@ -1556,7 +1555,6 @@ def _vivado_simulation_impl(ctx):
     args += ["--top", "'{}.{}'".format(provider.name, top_entity)]
     args += ctx.attr.extra_modules
 
-    #print(ctx.attr.defines)
     for (k, v) in ctx.attr.defines.items():
         if v:
             # For `ifdef foo=bar
