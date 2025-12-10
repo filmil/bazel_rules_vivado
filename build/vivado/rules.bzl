@@ -70,6 +70,8 @@ def _xpr_gen(
   ip_user_files_dir_rpath = "{}.ip_user_files".format(name)
   jou_file_rpath = "vivado.jou"
   log_file_rpath = "vivado.log"
+  logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
+  outputs += [logfile]
 
   # Vivado places the XPR file in the current working directory, and that can
   # not be changed.  So we do a dirty trick, and copy the resulting file from
@@ -87,7 +89,7 @@ def _xpr_gen(
       {script} \
       LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
       {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-        -notrace -mode batch -source {xpr_tcl} 1>&2 && \
+        -notrace -mode batch -source {xpr_tcl} 2>&1 > {name} || (cat {name} && exit 1) && \
       cp --dereference {xprsrc} {xprdest} && \
       cp --dereference {jou_file_rpath} {output_dir} && \
       cp --dereference {log_file_rpath} {output_dir} && \
@@ -109,6 +111,7 @@ def _xpr_gen(
       log_file_rpath = log_file_rpath,
 
       output_dir = output_dir.path,
+      name = logfile.path,
     )
   )
 
@@ -618,6 +621,8 @@ def _vivado_synthesis2_impl(ctx):
     )
 
     inputs += [tcl_file]
+    logfile = ctx.actions.declare_file("{}.log".format(name))
+    outputs += [logfile]
 
     ctx.actions.run_shell(
         progress_message = "Vivado Synthesis {}".format(name),
@@ -631,13 +636,15 @@ def _vivado_synthesis2_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-                -notrace -mode batch -source {synth_tcl} 1>&2
+                -notrace -mode batch -source {synth_tcl} \
+                2>&1 > {name} || (cat {name} && exit 1)
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             synth_tcl=tcl_file.path,
             cache=cache_dir.path,
             work=output_dir.path,
+            name=logfile.path,
         ),
     )
 
@@ -938,10 +945,12 @@ def _vivado_place_and_route2_impl(ctx):
     outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
     inputs = [tcl_file, input_dcp_file] + xdc_files
 
+    logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
+
     ctx.actions.run_shell(
         progress_message = "Vivado Synthesis {}".format(name),
         inputs = inputs + [docker_run],
-        outputs = outputs + [output_dir, cache_dir],
+        outputs = outputs + [output_dir, cache_dir, logfile],
         tools = [docker_run],
         mnemonic = "VivadoSynth",
         command = """\
@@ -950,13 +959,15 @@ def _vivado_place_and_route2_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-                -notrace -mode batch -source {tcl} 1>&2
+                -notrace -mode batch -source {tcl} \
+                2>&1 > {name} || (cat {name} && exit 1)
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             tcl=tcl_file.path,
             cache=cache_dir.path,
             work=output_dir.path,
+            name=logfile.path,
         ),
     )
     return [
@@ -966,6 +977,7 @@ def _vivado_place_and_route2_impl(ctx):
             timing_summary_file,
             drc_report_file,
             output_dcp_file,
+            logfile,
         ])),
         VivadoBitstreamProvider(
             bitstream = bit_file,
