@@ -379,7 +379,7 @@ def _vivado_synthesis_impl(ctx):
     progress_message = "Vivado Synthesis \"{}\"".format(name),
     inputs = inputs + [docker_run],
     outputs = outputs,
-    mnemonic = "VivadoSynth",
+    mnemonic = "VSYN",
     tools = [docker_run],
     command = """\
       echo "BAZEL: Vivado synthesis" && \
@@ -629,7 +629,7 @@ def _vivado_synthesis2_impl(ctx):
         inputs = inputs + [docker_run],
         outputs = outputs + [output_dir, cache_dir],
         tools = [docker_run],
-        mnemonic = "VivadoSynth",
+        mnemonic = "VSYN2",
         command = """\
             mkdir -p {cache} &&
             mkdir -p {work} && \
@@ -780,7 +780,7 @@ def _vivado_pnr_impl(ctx):
     progress_message = "Vivado Place and Route \"{}\"".format(name),
     inputs = inputs + [docker_run],
     outputs = outputs,
-    mnemonic = "VivadoPNR",
+    mnemonic = "VPNR",
     tools = [docker_run],
     command = """\
       echo "BAZEL: Vivado working directory is: $PWD" && \
