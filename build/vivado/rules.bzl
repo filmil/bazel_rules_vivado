@@ -1546,6 +1546,8 @@ def _vivado_simulation_impl(ctx):
     # xelab apparently can not set the location of xsim.dir, so move it to a
     # predictable place.
     suffix = ["&&", "mv xsim.dir {}".format(xsim_dir.path)]
+    compile_log = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
+    outputs += [compile_log]
     ctx.actions.run_shell(
         progress_message = "Vivado elaborate library \"{}\"".format(provider.name),
         inputs = files + data_files + [docker_run],
@@ -1556,13 +1558,14 @@ def _vivado_simulation_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} 1>&2 {suffix}
+            {args} 2>&1 > {log} || ( cat {log} && exit 1 ) {suffix}
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             command="xelab",
             args=" ".join(args),
             suffix=" ".join(suffix),
+            log=compile_log.path,
         ),
     )
 
