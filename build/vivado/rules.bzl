@@ -54,7 +54,6 @@ def _xpr_gen(
     freeargs=[
       "--net=host",
       "-e", "HOME=/work",
-      "-w", "/work",
     ],
   )
 
@@ -368,7 +367,6 @@ def _vivado_synthesis_impl(ctx):
     freeargs=[
       "--net=host",
       "-e", "HOME=/work",
-      "-w", "/work",
     ],
   )
 
@@ -616,7 +614,6 @@ def _vivado_synthesis2_impl(ctx):
       freeargs=[
         "--net=host",
         "-e", "HOME=/work",
-        "-w", "/work",
       ],
     )
 
@@ -769,9 +766,10 @@ def _vivado_pnr_impl(ctx):
     freeargs=[
       "--net=host",
       "-e", "HOME=/work",
-      "-w", "/work",
     ],
   )
+
+  print("debug", script)
 
   # Run vivado with the script in the container
   # The copy/chmod shenanigans are needed to work around Vivado's hostile
@@ -938,7 +936,6 @@ def _vivado_place_and_route2_impl(ctx):
       freeargs=[
         "--net=host",
         "-e", "HOME=/work",
-        "-w", "/work",
       ],
     )
 
@@ -1056,7 +1053,7 @@ def _vivado_program_device(ctx):
         " ".join(ctx.attr.prog_daemon_args),
         targets=ctx.attr.data)
     args.add("--prog-runner-args={}".format(prog_runner_args))
-    args.add("--prog-runner-binary", ctx.attr.prog_daemon.files.to_list()[0].short_path)
+    args.add("--prog-runner-binary", ctx.files.prog_daemon[0].short_path)
 
     ctx.actions.run(
         inputs = [generator, gotopt2, script, bitfile] + daemon_outputs,
@@ -1239,7 +1236,6 @@ def _vivado_library_impl(ctx):
       freeargs=[
         "--net=host",
         "-e", "HOME=/work",
-        "-w", "/work",
       ],
     )
 
@@ -1324,6 +1320,9 @@ def _vivado_library_impl(ctx):
         command = "xvlog"
         args = ["{}/data/verilog/src/glbl.v".format(VIVADO_PATH)] + args
 
+    log_file = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
+    outputs += [log_file]
+
     ctx.actions.run_shell(
         progress_message = "Vivado compile {} library \"{}\"".format(
             library_type, library_name),
@@ -1335,12 +1334,13 @@ def _vivado_library_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} 1>&2
+            {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             command=command,
             args=" ".join(args),
+            log=log_file.path,
         ),
     )
 
@@ -1534,7 +1534,6 @@ def _vivado_simulation_impl(ctx):
       freeargs=[
         "--net=host",
         "-e", "HOME=/work",
-        "-w", "/work",
       ],
     )
 
@@ -1730,7 +1729,6 @@ def _vivado_unisims_library_impl(ctx):
       freeargs=[
         "--net=host",
         "-e", "HOME=/work",
-        "-w", "/work",
       ],
     )
     output_dir2 = ctx.actions.declare_directory("{}.unisims.top".format(ctx.label.name))
