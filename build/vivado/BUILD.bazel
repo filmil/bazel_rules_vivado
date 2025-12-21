@@ -1,3 +1,5 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
@@ -18,3 +20,18 @@ filegroup(
         "pnr_batch.tcl.template",
     ]
 )
+
+sh_binary(
+  name = "pnr",
+  srcs = ["pnr.bash"],
+  deps = [
+    "@bazel_rules_bid//build:resolve",
+  ],
+  visibility = ["//visibility:public"],
+  data = [
+    "@gotopt2//:bin",
+    "@bazel_tools//tools/bash/runfiles",
+    "@fshlib//:log",
+  ],
+)
+
