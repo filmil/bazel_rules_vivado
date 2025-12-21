@@ -944,22 +944,27 @@ def _vivado_place_and_route2_impl(ctx):
 
     logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
 
+    print("SCRIPT", script)
+    script_file = ctx.actions.declare_file("{}.script".format(ctx.attr.name))
+    ctx.actions.write(script_file, content=script)
+    pnr_binary = ctx.executable._pnr
+
     ctx.actions.run_shell(
         progress_message = "Vivado Synthesis {}".format(name),
-        inputs = inputs + [docker_run],
+        inputs = inputs + [docker_run, script_file],
         outputs = outputs + [output_dir, cache_dir, logfile],
-        tools = [docker_run],
+        tools = [docker_run, pnr_binary],
         mnemonic = "VivadoSynth",
         command = """\
-            mkdir -p {cache} &&
-            mkdir -p {work} && \
-            {script} \
-            LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
-            {vivado_path}/bin/setEnvAndRunCmd.sh vivado \
-                -notrace -mode batch -source {tcl} \
+            {pnr_binary} --script-file={script} \
+                --cache-dir={cache} \
+                --work-dir={work} \
+                --vivado-path={vivado_path} \
+                --tcl-file={tcl} \
                 2>&1 > {name} || (cat {name} && exit 1)
         """.format(
-            script=script,
+            pnr_binary=pnr_binary.path,
+            script=script_file.path,
             vivado_path=VIVADO_PATH,
             tcl=tcl_file.path,
             cache=cache_dir.path,
@@ -996,6 +1001,12 @@ vivado_place_and_route2 = rule(
         "_generator": attr.label(
             doc = "xprgen binary",
             default = Label("//build/vivado/bin/xprgen"),
+            executable = True,
+            cfg = "host",
+        ),
+        "_pnr": attr.label(
+            doc = "pnr binary",
+            default = Label(":pnr"),
             executable = True,
             cfg = "host",
         ),
