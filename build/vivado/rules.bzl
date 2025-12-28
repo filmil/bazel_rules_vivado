@@ -769,8 +769,6 @@ def _vivado_pnr_impl(ctx):
     ],
   )
 
-  print("debug", script)
-
   # Run vivado with the script in the container
   # The copy/chmod shenanigans are needed to work around Vivado's hostile
   # attitude towards sandboxing.
@@ -941,10 +939,7 @@ def _vivado_place_and_route2_impl(ctx):
 
     outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
     inputs = [tcl_file, input_dcp_file] + xdc_files
-
     logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
-
-    print("SCRIPT", script)
     script_file = ctx.actions.declare_file("{}.script".format(ctx.attr.name))
     ctx.actions.write(script_file, content=script)
     pnr_binary = ctx.executable._pnr
