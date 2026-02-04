@@ -25,7 +25,7 @@ sh_binary(
   name = "pnr",
   srcs = ["pnr.bash"],
   deps = [
-    "@bazel_rules_bid//build:resolve",
+    "@rules_bid//build:resolve",
   ],
   visibility = ["//visibility:public"],
   data = [
