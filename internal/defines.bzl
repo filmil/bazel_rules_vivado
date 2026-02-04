@@ -1,4 +1,4 @@
-load("@bazel_rules_bid//build:rules.bzl", "run_docker_cmd")
+load("@rules_bid//build:rules.bzl", "run_docker_cmd")
 
 DOCKER_RUN_SCRIPT_ATTRS = {
     "env": attr.string_dict(
@@ -10,7 +10,7 @@ DOCKER_RUN_SCRIPT_ATTRS = {
         doc = "A dictionary of mounts to define for the run."
     ),
     "_script": attr.label(
-        default=Label("@bazel_rules_bid//build:docker_run"),
+        default=Label("@rules_bid//build:docker_run"),
         executable=True,
         cfg="host",
     ),

@@ -1,5 +1,5 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@bazel_rules_bid//build:rules.bzl", "run_docker_cmd")
+load("@rules_bid//build:rules.bzl", "run_docker_cmd")
 load("//internal:defines.bzl",
     _DOCKER_RUN_SCRIPT_ATTRS = "DOCKER_RUN_SCRIPT_ATTRS",
     "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
@@ -287,7 +287,7 @@ vivado_project = rule(
             default = "//build/vivado/bin/xprgen:xprgen",
         ),
         "_script": attr.label(
-            default=Label("@bazel_rules_bid//build:docker_run"),
+            default=Label("@rules_bid//build:docker_run"),
             executable=True,
             cfg="host",
         ),
@@ -846,7 +846,7 @@ vivado_place_and_route = rule(
             doc = "A dictionary of mounts to define for the run."
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
         ),
@@ -1111,7 +1111,7 @@ vivado_program_device = rule(
             doc = "The list of deps containing bitstream code",
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
         ),
@@ -1417,7 +1417,7 @@ vivado_library = rule(
             doc = "A dictionary of mounts to define for the run."
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
         ),
@@ -1688,7 +1688,7 @@ vivado_simulation = rule(
             doc = "A dictionary of mounts to define for the run."
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
         ),
@@ -1868,7 +1868,7 @@ vivado_unisims_library = rule(
             doc = "A dictionary of mounts to define for the run."
         ),
         "_script": attr.label(
-            default="@bazel_rules_bid//build:docker_run",
+            default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
         ),
