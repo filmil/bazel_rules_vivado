@@ -1273,8 +1273,12 @@ def _vivado_library_impl(ctx):
             library_type = "VHDL"
             # VHDL 2008 is used by default, use bool flag `vhdl1993 = True`
             # to revert to 1993.
-            if not ctx.attr.vhdl1993:
-                args += ["--2008"]
+            standard_flag = ["--2008"]
+            if ctx.attr.vhdl1993:
+                standard_flag = []
+            if ctx.attr.standard and ctx.attr.standard != "2008":
+                standard_flag = ["--{}".format(ctx.attr.standard)]
+            args += standard_flag
 
     args += ["--work", "{}={}".format(library_name, library_output_dir.path)]
 
@@ -1424,6 +1428,10 @@ vivado_library = rule(
         "vhdl1993": attr.bool(
             default=False,
             doc = "Use VHDL-1993 standard else use VHDL-2008",
+        ),
+        "standard": attr.string(
+            default = "2008",
+            doc = "Specify the language standard to use",
         ),
     },
 )
