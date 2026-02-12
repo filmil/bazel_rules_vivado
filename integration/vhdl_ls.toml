@@ -1,6 +1,18 @@
-
+standard = "2019"
 [libraries]
 test_lib.files = [
   "src/test1/test.ent.vhdl",
   "src/test1/tb.ent.vhdl"
+]
+ip_generics.files = [
+  "ip/generics/gen.pkg.vhdl",
+  "ip/generics/spec.pkg.vhdl",
+  "ip/generics/test.ent.vhdl",
+  "ip/generics/gen_test.ent.vhdl",
+  "ip/generics/gen_inst.ent.vhdl",
+  "ip/generics/tb.ent.vhdl"
+]
+test1.files = [
+  "ip/test1/test.ent.vhdl",
+  "ip/test1/tb.ent.vhdl"
 ]
