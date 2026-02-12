@@ -16,28 +16,31 @@ filegroup(
     name = "srcs",
     # do not sort
     srcs = [
+        "gen.pkg.vhdl",
+        "spec.pkg.vhdl",
         "test.ent.vhdl",
+        "gen_test.ent.vhdl",
+        "gen_inst.ent.vhdl",
         "tb.ent.vhdl",
     ],
     tags = [
         "vhdl_ls",
-        "vhdl_ls_lib_test_lib",
+        "vhdl_ls_lib_ip_generics",
     ],
 )
 
 
 vivado_library(
-    name = "test_lib",
+    name = "lib",
+    library_name = "ip_generics",
     srcs = [":srcs"],
 )
-
 
 filegroup(
     name = "constraints",
     srcs = [
         "constraints.xdc",
     ],
-
 )
 
 
@@ -62,7 +65,7 @@ vivado_place_and_route2(
 
 vivado_simulation(
     name = "sim",
-    #config = "cfg_tb",
-    library = ":test_lib",
+    library = ":lib",
     top = "tb",
 )
+
