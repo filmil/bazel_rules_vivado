@@ -1,0 +1,49 @@
+load(
+    "@rules_vivado//build/vivado:rules.bzl",
+    "vivado_generics",
+    "vivado_library",
+    "vivado_place_and_route",
+    "vivado_place_and_route2",
+    "vivado_program_device",
+    "vivado_simulation",
+
+    # Version2
+    "vivado_synthesis2",
+)
+
+
+filegroup(
+    name = "srcs",
+    # do not sort
+    srcs = [
+        "test.ent.vhdl",
+    ],
+    tags = [
+        "vhdl_ls",
+        "vhdl_ls_lib_test_lib",
+    ],
+)
+
+
+vivado_library(
+    name = "test_lib",
+    srcs = [":srcs"],
+)
+
+
+vivado_synthesis2(
+    name = "synth",
+    srcs = [
+        "test.ent.vhdl",
+    ],
+    xdcs = [],
+    part = "xc7a200tfbg484-2",
+    top = "test",
+)
+
+
+vivado_place_and_route2(
+    name = "pnr",
+    synthesis =  ":synth",
+)
+
