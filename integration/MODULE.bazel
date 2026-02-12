@@ -1,0 +1,14 @@
+module(
+    name = "integration",
+    version = "0.0.0",
+    bazel_compatibility = [ ">=8.0.0"],
+)
+
+
+bazel_dep(name = "vhdl_ls_gen", version = "0.2.3")
+
+bazel_dep(name = "rules_vivado", version = "0.0.0")
+local_path_override(
+    module_name = "rules_vivado",
+    path = "../",
+)
