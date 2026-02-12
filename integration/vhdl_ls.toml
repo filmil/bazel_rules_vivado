@@ -1,5 +1,6 @@
 
 [libraries]
 test_lib.files = [
-  "src/test1/test.ent.vhdl"
+  "src/test1/test.ent.vhdl",
+  "src/test1/tb.ent.vhdl"
 ]

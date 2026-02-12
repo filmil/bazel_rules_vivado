@@ -17,6 +17,7 @@ filegroup(
     # do not sort
     srcs = [
         "test.ent.vhdl",
+        "tb.ent.vhdl",
     ],
     tags = [
         "vhdl_ls",
@@ -31,12 +32,23 @@ vivado_library(
 )
 
 
+filegroup(
+    name = "constraints",
+    srcs = [
+        "constraints.xdc",
+    ],
+
+)
+
+
 vivado_synthesis2(
     name = "synth",
     srcs = [
-        "test.ent.vhdl",
+        ":srcs",
     ],
-    xdcs = [],
+    xdcs = [
+        ":constraints",
+    ],
     part = "xc7a200tfbg484-2",
     top = "test",
 )
@@ -47,3 +59,10 @@ vivado_place_and_route2(
     synthesis =  ":synth",
 )
 
+
+vivado_simulation(
+    name = "sim",
+    #config = "cfg_tb",
+    library = ":test_lib",
+    top = "tb",
+)
