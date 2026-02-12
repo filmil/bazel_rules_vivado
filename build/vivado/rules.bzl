@@ -945,11 +945,11 @@ def _vivado_place_and_route2_impl(ctx):
     pnr_binary = ctx.executable._pnr
 
     ctx.actions.run_shell(
-        progress_message = "Vivado Synthesis {}".format(name),
+        progress_message = "Vivado Place and Route: {}".format(name),
         inputs = inputs + [docker_run, script_file],
         outputs = outputs + [output_dir, cache_dir, logfile],
         tools = [docker_run, pnr_binary],
-        mnemonic = "VivadoSynth",
+        mnemonic = "VPNR2",
         command = """\
             {pnr_binary} --script-file={script} \
                 --cache-dir={cache} \
