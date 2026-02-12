@@ -102,7 +102,6 @@
     "https://bcr.bazel.build/modules/re2/2023-09-01/source.json": "e044ce89c2883cd957a2969a43e79f7752f9656f6b20050b62f90ede21ec6eb4",
     "https://bcr.bazel.build/modules/rules_android/0.1.1/MODULE.bazel": "48809ab0091b07ad0182defb787c4c5328bd3a278938415c00a7b69b50c4d3a8",
     "https://bcr.bazel.build/modules/rules_android/0.1.1/source.json": "e6986b41626ee10bdc864937ffb6d6bf275bb5b9c65120e6137d56e6331f089e",
-    "https://bcr.bazel.build/modules/rules_bid/2.0.3/MODULE.bazel": "not found",
     "https://bcr.bazel.build/modules/rules_cc/0.0.1/MODULE.bazel": "cb2aa0747f84c6c3a78dad4e2049c154f08ab9d166b1273835a8174940365647",
     "https://bcr.bazel.build/modules/rules_cc/0.0.10/MODULE.bazel": "ec1705118f7eaedd6e118508d3d26deba2a4e76476ada7e0e3965211be012002",
     "https://bcr.bazel.build/modules/rules_cc/0.0.13/MODULE.bazel": "0e8529ed7b323dad0775ff924d2ae5af7640b23553dfcd4d34344c7e7a867191",
@@ -202,8 +201,6 @@
     "https://raw.githubusercontent.com/filmil/bazel-registry/main/bazel_registry.json": "not found",
     "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/gotopt2/2.2.4/MODULE.bazel": "2c071c86fb07fc4dda1d12b3ede8bac669d6be58f9251ce158b37253d5fa2c0d",
     "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/gotopt2/2.2.4/source.json": "40672e459b4f82fca2539b4f4f8d35750eb6194430ac6f1ed5d311a82cac343c",
-    "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/rules_bid/2.0.3/MODULE.bazel": "f904a5368369ba337cf0aaea71c47f11c7aab2a87ef65c4a4583a3b3de87ee17",
-    "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/rules_bid/2.0.3/source.json": "bb531fbf145cb3463c710d28be35fbf37a5ff2a7a4816919a4fd1f8165a1de24",
     "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/vhdl_ls_gen/0.2.3/MODULE.bazel": "f53100e2d74d612693c19eff3783604e0070ea15bd1eed264eecff7e1b61fe52",
     "https://raw.githubusercontent.com/filmil/bazel-registry/main/modules/vhdl_ls_gen/0.2.3/source.json": "485e4774d64acc5556d315ff982be54c31e1502523f76574095b1ccde7bbb2fd"
   },
