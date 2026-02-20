@@ -1,7 +1,7 @@
-load("@gazelle//:def.bzl", "gazelle", "gazelle_binary", "DEFAULT_LANGUAGES")
-load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@bazel_lib//:bzl_library.bzl", "bzl_library")
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+load("@gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 gazelle_binary(
@@ -10,7 +10,11 @@ gazelle_binary(
         "@bazel_skylib_gazelle_plugin//bzl",
     ],
 )
-gazelle(name = "gazelle", gazelle = ":gazelle_bin")
+
+gazelle(
+    name = "gazelle",
+    gazelle = ":gazelle_bin",
+)
 
 buildifier(name = "buildifier")
 
@@ -22,10 +26,12 @@ bzl_library(
 )
 
 stardoc(
-    name ="md",
-    input = "doc.bzl",
+    name = "md",
     out = "gen.doc.md",
+    input = "doc.bzl",
     deps = [
+        "//internal:defines",
+        "//internal:providers",
     ],
 )
 
@@ -35,4 +41,3 @@ write_source_files(
         "doc.md": "//:md",
     },
 )
-

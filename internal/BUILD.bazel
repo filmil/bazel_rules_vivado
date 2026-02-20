@@ -5,7 +5,7 @@ package(default_visibility = ["//visibility:public"])
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
-    deps = ["@rules_bid//build:rules"],
+    #deps = ["@rules_bid//build:rules"],
 )
 
 bzl_library(

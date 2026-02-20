@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "xprgen_lib",
-    srcs = ["main.go", "templates.go"],
+    srcs = [
+        "main.go",
+        "templates.go",
+    ],
     importpath = "cp/build/vivado/bin/xprgen",
     visibility = ["//visibility:private"],
 )

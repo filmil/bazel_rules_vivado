@@ -1,3 +1,4 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:public"])
@@ -11,27 +12,37 @@ filegroup(
     name = "synth_batch_tcl_template",
     srcs = [
         "synth_batch.tcl.template",
-    ]
+    ],
 )
 
 filegroup(
     name = "pnr_batch_tcl_template",
     srcs = [
         "pnr_batch.tcl.template",
-    ]
+    ],
 )
 
 sh_binary(
-  name = "pnr",
-  srcs = ["pnr.bash"],
-  deps = [
-    "@rules_bid//build:resolve",
-  ],
-  visibility = ["//visibility:public"],
-  data = [
-    "@gotopt2//:bin",
-    "@bazel_tools//tools/bash/runfiles",
-    "@fshlib//:log",
-  ],
+    name = "pnr",
+    srcs = ["pnr.bash"],
+    data = [
+        "@bazel_tools//tools/bash/runfiles",
+        "@fshlib//:log",
+        "@gotopt2//:bin",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@rules_bid//build:resolve",
+    ],
 )
 
+bzl_library(
+    name = "rules",
+    srcs = ["rules.bzl"],
+    deps = [
+        "//internal:defines",
+        "//internal:providers",
+        "@bazel_skylib//lib:paths",
+        #"@rules_bid//build:rules",
+    ],
+)

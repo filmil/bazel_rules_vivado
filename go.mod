@@ -1,4 +1,4 @@
-module google.com/cp
+module cp
 
 go 1.19
 
