@@ -1,6 +1,7 @@
 load(
     "//build/vivado:rules.bzl",
-    "vivado_library", "vivado_simulation"
+    "vivado_library",
+    "vivado_simulation",
 )
 
 vivado_library(
@@ -8,7 +9,7 @@ vivado_library(
     srcs = [
         "adder.sv",
         "tb.sv",
-    ]
+    ],
 )
 
 vivado_simulation(
