@@ -1,1 +1,14 @@
-package(default_visibility = [ "//visibility:public"])
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+bzl_library(
+    name = "defines",
+    srcs = ["defines.bzl"],
+    deps = ["@rules_bid//build:rules"],
+)
+
+bzl_library(
+    name = "providers",
+    srcs = ["providers.bzl"],
+)
