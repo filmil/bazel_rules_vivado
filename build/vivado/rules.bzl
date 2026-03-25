@@ -1600,6 +1600,7 @@ def _vivado_simulation_impl(ctx):
     )
 
     args = []
+    args += ctx.attr.args
     inputs2 = [xsim_dir, xsim_script_file, provider.library_dir]
     #args += ["--xsimdir", "{}/xsim.dir".format(xsim_dir.path)]
     args += ["--tclbatch", xsim_script_file.path]
@@ -1713,6 +1714,10 @@ vivado_simulation = rule(
         "custom_tcl_script": attr.label(
             doc = "Custom TCL script to run simulation with",
             allow_single_file = True,
+            mandatory = False,
+        ),
+        "args": attr.string_list(
+            doc = "Custom args to xsim",
             mandatory = False,
         ),
     },
