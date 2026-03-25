@@ -1589,9 +1589,10 @@ def _vivado_simulation_impl(ctx):
         "{}.raw.vcd".format(ctx.label.name))
     xsim_script_file = ctx.actions.declare_file(
         "{}.xsim.tcl".format(ctx.label.name))
+    tcl_script_template = ctx.file.custom_tcl_script or ctx.file.template
     ctx.actions.expand_template(
         output = xsim_script_file,
-        template = ctx.attr.template.files.to_list()[0],
+        template = tcl_script_template,
         substitutions = {
             "{{VCD_FILE}}": vcd_file_raw.path,
             "{{TOP}}": ctx.attr.top,
@@ -1708,6 +1709,11 @@ vivado_simulation = rule(
         ),
         "xelab_relaxed": attr.bool(
             doc = "Relax HDL checks, sometimes needed for Verilog modules",
+        ),
+        "custom_tcl_script": attr.label(
+            doc = "Custom TCL script to run simulation with",
+            allow_single_file = True,
+            mandatory = False,
         ),
     },
 )
