@@ -120,13 +120,15 @@ type FileLib struct {
 func AppendTo(systemVerilogFiles, verilogFiles, VHDLFiles, otherFiles *[]FileLib, fl FileLib) error {
 	if fl.Name == "" {
 		return fmt.Errorf("no file name in %+v", fl)
-	} else if strings.HasSuffix(fl.Name, SystemVerilogExtension) {
+	}
+	switch {
+	case strings.HasSuffix(fl.Name, SystemVerilogExtension):
 		*systemVerilogFiles = append(*systemVerilogFiles, fl)
-	} else if strings.HasSuffix(fl.Name, VerilogExtension) {
+	case strings.HasSuffix(fl.Name, VerilogExtension):
 		*verilogFiles = append(*verilogFiles, fl)
-	} else if strings.HasSuffix(fl.Name, VHDLExtension1) || strings.HasSuffix(fl.Name, VHDLExtension2) {
+	case strings.HasSuffix(fl.Name, VHDLExtension1), strings.HasSuffix(fl.Name, VHDLExtension2):
 		*VHDLFiles = append(*VHDLFiles, fl)
-	} else {
+	default:
 		*otherFiles = append(*otherFiles, fl)
 	}
 	return nil
