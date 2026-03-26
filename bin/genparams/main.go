@@ -27,11 +27,16 @@ func (self *KVList) Set(v string) error {
 }
 
 func (self *KVList) String() string {
-	var out []string
-	for _, e := range self.values {
-		out = append(out, fmt.Sprintf("%v=%v", e.Key, e.Value))
+	var out strings.Builder
+	for i, e := range self.values {
+		if i > 0 {
+			out.WriteByte(';')
+		}
+		out.WriteString(e.Key)
+		out.WriteByte('=')
+		out.WriteString(e.Value)
 	}
-	return strings.Join(out, ";")
+	return out.String()
 }
 
 func (self *KVList) Iter() []KV {
