@@ -15,3 +15,9 @@ go_binary(
     embed = [":xprgen_lib"],
     visibility = ["//visibility:public"],
 )
+
+go_test(
+    name = "xprgen_test",
+    srcs = ["main_test.go"],
+    embed = [":xprgen_lib"],
+)
