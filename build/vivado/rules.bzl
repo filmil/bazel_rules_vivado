@@ -1804,6 +1804,9 @@ def _vivado_unisims_library_impl(ctx):
     )
     #args = ["-batch", compile_script_file.path]
     args = ["-mode", "batch", "-script", compile_script_file.path]
+    unisims_log = ctx.actions.declare_file(
+        "{}.unisims.log".format(ctx.label.name))
+    outputs += [unisims_log]
     ctx.actions.run_shell(
         progress_message = "Vivado compile unisims {}.{}.{}".format(
             ctx.label.name, ctx.attr.family, ctx.attr.language),
@@ -1815,12 +1818,13 @@ def _vivado_unisims_library_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} # 1>&2
+            {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             command="vivado",
             args=" ".join(args),
+            log=unisims_log.path,
         ),
     )
     return [
