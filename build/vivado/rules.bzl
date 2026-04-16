@@ -1465,13 +1465,13 @@ def vivado_generics(name, verilog_top=None, vhdl_top=None, params={}, generics={
 
 def _vivado_simulation_impl(ctx):
     args = []
+    args += ctx.attr.xelab_args
     files = []
     # elaborate first
 
     provider = ctx.attr.library[VivadoLibraryProvider]
     deps_depset = provider.deps
     args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
-    args += ["--debug", "typical"]
     for dep in provider.deps.to_list():
         dep_provider = dep
         if dep_provider.unisims_libs:
@@ -1615,10 +1615,11 @@ def _vivado_simulation_impl(ctx):
     # We must fix up the non-relocatability of xsim.dir.
     prefix = ["cp -R {}/xsim.dir ./xsim.dir".format(xsim_dir.path), "&&"]
 
+    sim_log_file = ctx.actions.declare_file("{}.sim.log".format(ctx.attr.name))
     ctx.actions.run_shell(
         progress_message = "Vivado simulate \"{}.{}\"".format(provider.name, ctx.attr.top),
         inputs = inputs2 + [docker_run] + data_files ,
-        outputs = outputs2,
+        outputs = outputs2 + [sim_log_file],
         mnemonic = "VivadoXsim",
         tools = [docker_run],
         command = """\
@@ -1626,13 +1627,14 @@ def _vivado_simulation_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} 1>&2
+            {args} 2>&1 > {log} || (cat {log} && exit 1)
         """.format(
             prefix=" ".join(prefix),
             script=script,
             vivado_path=VIVADO_PATH,
             command="xsim",
             args=" ".join(args),
+            log=sim_log_file.path,
         ),
     )
 
@@ -1719,6 +1721,12 @@ vivado_simulation = rule(
         "args": attr.string_list(
             doc = "Custom args to xsim",
             mandatory = False,
+            default = [],
+        ),
+        "xelab_args": attr.string_list(
+            doc = "Custom args to elaboration step",
+            mandatory = False,
+            default = [],
         ),
     },
 )
