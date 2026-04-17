@@ -21,6 +21,9 @@ var _ flag.Value = (*KVList)(nil)
 func (self *KVList) Set(v string) error {
 	sp := strings.Split(v, " ")[0]
 	kv := strings.Split(sp, "=")
+	if len(kv) < 2 {
+		return fmt.Errorf("invalid format: expected KEY=VALUE, got %q", v)
+	}
 	k, v := kv[0], kv[1]
 	self.values = append(self.values, KV{Key: k, Value: v})
 	return nil
