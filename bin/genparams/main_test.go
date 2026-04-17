@@ -4,6 +4,43 @@ import (
 	"testing"
 )
 
+func TestKVListSet(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid",
+			input:   "KEY=VALUE",
+			wantErr: false,
+		},
+		{
+			name:    "invalid - no equals",
+			input:   "KEY",
+			wantErr: true,
+		},
+		{
+			name:    "invalid - empty",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "valid with space",
+			input:   "KEY=VALUE something else",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kvl := &KVList{}
+			if err := kvl.Set(tt.input); (err != nil) != tt.wantErr {
+				t.Errorf("KVList.Set() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestKVListString(t *testing.T) {
 	tests := []struct {
 		name   string
