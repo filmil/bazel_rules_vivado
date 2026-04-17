@@ -20,15 +20,7 @@ type Args struct {
 	ProgRunnerBinary string
 }
 
-func printEnv() {
-	for _, e := range os.Environ() {
-		log.Printf("env: %v", e)
-	}
-}
-
 func run(args Args) error {
-	printEnv()
-
 	if args.BitFile == "" {
 		return fmt.Errorf("param --bitfile is required.")
 	}
