@@ -207,9 +207,7 @@ func main() {
 	}
 
 	// Build the data model.
-	var (
-		pPaths []string
-	)
+	pPaths := make([]string, 0, dirDepth)
 	for i := 0; i < dirDepth; i++ {
 		pPaths = append(pPaths, "..")
 	}
