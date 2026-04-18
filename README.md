@@ -8,6 +8,15 @@ This project relies on an approach that executes Vivado tools within a Docker co
 
 It's important to note that distributing the Docker container itself is generally not feasible due to licensing and size, so you will need to build it locally. The setup of the required Vivado Docker image is handled by the `rules_vivado` project (https://github.com/agoessling/rules_vivado), which these rules depend upon. Please refer to their documentation for details on creating and installing the Vivado container.
 
+
+
+## Documentation
+
+* [doc.bzl documentation](doc.md)
+* [build/vivado/rules.bzl documentation](build/vivado/rules.md)
+* [internal/defines.bzl documentation](internal/defines.md)
+* [internal/providers.bzl documentation](internal/providers.md)
+
 ## Prior Art
 
 *   [agoessling/rules_vivado](https://github.com/agoessling/rules_vivado): This repository predates `bazel_rules_vivado`. It adopts a different approach, requiring a pre-installed Vivado instance rather than using a containerized version.
