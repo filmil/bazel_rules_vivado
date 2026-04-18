@@ -63,22 +63,27 @@ func run(args Args) error {
 	return nil
 }
 
-func main() {
-
+func runCLI(cmdArgs []string) error {
 	var args Args
-	flag.StringVar(&args.Outfile, "outfile", "", "The output file to generate")
-	flag.StringVar(&args.TemplateFile, "template", "", "The template file to use for generation")
-	flag.StringVar(&args.RunDockerFile, "run-docker", "", "The script for running docker")
-	flag.StringVar(&args.GotoptFile, "gotopt2", "", "the gotopt2 binary to use")
-	flag.StringVar(&args.BitFile, "bitfile", "", "")
-	flag.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
-	flag.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
+	fs := flag.NewFlagSet("proggen", flag.ContinueOnError)
+	fs.StringVar(&args.Outfile, "outfile", "", "The output file to generate")
+	fs.StringVar(&args.TemplateFile, "template", "", "The template file to use for generation")
+	fs.StringVar(&args.RunDockerFile, "run-docker", "", "The script for running docker")
+	fs.StringVar(&args.GotoptFile, "gotopt2", "", "the gotopt2 binary to use")
+	fs.StringVar(&args.BitFile, "bitfile", "", "")
+	fs.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
+	fs.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
 
-	flag.Parse()
+	if err := fs.Parse(cmdArgs); err != nil {
+		return err
+	}
 
-	if err := run(args); err != nil {
+	return run(args)
+}
+
+func main() {
+	if err := runCLI(os.Args[1:]); err != nil {
 		log.Printf("ERROR:\n\twhile running: %v:\n\t%v", os.Args[0], err)
 		os.Exit(1)
 	}
-
 }
