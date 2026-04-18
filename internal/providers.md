@@ -1,6 +1,6 @@
 <!-- Generated with Stardoc: http://skydoc.bazel.build -->
 
-
+Defines providers used in Vivado rules.
 
 <a id="VivadoBitstreamProvider"></a>
 
@@ -40,7 +40,7 @@ Information about generated vivado files
 | Name  | Description |
 | :------------- | :------------- |
 | <a id="VivadoGenProvider-sources"></a>sources |  The list of the module's source files    |
-| <a id="VivadoGenProvider-deps"></a>deps |  Libraries    |
+| <a id="VivadoGenProvider-deps"></a>deps |  The list of library dependencies    |
 | <a id="VivadoGenProvider-headers"></a>headers |  A list of header files.  Headers are present in the sandbox, but not on the command line    |
 | <a id="VivadoGenProvider-constraints"></a>constraints |  The list of constraints files to use    |
 | <a id="VivadoGenProvider-include_dirs"></a>include_dirs |  A list of include directories for the code at hand    |
@@ -78,7 +78,7 @@ A library of files used for vivado
 | <a id="VivadoLibraryProvider-deps"></a>deps |  A depset of other providers    |
 | <a id="VivadoLibraryProvider-deps_names"></a>deps_names |  A depset of library names contained in `deps`    |
 | <a id="VivadoLibraryProvider-library_dir"></a>library_dir |  A Vivado compiled library directory    |
-| <a id="VivadoLibraryProvider-unisims_libs"></a>unisims_libs |  A boolean    |
+| <a id="VivadoLibraryProvider-unisims_libs"></a>unisims_libs |  A boolean indicating if this library contains UNISIMs    |
 
 
 <a id="VivadoSynthProvider"></a>
@@ -97,6 +97,6 @@ Information about the synthesis step
 
 | Name  | Description |
 | :------------- | :------------- |
-| <a id="VivadoSynthProvider-synth_output_dir"></a>synth_output_dir |  -    |
+| <a id="VivadoSynthProvider-synth_output_dir"></a>synth_output_dir |  The output directory for the synthesis step    |
 | <a id="VivadoSynthProvider-synth_xpr_file"></a>synth_xpr_file |  The XPR file after synthesis    |
 | <a id="VivadoSynthProvider-synth_dcp_file"></a>synth_dcp_file |  The DCP file of synthesis step    |

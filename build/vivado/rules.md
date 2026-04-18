@@ -1,6 +1,6 @@
 <!-- Generated with Stardoc: http://skydoc.bazel.build -->
 
-
+Vivado rules for Bazel.
 
 <a id="vivado_library"></a>
 
@@ -31,7 +31,7 @@ vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library
 | <a id="vivado_library-library_name"></a>library_name |  An optional library name, in the case the target name can not be used for some reason.   | String | optional |  `""`  |
 | <a id="vivado_library-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_library-standard"></a>standard |  Specify the language standard to use   | String | optional |  `"2008"`  |
-| <a id="vivado_library-use_glbl"></a>use_glbl |  -   | Boolean | optional |  `False`  |
+| <a id="vivado_library-use_glbl"></a>use_glbl |  Whether to use the global glbl.v.   | Boolean | optional |  `False`  |
 | <a id="vivado_library-vhdl1993"></a>vhdl1993 |  Use VHDL-1993 standard else use VHDL-2008   | Boolean | optional |  `False`  |
 
 
@@ -125,11 +125,11 @@ vivado_project(<a href="#vivado_project-name">name</a>, <a href="#vivado_project
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="vivado_project-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
 | <a id="vivado_project-deps"></a>deps |  The list of library dependencies   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_project-srcs"></a>srcs |  -   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_project-hdrs"></a>hdrs |  -   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_project-defines"></a>defines |  -   | List of strings | optional |  `[]`  |
+| <a id="vivado_project-srcs"></a>srcs |  A list of source files.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="vivado_project-hdrs"></a>hdrs |  A list of header files.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="vivado_project-defines"></a>defines |  A list of defines.   | List of strings | optional |  `[]`  |
 | <a id="vivado_project-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_project-include_dirs"></a>include_dirs |  -   | List of strings | optional |  `[]`  |
+| <a id="vivado_project-include_dirs"></a>include_dirs |  A list of include directories.   | List of strings | optional |  `[]`  |
 | <a id="vivado_project-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_project-part"></a>part |  The part that is targeted by this project   | String | required |  |
 | <a id="vivado_project-top_level"></a>top_level |  Top level entity name   | String | required |  |
@@ -155,7 +155,7 @@ vivado_simulation(<a href="#vivado_simulation-name">name</a>, <a href="#vivado_s
 | Name  | Description | Type | Mandatory | Default |
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="vivado_simulation-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
-| <a id="vivado_simulation-data"></a>data |  -   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="vivado_simulation-data"></a>data |  A list of data targets.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_simulation-args"></a>args |  Custom args to xsim   | List of strings | optional |  `[]`  |
 | <a id="vivado_simulation-config"></a>config |  If specified, the said named configuration will be selected (VHDL)   | String | optional |  `""`  |
 | <a id="vivado_simulation-custom_tcl_script"></a>custom_tcl_script |  Custom TCL script to run simulation with   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `None`  |
@@ -165,7 +165,7 @@ vivado_simulation(<a href="#vivado_simulation-name">name</a>, <a href="#vivado_s
 | <a id="vivado_simulation-generic_tops"></a>generic_tops |  The list of key-to-value mappings to apply to the compilation   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_simulation-library"></a>library |  The library to run the simulation from   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `None`  |
 | <a id="vivado_simulation-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_simulation-template"></a>template |  -   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:xsim.tcl.template"`  |
+| <a id="vivado_simulation-template"></a>template |  The TCL template to run.   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:xsim.tcl.template"`  |
 | <a id="vivado_simulation-top"></a>top |  Name of the top level entity to simulate   | String | optional |  `""`  |
 | <a id="vivado_simulation-xelab_args"></a>xelab_args |  Custom args to elaboration step   | List of strings | optional |  `[]`  |
 | <a id="vivado_simulation-xelab_relaxed"></a>xelab_relaxed |  Relax HDL checks, sometimes needed for Verilog modules   | Boolean | optional |  `False`  |
@@ -217,10 +217,10 @@ vivado_synthesis2(<a href="#vivado_synthesis2-name">name</a>, <a href="#vivado_s
 | <a id="vivado_synthesis2-srcs"></a>srcs |  The sources for the `work` library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_synthesis2-data"></a>data |  Other data   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_synthesis2-hdrs"></a>hdrs |  The headers for the `work` library if verilog   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_synthesis2-defines"></a>defines |  -   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
+| <a id="vivado_synthesis2-defines"></a>defines |  A dictionary of defines.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_synthesis2-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_synthesis2-generics"></a>generics |  -   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_synthesis2-include_dirs"></a>include_dirs |  -   | List of strings | optional |  `[]`  |
+| <a id="vivado_synthesis2-generics"></a>generics |  A dictionary of generics.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
+| <a id="vivado_synthesis2-include_dirs"></a>include_dirs |  A list of include directories.   | List of strings | optional |  `[]`  |
 | <a id="vivado_synthesis2-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_synthesis2-part"></a>part |  The part that is targeted by this project   | String | required |  |
 | <a id="vivado_synthesis2-top"></a>top |  Mandatory name of the top level entity   | String | required |  |
@@ -250,17 +250,17 @@ vivado_unisims_library(<a href="#vivado_unisims_library-name">name</a>, <a href=
 | <a id="vivado_unisims_library-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_unisims_library-export_libraries"></a>export_libraries |  The libraries to make available to users.   | List of strings | optional |  `["unisim", "unimacro", "unifast"]`  |
 | <a id="vivado_unisims_library-family"></a>family |  The device family to compile the library for.   | String | optional |  `"artix7"`  |
-| <a id="vivado_unisims_library-force"></a>force |  -   | Boolean | optional |  `False`  |
+| <a id="vivado_unisims_library-force"></a>force |  Whether to force compilation.   | Boolean | optional |  `False`  |
 | <a id="vivado_unisims_library-language"></a>language |  The language to compile for: vhdl\|verilog\|all   | String | optional |  `"vhdl"`  |
 | <a id="vivado_unisims_library-libraries"></a>libraries |  The libraries to compile: unisim\|simprim\|...\|all   | List of strings | optional |  `["unisim"]`  |
 | <a id="vivado_unisims_library-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_unisims_library-no_ip_compile"></a>no_ip_compile |  -   | Boolean | optional |  `False`  |
-| <a id="vivado_unisims_library-no_systemc_compile"></a>no_systemc_compile |  -   | Boolean | optional |  `False`  |
-| <a id="vivado_unisims_library-quiet"></a>quiet |  -   | Boolean | optional |  `False`  |
+| <a id="vivado_unisims_library-no_ip_compile"></a>no_ip_compile |  Whether to skip IP compile.   | Boolean | optional |  `False`  |
+| <a id="vivado_unisims_library-no_systemc_compile"></a>no_systemc_compile |  Whether to skip SystemC compile.   | Boolean | optional |  `False`  |
+| <a id="vivado_unisims_library-quiet"></a>quiet |  Whether to be quiet.   | Boolean | optional |  `False`  |
 | <a id="vivado_unisims_library-simulator"></a>simulator |  Name of the top level entity to simulate   | String | optional |  `"xsim"`  |
 | <a id="vivado_unisims_library-skip_libraries"></a>skip_libraries |  The list of libraries NOT to compile   | List of strings | optional |  `[]`  |
-| <a id="vivado_unisims_library-template"></a>template |  -   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:compile_simlib.tcl.template"`  |
-| <a id="vivado_unisims_library-verbose"></a>verbose |  -   | Boolean | optional |  `False`  |
+| <a id="vivado_unisims_library-template"></a>template |  The TCL template to run.   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:compile_simlib.tcl.template"`  |
+| <a id="vivado_unisims_library-verbose"></a>verbose |  Whether to be verbose.   | Boolean | optional |  `False`  |
 
 
 <a id="vivado_generics"></a>
@@ -273,17 +273,17 @@ load("@rules_vivado//build/vivado:rules.bzl", "vivado_generics")
 vivado_generics(<a href="#vivado_generics-name">name</a>, <a href="#vivado_generics-verilog_top">verilog_top</a>, <a href="#vivado_generics-vhdl_top">vhdl_top</a>, <a href="#vivado_generics-params">params</a>, <a href="#vivado_generics-generics">generics</a>, <a href="#vivado_generics-data">data</a>, <a href="#vivado_generics-synth">synth</a>)
 </pre>
 
-
+Generates TCL scripts for generics/parameters.
 
 **PARAMETERS**
 
 
 | Name  | Description | Default Value |
 | :------------- | :------------- | :------------- |
-| <a id="vivado_generics-name"></a>name |  <p align="center"> - </p>   |  none |
-| <a id="vivado_generics-verilog_top"></a>verilog_top |  <p align="center"> - </p>   |  `None` |
-| <a id="vivado_generics-vhdl_top"></a>vhdl_top |  <p align="center"> - </p>   |  `None` |
-| <a id="vivado_generics-params"></a>params |  <p align="center"> - </p>   |  `{}` |
-| <a id="vivado_generics-generics"></a>generics |  <p align="center"> - </p>   |  `{}` |
-| <a id="vivado_generics-data"></a>data |  <p align="center"> - </p>   |  `None` |
-| <a id="vivado_generics-synth"></a>synth |  <p align="center"> - </p>   |  `None` |
+| <a id="vivado_generics-name"></a>name |  Target name.   |  none |
+| <a id="vivado_generics-verilog_top"></a>verilog_top |  Verilog top entity.   |  `None` |
+| <a id="vivado_generics-vhdl_top"></a>vhdl_top |  VHDL top entity.   |  `None` |
+| <a id="vivado_generics-params"></a>params |  Dictionary of parameters.   |  `{}` |
+| <a id="vivado_generics-generics"></a>generics |  Dictionary of generics.   |  `{}` |
+| <a id="vivado_generics-data"></a>data |  Data targets.   |  `None` |
+| <a id="vivado_generics-synth"></a>synth |  Synthesis target.   |  `None` |
