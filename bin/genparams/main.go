@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/template"
@@ -66,27 +67,40 @@ type Bindings struct {
 	VerilogTop, VHDLTop string
 }
 
-func main() {
+func run(args []string, stdout, stderr io.Writer) int {
 	var b Bindings
 	var (
 		generics, params KVList
 	)
-	flag.Var(&generics, "generic", "Adds a new generic value (for VHDL)")
-	flag.Var(&params, "param", "Adds a new param value (for Verilog)")
-	flag.StringVar(&b.VerilogTop, "verilog-top", "", "Adds a new param value (for Verilog)")
-	flag.StringVar(&b.VHDLTop, "vhdl-top", "", "Adds a new top level value (for VHDL)")
-	flag.Parse()
+
+	fs := flag.NewFlagSet("genparams", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+
+	fs.Var(&generics, "generic", "Adds a new generic value (for VHDL)")
+	fs.Var(&params, "param", "Adds a new param value (for Verilog)")
+	fs.StringVar(&b.VerilogTop, "verilog-top", "", "Adds a new param value (for Verilog)")
+	fs.StringVar(&b.VHDLTop, "vhdl-top", "", "Adds a new top level value (for VHDL)")
+
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
 
 	if b.VHDLTop != "" {
-		fmt.Fprintf(os.Stderr, "--vhdl-top flag is unimplemented")
-		os.Exit(1)
+		fmt.Fprintf(stderr, "--vhdl-top flag is unimplemented\n")
+		return 1
 	}
 
 	b.Values = generics.Iter()
 	b.Params = params.Iter()
 
-	if err := xdcTmpl.Execute(os.Stdout, b); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v", err)
-		os.Exit(1)
+	if err := xdcTmpl.Execute(stdout, b); err != nil {
+		fmt.Fprintf(stderr, "error: %v\n", err)
+		return 1
 	}
+
+	return 0
+}
+
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }

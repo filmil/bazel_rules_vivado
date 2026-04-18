@@ -120,3 +120,57 @@ func TestRun(t *testing.T) {
 		})
 	}
 }
+
+func TestRunCLI(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	templatePath := filepath.Join(tmpDir, "main_script.tpl.sh")
+	err := os.WriteFile(templatePath, []byte("BitFile: {{.BitFile}}"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name: "success",
+			args: []string{
+				"--bitfile", "test.bit",
+				"--run-docker", "docker.sh",
+				"--gotopt2", "gotopt2",
+				"--outfile", filepath.Join(tmpDir, "out_cli.sh"),
+				"--template", templatePath,
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing required flag",
+			args: []string{
+				"--run-docker", "docker.sh",
+				"--gotopt2", "gotopt2",
+				"--outfile", filepath.Join(tmpDir, "out_cli_2.sh"),
+				"--template", templatePath,
+			},
+			wantErr: true, // run() will error out
+		},
+		{
+			name: "invalid flag",
+			args: []string{
+				"--invalid-flag",
+			},
+			wantErr: true, // fs.Parse() will error out
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := runCLI(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("runCLI() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
