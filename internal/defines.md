@@ -1,13 +1,13 @@
 <!-- Generated with Stardoc: http://skydoc.bazel.build -->
 
-Module providing documentation helper functions.
+Defines variables and functions used in Vivado rules.
 
 <a id="script_cmd"></a>
 
 ## script_cmd
 
 <pre>
-load("@rules_vivado//:doc.bzl", "script_cmd")
+load("@rules_vivado//internal:defines.bzl", "script_cmd")
 
 script_cmd(<a href="#script_cmd-script_path">script_path</a>, <a href="#script_cmd-dir_reference">dir_reference</a>, <a href="#script_cmd-cache_dir">cache_dir</a>, <a href="#script_cmd-source_dir">source_dir</a>, <a href="#script_cmd-mounts">mounts</a>, <a href="#script_cmd-envs">envs</a>, <a href="#script_cmd-tools">tools</a>, <a href="#script_cmd-freeargs">freeargs</a>,
            <a href="#script_cmd-workdir_name">workdir_name</a>)

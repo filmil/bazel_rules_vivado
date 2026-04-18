@@ -1,3 +1,5 @@
+"""Vivado rules for Bazel."""
+
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_bid//build:rules.bzl", "run_docker_cmd")
 load("//internal:defines.bzl",
@@ -25,6 +27,20 @@ def _xpr_gen(
   xpr_tcl_script,
   deps_files,
 ):
+  """Generates a Vivado project file.
+
+  Args:
+    ctx: The rule context.
+    srcs_files: List of source files.
+    hdrs_files: List of header files.
+    xdcs_files: List of constraints files.
+    include_dirs: List of include directories.
+    xpr_tcl_script: The TCL script to generate the project.
+    deps_files: List of dependency files.
+
+  Returns:
+    A tuple containing the project file, all outputs, and the output directory.
+  """
   # General
   name = ctx.attr.name
   docker_run = ctx.executable._script
@@ -119,6 +135,14 @@ def _xpr_gen(
 
 
 def _vivado_project_impl(ctx):
+    """Implementation for the vivado_project rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and VivadoGenProvider.
+    """
     args = ctx.actions.args()
 
     # General setup
@@ -262,9 +286,11 @@ vivado_project = rule(
         ),
         "srcs": attr.label_list(
             allow_files = True,
+            doc = "A list of source files.",
         ),
         "hdrs": attr.label_list(
             allow_files = True,
+            doc = "A list of header files.",
         ),
         "xdcs": attr.label_list(
             allow_files = [ ".xdc" ],
@@ -272,8 +298,10 @@ vivado_project = rule(
         ),
         "defines": attr.string_list(
             allow_empty = True,
+            doc = "A list of defines.",
         ),
         "include_dirs": attr.string_list(
+            doc = "A list of include directories.",
         ),
         "env": attr.string_dict(
             allow_empty = True,
@@ -285,17 +313,27 @@ vivado_project = rule(
         ),
         "_generator": attr.label(
             default = "//build/vivado/bin/xprgen:xprgen",
+            doc = "The xprgen tool.",
         ),
         "_script": attr.label(
             default=Label("@rules_bid//build:docker_run"),
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
     },
 )
 
 
 def _vivado_synthesis_impl(ctx):
+  """Implementation for the vivado_synthesis rule.
+
+  Args:
+    ctx: The rule context.
+
+  Returns:
+    A list of providers, including DefaultInfo, VivadoGenProvider, and VivadoSynthProvider.
+  """
   # Rule name. Must be unique.
   name = ctx.attr.name
   project = ctx.attr.project
@@ -464,6 +502,14 @@ vivado_synthesis = rule(
 
 
 def _vivado_synthesis2_impl(ctx):
+    """Implementation for the vivado_synthesis2 rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and VivadoSynthProvider.
+    """
     args = ctx.actions.args()
 
     # General setup
@@ -686,12 +732,15 @@ vivado_synthesis2 = rule(
         ),
         "defines": attr.string_dict(
             allow_empty = True,
+            doc = "A dictionary of defines.",
         ),
         "generics": attr.string_dict(
             allow_empty = True,
+            doc = "A dictionary of generics.",
         ),
         "include_dirs": attr.string_list(
             allow_empty = True,
+            doc = "A list of include directories.",
         ),
         "_generator": attr.label(
             doc = "xprgen binary",
@@ -709,6 +758,14 @@ vivado_synthesis2 = rule(
 
 
 def _vivado_pnr_impl(ctx):
+  """Implementation for the vivado_place_and_route rule.
+
+  Args:
+    ctx: The rule context.
+
+  Returns:
+    A list of providers, including DefaultInfo and VivadoBitstreamProvider.
+  """
   name = ctx.attr.name
   project = ctx.attr.synthesis
   provider = project[VivadoGenProvider]
@@ -849,12 +906,21 @@ vivado_place_and_route = rule(
             default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
     },
 )
 
 
 def _vivado_place_and_route2_impl(ctx):
+    """Implementation for the vivado_place_and_route2 rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and VivadoBitstreamProvider.
+    """
     args = ctx.actions.args()
     name = ctx.attr.name
     generator = ctx.attr._generator.files
@@ -1014,6 +1080,14 @@ vivado_place_and_route2 = rule(
 
 
 def _vivado_program_device(ctx):
+    """Implementation for the vivado_program_device rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A DefaultInfo provider.
+    """
     # For now, only one bitstream.
     bitstream = None
     bittarget = None
@@ -1114,11 +1188,13 @@ vivado_program_device = rule(
             default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
         "_gotopt2": attr.label(
             default="@gotopt2//:bin",
             executable=True,
             cfg="host",
+            doc = "The gotopt2 binary.",
         ),
         "_proggen": attr.label(
             default=Label("//build/vivado/bin/proggen"),
@@ -1154,6 +1230,14 @@ vivado_program_device = rule(
 
 
 def _vivado_library_impl(ctx):
+    """Implementation for the vivado_library rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and VivadoLibraryProvider.
+    """
     args = [] # Not using ctx.actions.args() because of the very specific scripting.
     # Process inputs to the compilation.
     inputs = []
@@ -1410,6 +1494,7 @@ vivado_library = rule(
         ),
         "use_glbl": attr.bool(
             default=False,
+            doc = "Whether to use the global glbl.v.",
         ),
         # These parameters are part of the docker_run setup.
         "env": attr.string_dict(
@@ -1424,6 +1509,7 @@ vivado_library = rule(
             default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
         "vhdl1993": attr.bool(
             default=False,
@@ -1439,6 +1525,17 @@ vivado_library = rule(
 
 
 def vivado_generics(name, verilog_top=None, vhdl_top=None, params={}, generics={}, data=None, synth=None):
+    """Generates TCL scripts for generics/parameters.
+
+    Args:
+      name: Target name.
+      verilog_top: Verilog top entity.
+      vhdl_top: VHDL top entity.
+      params: Dictionary of parameters.
+      generics: Dictionary of generics.
+      data: Data targets.
+      synth: Synthesis target.
+    """
     out_name = "{}.tcl".format(name)
     args = []
     for k, v in params.items():
@@ -1464,14 +1561,22 @@ def vivado_generics(name, verilog_top=None, vhdl_top=None, params={}, generics={
 
 
 def _vivado_simulation_impl(ctx):
-    args = []
+    """Implementation for the vivado_simulation rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and OutputGroupInfo.
+    """
+    args = ["-debug", "typical"]
+    args += ctx.attr.xelab_args
     files = []
     # elaborate first
 
     provider = ctx.attr.library[VivadoLibraryProvider]
     deps_depset = provider.deps
     args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
-    args += ["--debug", "typical"]
     for dep in provider.deps.to_list():
         dep_provider = dep
         if dep_provider.unisims_libs:
@@ -1615,10 +1720,11 @@ def _vivado_simulation_impl(ctx):
     # We must fix up the non-relocatability of xsim.dir.
     prefix = ["cp -R {}/xsim.dir ./xsim.dir".format(xsim_dir.path), "&&"]
 
+    sim_log_file = ctx.actions.declare_file("{}.sim.log".format(ctx.attr.name))
     ctx.actions.run_shell(
         progress_message = "Vivado simulate \"{}.{}\"".format(provider.name, ctx.attr.top),
         inputs = inputs2 + [docker_run] + data_files ,
-        outputs = outputs2,
+        outputs = outputs2 + [sim_log_file],
         mnemonic = "VivadoXsim",
         tools = [docker_run],
         command = """\
@@ -1626,13 +1732,14 @@ def _vivado_simulation_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} 1>&2
+            {args} 2>&1 > {log} || (cat {log} && exit 1)
         """.format(
             prefix=" ".join(prefix),
             script=script,
             vivado_path=VIVADO_PATH,
             command="xsim",
             args=" ".join(args),
+            log=sim_log_file.path,
         ),
     )
 
@@ -1701,12 +1808,15 @@ vivado_simulation = rule(
             default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
         "template": attr.label(
             allow_single_file = [".tcl.template"],
             default="xsim.tcl.template",
+            doc = "The TCL template to run.",
         ),
         "data": attr.label_list(
+            doc = "A list of data targets.",
         ),
         "xelab_relaxed": attr.bool(
             doc = "Relax HDL checks, sometimes needed for Verilog modules",
@@ -1719,12 +1829,26 @@ vivado_simulation = rule(
         "args": attr.string_list(
             doc = "Custom args to xsim",
             mandatory = False,
+            default = [],
+        ),
+        "xelab_args": attr.string_list(
+            doc = "Custom args to elaboration step",
+            mandatory = False,
+            default = [],
         ),
     },
 )
 
 
 def _vivado_unisims_library_impl(ctx):
+    """Implementation for the vivado_unisims_library rule.
+
+    Args:
+      ctx: The rule context.
+
+    Returns:
+      A list of providers, including DefaultInfo and VivadoLibraryProvider.
+    """
     # General
     name = ctx.attr.name
     docker_run = ctx.executable._script
@@ -1796,6 +1920,9 @@ def _vivado_unisims_library_impl(ctx):
     )
     #args = ["-batch", compile_script_file.path]
     args = ["-mode", "batch", "-script", compile_script_file.path]
+    unisims_log = ctx.actions.declare_file(
+        "{}.unisims.log".format(ctx.label.name))
+    outputs += [unisims_log]
     ctx.actions.run_shell(
         progress_message = "Vivado compile unisims {}.{}.{}".format(
             ctx.label.name, ctx.attr.family, ctx.attr.language),
@@ -1807,12 +1934,13 @@ def _vivado_unisims_library_impl(ctx):
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
-            {args} # 1>&2
+            {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
             script=script,
             vivado_path=VIVADO_PATH,
             command="vivado",
             args=" ".join(args),
+            log=unisims_log.path,
         ),
     )
     return [
@@ -1857,18 +1985,23 @@ vivado_unisims_library = rule(
         ),
         "force": attr.bool(
             default = False,
+            doc = "Whether to force compilation.",
         ),
         "quiet": attr.bool(
             default = False,
+            doc = "Whether to be quiet.",
         ),
         "verbose": attr.bool(
             default = False,
+            doc = "Whether to be verbose.",
         ),
         "no_ip_compile": attr.bool(
             default = False,
+            doc = "Whether to skip IP compile.",
         ),
         "no_systemc_compile": attr.bool(
             default = False,
+            doc = "Whether to skip SystemC compile.",
         ),
         "skip_libraries": attr.string_list(
             default = [],
@@ -1877,6 +2010,7 @@ vivado_unisims_library = rule(
         "template": attr.label(
             allow_single_file = [".tcl.template"],
             default="compile_simlib.tcl.template",
+            doc = "The TCL template to run.",
         ),
         "env": attr.string_dict(
             allow_empty = True,
@@ -1890,6 +2024,7 @@ vivado_unisims_library = rule(
             default="@rules_bid//build:docker_run",
             executable=True,
             cfg="host",
+            doc = "The docker run script.",
         ),
     },
 )

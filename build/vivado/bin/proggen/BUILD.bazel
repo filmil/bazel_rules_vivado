@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -33,4 +33,10 @@ filegroup(
 filegroup(
     name = "prog_script",
     srcs = ["program.tcl"],
+)
+
+go_test(
+    name = "proggen_test",
+    srcs = ["main_test.go"],
+    embed = [":proggen_lib"],
 )
