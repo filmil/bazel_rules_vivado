@@ -79,3 +79,50 @@ func TestAppendTo(t *testing.T) {
 		})
 	}
 }
+
+func TestRepeatedString(t *testing.T) {
+	tests := []struct {
+		name       string
+		toAdd      []string
+		wantEmpty  bool
+		wantString string
+	}{
+		{
+			name:       "empty",
+			toAdd:      []string{},
+			wantEmpty:  true,
+			wantString: "",
+		},
+		{
+			name:       "single value",
+			toAdd:      []string{"foo"},
+			wantEmpty:  false,
+			wantString: "foo",
+		},
+		{
+			name:       "multiple values",
+			toAdd:      []string{"foo", "bar", "baz"},
+			wantEmpty:  false,
+			wantString: "foo,bar,baz",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var rs RepeatedString
+			for _, v := range tt.toAdd {
+				if err := rs.Set(v); err != nil {
+					t.Fatalf("Set(%q) error = %v", v, err)
+				}
+			}
+
+			if got := rs.Empty(); got != tt.wantEmpty {
+				t.Errorf("Empty() = %v, want %v", got, tt.wantEmpty)
+			}
+
+			if got := rs.String(); got != tt.wantString {
+				t.Errorf("String() = %q, want %q", got, tt.wantString)
+			}
+		})
+	}
+}
