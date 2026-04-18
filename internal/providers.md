@@ -100,3 +100,5 @@ Information about the synthesis step
 | <a id="VivadoSynthProvider-synth_output_dir"></a>synth_output_dir |  The output directory for the synthesis step    |
 | <a id="VivadoSynthProvider-synth_xpr_file"></a>synth_xpr_file |  The XPR file after synthesis    |
 | <a id="VivadoSynthProvider-synth_dcp_file"></a>synth_dcp_file |  The DCP file of synthesis step    |
+
+
