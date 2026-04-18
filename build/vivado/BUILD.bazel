@@ -1,5 +1,7 @@
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -45,4 +47,18 @@ bzl_library(
         "@bazel_skylib//lib:paths",
         #"@rules_bid//build:rules",
     ],
+)
+
+stardoc(
+    name = "md",
+    out = "gen.rules.md",
+    input = "rules.bzl",
+    deps = [":rules"],
+)
+
+write_source_files(
+    name = "update",
+    files = {
+        "rules.md": ":md",
+    },
 )

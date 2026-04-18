@@ -1,4 +1,6 @@
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -6,6 +8,28 @@ bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
     deps = ["@rules_bid//build:rules"],
+)
+
+stardoc(
+    name = "md_defines",
+    out = "gen.defines.md",
+    input = "defines.bzl",
+    deps = [":defines"],
+)
+
+stardoc(
+    name = "md_providers",
+    out = "gen.providers.md",
+    input = "providers.bzl",
+    deps = [":providers"],
+)
+
+write_source_files(
+    name = "update",
+    files = {
+        "defines.md": ":md_defines",
+        "providers.md": ":md_providers",
+    },
 )
 
 bzl_library(
