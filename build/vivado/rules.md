@@ -287,3 +287,5 @@ Generates TCL scripts for generics/parameters.
 | <a id="vivado_generics-generics"></a>generics |  Dictionary of generics.   |  `{}` |
 | <a id="vivado_generics-data"></a>data |  Data targets.   |  `None` |
 | <a id="vivado_generics-synth"></a>synth |  Synthesis target.   |  `None` |
+
+
