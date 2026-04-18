@@ -93,17 +93,17 @@ func WriteFile(fn string, tpl *template.Template, xpr *XPRBinding) error {
 		return nil
 	}
 	f, err := os.Create(fn)
+	if err != nil {
+		return fmt.Errorf("could not create: %v: %v", fn, err)
+	}
 	defer func() {
 		err := f.Close()
 		if err != nil {
 			fmt.Printf("WARN: error while closing: %v: %v", fn, err)
 		}
 	}()
-	if err != nil {
-		log.Fatalf("could not create: %v: %v", fn, err)
-	}
 	if err := tpl.Execute(f, xpr); err != nil {
-		log.Fatalf("error while writing output: %v", err)
+		return fmt.Errorf("error while writing output: %v", err)
 	}
 
 	return nil
