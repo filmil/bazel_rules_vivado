@@ -1,3 +1,5 @@
+"""Defines variables and functions used in Vivado rules."""
+
 load("@rules_bid//build:rules.bzl", "run_docker_cmd")
 
 DOCKER_RUN_SCRIPT_ATTRS = {
@@ -13,6 +15,7 @@ DOCKER_RUN_SCRIPT_ATTRS = {
         default=Label("@rules_bid//build:docker_run"),
         executable=True,
         cfg="host",
+        doc = "The script to run the docker container.",
     ),
 }
 
@@ -33,6 +36,22 @@ def script_cmd(
   freeargs=[],
   workdir_name="/work",
 ):
+    """Generates the command line to run a docker container.
+
+    Args:
+      script_path: Path to the docker run script.
+      dir_reference: Directory reference.
+      cache_dir: Cache directory.
+      source_dir: Source directory.
+      mounts: Mounts to add.
+      envs: Environment variables to add.
+      tools: Tools to add.
+      freeargs: Additional arguments to pass.
+      workdir_name: The working directory name.
+
+    Returns:
+      The generated command line as a string.
+    """
     return run_docker_cmd(
         CONTAINER,
         script_path,
