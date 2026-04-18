@@ -18,17 +18,17 @@ type KVList struct {
 
 var _ flag.Value = (*KVList)(nil)
 
-func (self *KVList) Set(v string) error {
+func (l *KVList) Set(v string) error {
 	sp := strings.Split(v, " ")[0]
 	kv := strings.Split(sp, "=")
 	k, v := kv[0], kv[1]
-	self.values = append(self.values, KV{Key: k, Value: v})
+	l.values = append(l.values, KV{Key: k, Value: v})
 	return nil
 }
 
-func (self *KVList) String() string {
+func (l *KVList) String() string {
 	var out strings.Builder
-	for i, e := range self.values {
+	for i, e := range l.values {
 		if i > 0 {
 			out.WriteByte(';')
 		}
@@ -39,8 +39,8 @@ func (self *KVList) String() string {
 	return out.String()
 }
 
-func (self *KVList) Iter() []KV {
-	return self.values
+func (l *KVList) Iter() []KV {
+	return l.values
 }
 
 var (
