@@ -19,4 +19,4 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
       - name: Build and test
-        run: bazel test $(bazel query "tests(//...) - tests(//build/tests/...)")
+        run: bazel test --test_output=errors $(bazel query "tests(//...) - tests(//build/tests/...)")
