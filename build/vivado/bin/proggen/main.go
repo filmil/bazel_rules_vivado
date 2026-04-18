@@ -18,16 +18,21 @@ type Args struct {
 
 	ProgRunnerArgs   string
 	ProgRunnerBinary string
+
+	Verbose bool
 }
 
-func printEnv() {
+func printEnv(verbose bool) {
+	if !verbose {
+		return
+	}
 	for _, e := range os.Environ() {
 		log.Printf("env: %v", e)
 	}
 }
 
 func run(args Args) error {
-	printEnv()
+	printEnv(args.Verbose)
 
 	if args.BitFile == "" {
 		return fmt.Errorf("param --bitfile is required.")
@@ -73,6 +78,7 @@ func main() {
 	flag.StringVar(&args.BitFile, "bitfile", "", "")
 	flag.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
 	flag.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
+	flag.BoolVar(&args.Verbose, "verbose", false, "Enable verbose logging")
 
 	flag.Parse()
 
