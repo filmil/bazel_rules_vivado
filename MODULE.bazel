@@ -4,7 +4,7 @@ module(
 )
 
 
-bazel_dep(name = "bazel_lib", version = "3.2.1", dev_dependency = True)
+bazel_dep(name = "bazel_lib", version = "3.2.1")
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "bazel_skylib_gazelle_plugin", version = "1.8.2", dev_dependency = True)
 bazel_dep(name = "buildifier_prebuilt", version = "8.2.0.2")
