@@ -129,6 +129,7 @@ func TestWriteFile(t *testing.T) {
 	tests := []struct {
 		name    string
 		fn      string
+		tpl     *template.Template
 		xpr     *XPRBinding
 		wantErr bool
 		wantStr string
@@ -183,11 +184,22 @@ func TestWriteFile(t *testing.T) {
 			fn:   filepath.Join(tmpDir, "nonexistent", "out.txt"),
 			wantErr: true,
 		},
+		{
+			name: "template execution error",
+			fn:   filepath.Join(tmpDir, "error.txt"),
+			tpl:  template.Must(template.New("error").Option("missingkey=error").Parse("{{.NonExistent}}")),
+			xpr:  &XPRBinding{Project: "TestProj"},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WriteFile(tt.fn, tpl, tt.xpr)
+			currTpl := tpl
+			if tt.tpl != nil {
+				currTpl = tt.tpl
+			}
+			err := WriteFile(tt.fn, currTpl, tt.xpr)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("WriteFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
