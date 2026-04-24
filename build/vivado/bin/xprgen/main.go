@@ -94,16 +94,15 @@ func WriteFile(fn string, tpl *template.Template, xpr *XPRBinding) error {
 	}
 	f, err := os.Create(fn)
 	if err != nil {
-		return fmt.Errorf("could not create: %v: %v", fn, err)
+		return fmt.Errorf("create: %w", err)
 	}
 	defer func() {
-		err := f.Close()
-		if err != nil {
-			fmt.Printf("WARN: error while closing: %v: %v", fn, err)
+		if err := f.Close(); err != nil {
+			log.Printf("warning: close %s: %v", fn, err)
 		}
 	}()
 	if err := tpl.Execute(f, xpr); err != nil {
-		return fmt.Errorf("error while writing output: %v", err)
+		return fmt.Errorf("execute template: %w", err)
 	}
 
 	return nil
@@ -196,13 +195,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 	var customTemplate *template.Template
 
 	if customTemplateFileName != "" {
-		f, err := os.Open(customTemplateFileName)
+		b, err := os.ReadFile(customTemplateFileName)
 		if err != nil {
-			return fmt.Errorf("while opening: %v: %w", customTemplateFileName, err)
-		}
-		b, err := io.ReadAll(f)
-		if err != nil {
-			return fmt.Errorf("while reading: %v: %w", customTemplateFileName, err)
+			return fmt.Errorf("read template %s: %w", customTemplateFileName, err)
 		}
 		s := string(b)
 		customTemplate = template.Must(template.New("custom").Parse(s))
@@ -224,7 +219,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 		}
 		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles,
 			&OtherFiles, FileLib{Name: s[1], Library: s[0]}); err != nil {
-			return fmt.Errorf("while classifying: %v: %w", v, err)
+			return fmt.Errorf("classify %s: %w", v, err)
 		}
 	}
 
@@ -233,7 +228,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	for _, v := range sources.values {
 		if err := AppendTo(&systemVerilogFiles, &verilogFiles, &VHDLFiles,
 			&OtherFiles, FileLib{Name: v}); err != nil {
-			return fmt.Errorf("while classifying: %v: %w", v, err)
+			return fmt.Errorf("classify %s: %w", v, err)
 		}
 	}
 
@@ -247,7 +242,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 
 	pwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("can not get PWD: %w", err)
+		return fmt.Errorf("get PWD: %w", err)
 	}
 
 	// Fill out the values that aren't directly available in flags.
@@ -264,22 +259,22 @@ func run(args []string, stdout, stderr io.Writer) error {
 
 	if xpr.OutXpr != "" {
 		if err := WriteFile(xpr.OutXpr, xprTpl, &xpr); err != nil {
-			return fmt.Errorf("while writing XPR file: %v: %w", xpr.OutXpr, err)
+			return fmt.Errorf("write XPR %s: %w", xpr.OutXpr, err)
 		}
 	}
 	if xpr.SynthFileName != "" {
 		if err := WriteFile(xpr.SynthFileName, syntTpl, &xpr); err != nil {
-			return fmt.Errorf("while writing synth file: %v: %w", xpr.SynthFileName, err)
+			return fmt.Errorf("write synth %s: %w", xpr.SynthFileName, err)
 		}
 	}
 	if xpr.PnrFileName != "" {
 		if err := WriteFile(xpr.PnrFileName, pnrTpl, &xpr); err != nil {
-			return fmt.Errorf("while writing PNR file: %v: %w", xpr.PnrFileName, err)
+			return fmt.Errorf("write PNR %s: %w", xpr.PnrFileName, err)
 		}
 	}
 	if xpr.CustomFileName != "" {
 		if err := WriteFile(xpr.CustomFileName, customTemplate, &xpr); err != nil {
-			return fmt.Errorf("while writing file: %v: %w", xpr.CustomFileName, err)
+			return fmt.Errorf("write %s: %w", xpr.CustomFileName, err)
 		}
 	}
 
