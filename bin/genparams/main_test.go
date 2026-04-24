@@ -164,3 +164,13 @@ func TestRun(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkKVListSet(b *testing.B) {
+	input := "KEY=VALUE something else"
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		kvl := &KVList{}
+		_ = kvl.Set(input)
+	}
+}

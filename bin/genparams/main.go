@@ -20,13 +20,13 @@ type KVList struct {
 var _ flag.Value = (*KVList)(nil)
 
 func (self *KVList) Set(v string) error {
-	sp := strings.Split(v, " ")[0]
-	kv := strings.Split(sp, "=")
-	if len(kv) < 2 {
+	sp, _, _ := strings.Cut(v, " ")
+	k, rest, ok := strings.Cut(sp, "=")
+	if !ok {
 		return fmt.Errorf("invalid format: expected KEY=VALUE, got %q", v)
 	}
-	k, v := kv[0], kv[1]
-	self.values = append(self.values, KV{Key: k, Value: v})
+	val, _, _ := strings.Cut(rest, "=")
+	self.values = append(self.values, KV{Key: k, Value: val})
 	return nil
 }
 
