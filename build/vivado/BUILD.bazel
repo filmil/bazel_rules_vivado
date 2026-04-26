@@ -12,6 +12,13 @@ exports_files([
 ])
 
 filegroup(
+    name = "compile_simlib_tcl_template",
+    srcs = [
+        "compile_simlib.tcl.template",
+    ],
+)
+
+filegroup(
     name = "synth_batch_tcl_template",
     srcs = [
         "synth_batch.tcl.template",
