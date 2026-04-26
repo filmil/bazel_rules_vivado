@@ -31,6 +31,7 @@ It's important to note that distributing the Docker container itself is generall
 | `internal/vivado_project.bzl` | [internal/vivado_project.md](internal/vivado_project.md) | Rule for defining a Vivado project |
 | `internal/vivado_repl.bzl` | [internal/vivado_repl.md](internal/vivado_repl.md) | Rule for running Vivado REPL |
 | `internal/vivado_gui.bzl` | [internal/vivado_gui.md](internal/vivado_gui.md) | Rule for running Vivado GUI |
+| `internal/vivado_ip.bzl` | [internal/vivado_ip.md](internal/vivado_ip.md) | Rule for generating custom AMD IP |
 | `internal/vivado_simulation.bzl` | [internal/vivado_simulation.md](internal/vivado_simulation.md) | Rule for running Vivado simulation |
 | `internal/vivado_synthesis.bzl` | [internal/vivado_synthesis.md](internal/vivado_synthesis.md) | Rule for Vivado synthesis |
 | `internal/vivado_synthesis2.bzl` | [internal/vivado_synthesis2.md](internal/vivado_synthesis2.md) | Alternate rule for Vivado synthesis |
@@ -73,6 +74,30 @@ Similarly to the REPL, you can pass a custom TCL script to be executed upon star
 vivado_gui(
     name = "gui_with_script",
     script = "my_script.tcl",
+)
+```
+
+### Generating Custom AMD IP
+
+You can generate and configure custom AMD IP blocks and use them as libraries:
+
+```python
+vivado_ip(
+    name = "clk_wiz_0",
+    vlnv = "xilinx.com:ip:clk_wiz:6.0",
+    part = "xc7a200tfbg484-2",
+    config = {
+        "PRIM_SOURCE": "Single_ended_clock_capable_pin",
+        "CLKOUT1_REQUESTED_OUT_FREQ": "100.000",
+    },
+)
+
+# Then use clk_wiz_0 as a dependency in other rules
+vivado_simulation(
+    name = "sim",
+    library = ":my_lib",
+    deps = [":clk_wiz_0"],
+    top = "tb",
 )
 ```
 

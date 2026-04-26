@@ -2,6 +2,8 @@
 
 * Do not change files in `//third_party` without user's explicit permission.
 * Ensure that tests pass after every change.
+* When you need to generate scripts, always create file templates, then load
+  those into rules.
 
 
 ## General git commit rules
@@ -27,11 +29,9 @@ rebase --pull origin main`.
 
 ## Create pull request
 
-Use the `gh` utility to create the pull request.
-
-Use the remote `origin/main` as a baseline for the pull request.
-
-Any pull request you create must contain this note as the last line in the
+* Use the `gh` utility to create the pull request.
+* Use the remote `origin/main` as a baseline for the pull request.
+* Any pull request you create must contain this note as the last line in the
 commit message in addition to any commit summaries added:
 
 ```
@@ -39,11 +39,11 @@ This pull request has been created by an automated coding assistant,
 with human supervision.
 ```
 
-Also append the prompt used to generate the pull request in full.
-
-Rebase the branch `main` from remote `origin/main`.
-
-Once the `gh` command to create the pull request completes, the task is done.
+* Also append the prompt used to generate the pull request in full.
+* Rebase the branch `main` from remote `origin/main`.
+* Once the `gh` command to create the pull request completes, the task is done.
+* If asked to reupload the PR, always rebase from main branch first, fix any
+  merge conflicts, then re-upload PR.
 
 
 # `//third_party` maintenance
@@ -63,7 +63,8 @@ respective public API.
 
 # Bazel Basics
 
-This skill provides fundamental information on how to interact with a Bazel workspace.
+This skill provides fundamental information on how to interact with a Bazel
+workspace.
 
 ## Core Concepts
 
@@ -81,9 +82,11 @@ This skill provides fundamental information on how to interact with a Bazel work
 ## Common Commands
 
 *   **Build Everything**: `bazel build //...`
-*   **Test Everything**: `bazel test //...`
+*   **Test Everything**: `bazel test //... && cd integration && bazel test //...`
 *   **List Targets**: Use `bazel query` to list targets defined below a certain
     path.
     *   Example: `bazel query //foo/bar/...` lists all targets under
         `//foo/bar`.
+* To build and test integration tests, first do `cd integration`, then run any
+  needed commands there.
 
