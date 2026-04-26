@@ -101,6 +101,14 @@ bzl_library(
     srcs = ["vivado_generics.bzl"],
 )
 
+bzl_library(
+    name = "vivado_repl",
+    srcs = ["vivado_repl.bzl"],
+    deps = [
+        ":defines",
+    ],
+)
+
 stardoc(
     name = "md_defines",
     out = "gen.defines.md",
