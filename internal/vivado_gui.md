@@ -9,7 +9,7 @@ Vivado GUI rule.
 <pre>
 load("@rules_vivado//internal:vivado_gui.bzl", "vivado_gui")
 
-vivado_gui(<a href="#vivado_gui-name">name</a>, <a href="#vivado_gui-env">env</a>, <a href="#vivado_gui-mount">mount</a>)
+vivado_gui(<a href="#vivado_gui-name">name</a>, <a href="#vivado_gui-env">env</a>, <a href="#vivado_gui-mount">mount</a>, <a href="#vivado_gui-script">script</a>)
 </pre>
 
 
@@ -22,5 +22,6 @@ vivado_gui(<a href="#vivado_gui-name">name</a>, <a href="#vivado_gui-env">env</a
 | <a id="vivado_gui-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
 | <a id="vivado_gui-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_gui-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
+| <a id="vivado_gui-script"></a>script |  Optional TCL script to run on startup.   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `None`  |
 
 

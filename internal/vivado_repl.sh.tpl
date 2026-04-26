@@ -35,9 +35,19 @@ fi
 CMD="{{CMD}}"
 CMD_FINAL="${CMD/DOCKER_RUN_PLACEHOLDER/${DOCKER_RUN}}"
 
+EXTRA_ARGS=()
+if [[ -n "{{SCRIPT_RLOCATION}}" ]]; then
+    SCRIPT_PATH=$(rlocation "{{SCRIPT_RLOCATION}}")
+    if [[ ! -f "${SCRIPT_PATH}" ]]; then
+        echo >&2 "ERROR: Cannot find script at rlocation {{SCRIPT_RLOCATION}}"
+        exit 1
+    fi
+    EXTRA_ARGS+=("-source" "${SCRIPT_PATH}")
+fi
+
 ${CMD_FINAL} \
     LD_LIBRARY_PATH="{{VIVADO_PATH}}/lib/lnx64.o" \
     "{{VIVADO_PATH}}/bin/setEnvAndRunCmd.sh vivado" \
-    -mode tcl "$@"
+    -mode tcl "${EXTRA_ARGS[@]}" "$@"
 
 # vim: ft=bash

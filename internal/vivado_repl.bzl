@@ -24,6 +24,15 @@ def _vivado_repl_impl(ctx):
     # rules_bid is the repo name.
     docker_run_rlocation = "rules_bid/build/docker_run"
     
+    script_rlocation = ""
+    runfiles_list = [docker_run]
+    if ctx.file.script:
+        runfiles_list.append(ctx.file.script)
+        if ctx.file.script.short_path.startswith("../"):
+            script_rlocation = ctx.file.script.short_path[3:]
+        else:
+            script_rlocation = ctx.workspace_name + "/" + ctx.file.script.short_path
+
     # Generate the command using the helper.
     # We'll use a placeholder for the script path and replace it in the bash script.
     cmd = _script_cmd(
@@ -38,6 +47,7 @@ def _vivado_repl_impl(ctx):
         output = executable,
         substitutions = {
             "{{DOCKER_RUN_RLOCATION}}": docker_run_rlocation,
+            "{{SCRIPT_RLOCATION}}": script_rlocation,
             "{{CMD}}": cmd,
             "{{VIVADO_PATH}}": VIVADO_PATH,
         },
@@ -47,9 +57,7 @@ def _vivado_repl_impl(ctx):
     return [
         DefaultInfo(
             executable = executable,
-            runfiles = ctx.runfiles(files = [
-                docker_run,
-            ]).merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
+            runfiles = ctx.runfiles(files = runfiles_list).merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
               .merge(ctx.attr._script[DefaultInfo].default_runfiles),
         ),
     ]
@@ -58,6 +66,10 @@ vivado_repl = rule(
     implementation = _vivado_repl_impl,
     executable = True,
     attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+        "script": attr.label(
+            allow_single_file = [".tcl"],
+            doc = "Optional TCL script to run on startup.",
+        ),
         "_bash_runfiles": attr.label(
             default = "@bazel_tools//tools/bash/runfiles",
         ),
