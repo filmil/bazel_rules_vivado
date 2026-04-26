@@ -90,7 +90,7 @@ workspace.
 ## Common Commands
 
 *   **Build Everything**: `bazel build //...`
-*   **Test Everything**: `bazel test //... && cd integration && bazel test //...`
+*   **Test Everything**: `bazel test //... && cd integration && bazel build //... && bazel test //...`
 *   **List Targets**: Use `bazel query` to list targets defined below a certain
     path.
     *   Example: `bazel query //foo/bar/...` lists all targets under
