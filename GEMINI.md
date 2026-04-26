@@ -18,16 +18,15 @@ with human supervision.
 
 Also append the prompt used to generate the commit in full.
 
-## Prefer rebase over merge
+### Prefer rebase over merge
 
-Instead of creating merges into a branch try to rebase the current branch on
+* Instead of creating merges into a branch try to rebase the current branch on
 top of another.
+* For example, to get content from branch `main` from the `origin` repo use
+  `git rebase --pull origin main`.
 
-For example, to get content from branch `main` from the `origin` repo use `git
-rebase --pull origin main`.
 
-
-## Create pull request
+### Create pull request
 
 * Use the `gh` utility to create the pull request.
 * Use the remote `origin/main` as a baseline for the pull request.
@@ -46,11 +45,19 @@ with human supervision.
   merge conflicts, then re-upload PR.
 
 
+### Avoid interactive editor invocations
+
+* When doing commands which would normally invoke an interactive editor, use
+  the `--no-edit` flag or pipe the commit message to the command.
+* For example, to commit changes, use `git commit --no-edit -m "Commit
+  message"`.
+* To rebase, use `git rebase --no-edit`.
+
+
 # `//third_party` maintenance
 
 Every subdir under `//third_party` must have a LICENSE file with the appropriate
 license copied from its source distribution.
-
 
 
 # Public API documentation maintenance
@@ -59,6 +66,7 @@ Ensure that the repository is clean before starting this procedure.
 
 For all source files, we want to maintain an up-to-date documentation of their
 respective public API.
+
 
 
 # Bazel Basics
