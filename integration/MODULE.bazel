@@ -1,7 +1,9 @@
 module(
     name = "integration",
     version = "0.0.0",
-    bazel_compatibility = [ ">=8.0.0"],
+    bazel_compatibility = [
+        ">=8.0.0",
+    ],
 )
 
 
