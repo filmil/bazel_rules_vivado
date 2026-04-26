@@ -48,6 +48,15 @@ bazel run //build/vivado:repl
 
 This will start Vivado in TCL mode within the container, mounting your current workspace.
 
+You can also pass a custom TCL script to be executed upon startup using the `script` attribute:
+
+```python
+vivado_repl(
+    name = "repl_with_script",
+    script = "my_script.tcl",
+)
+```
+
 ### Running Vivado GUI
 
 You can start the Vivado GUI using Bazel:
@@ -57,6 +66,15 @@ bazel run //build/vivado:gui
 ```
 
 This requires an X11 server running on your host and will forward the X11 socket to the container.
+
+Similarly to the REPL, you can pass a custom TCL script to be executed upon startup:
+
+```python
+vivado_gui(
+    name = "gui_with_script",
+    script = "my_script.tcl",
+)
+```
 
 ## Prior Art
 

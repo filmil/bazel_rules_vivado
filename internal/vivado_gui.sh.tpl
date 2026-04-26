@@ -45,12 +45,22 @@ VIVADO_HOME_DIR="${PWD}/.vivado_home"
 mkdir -p "${VIVADO_HOME_DIR}"
 chmod a+w "${VIVADO_HOME_DIR}"
 
+EXTRA_ARGS=()
+if [[ -n "{{SCRIPT_RLOCATION}}" ]]; then
+    SCRIPT_PATH=$(rlocation "{{SCRIPT_RLOCATION}}")
+    if [[ ! -f "${SCRIPT_PATH}" ]]; then
+        echo >&2 "ERROR: Cannot find script at rlocation {{SCRIPT_RLOCATION}}"
+        exit 1
+    fi
+    EXTRA_ARGS+=("-source" "${SCRIPT_PATH}")
+fi
+
 ${CMD_FINAL} \
     --envs="DISPLAY=${DISPLAY},HOME=/home/vivado" \
     --mounts="/tmp/.X11-unix:/tmp/.X11-unix,${VIVADO_HOME_DIR}:/home/vivado:rw" \
     -- \
     LD_LIBRARY_PATH="{{VIVADO_PATH}}/lib/lnx64.o" \
     "{{VIVADO_PATH}}/bin/setEnvAndRunCmd.sh vivado" \
-    -mode gui "$@"
+    -mode gui "${EXTRA_ARGS[@]}" "$@"
 
 # vim: ft=bash
