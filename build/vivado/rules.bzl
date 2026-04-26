@@ -11,6 +11,7 @@ load("//internal:vivado_simulation.bzl", _vivado_simulation = "vivado_simulation
 load("//internal:vivado_unisims_library.bzl", _vivado_unisims_library = "vivado_unisims_library")
 load("//internal:vivado_generics.bzl", _vivado_generics = "vivado_generics")
 load("//internal:vivado_repl.bzl", _vivado_repl = "vivado_repl")
+load("//internal:vivado_gui.bzl", _vivado_gui = "vivado_gui")
 
 vivado_project = _vivado_project
 vivado_synthesis = _vivado_synthesis
@@ -23,3 +24,4 @@ vivado_simulation = _vivado_simulation
 vivado_unisims_library = _vivado_unisims_library
 vivado_generics = _vivado_generics
 vivado_repl = _vivado_repl
+vivado_gui = _vivado_gui

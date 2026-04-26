@@ -30,10 +30,33 @@ It's important to note that distributing the Docker container itself is generall
 | `internal/vivado_program_device.bzl` | [internal/vivado_program_device.md](internal/vivado_program_device.md) | Rule for programming a device |
 | `internal/vivado_project.bzl` | [internal/vivado_project.md](internal/vivado_project.md) | Rule for defining a Vivado project |
 | `internal/vivado_repl.bzl` | [internal/vivado_repl.md](internal/vivado_repl.md) | Rule for running Vivado REPL |
+| `internal/vivado_gui.bzl` | [internal/vivado_gui.md](internal/vivado_gui.md) | Rule for running Vivado GUI |
 | `internal/vivado_simulation.bzl` | [internal/vivado_simulation.md](internal/vivado_simulation.md) | Rule for running Vivado simulation |
 | `internal/vivado_synthesis.bzl` | [internal/vivado_synthesis.md](internal/vivado_synthesis.md) | Rule for Vivado synthesis |
 | `internal/vivado_synthesis2.bzl` | [internal/vivado_synthesis2.md](internal/vivado_synthesis2.md) | Alternate rule for Vivado synthesis |
 | `internal/vivado_unisims_library.bzl` | [internal/vivado_unisims_library.md](internal/vivado_unisims_library.md) | Rule for Vivado UNISIMs library |
+
+## Usage
+
+### Running Vivado REPL
+
+You can start a Vivado TCL REPL session using Bazel:
+
+```bash
+bazel run //build/vivado:repl
+```
+
+This will start Vivado in TCL mode within the container, mounting your current workspace.
+
+### Running Vivado GUI
+
+You can start the Vivado GUI using Bazel:
+
+```bash
+bazel run //build/vivado:gui
+```
+
+This requires an X11 server running on your host and will forward the X11 socket to the container.
 
 ## Prior Art
 

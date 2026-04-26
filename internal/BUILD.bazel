@@ -4,7 +4,10 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["vivado_repl.sh.tpl"])
+exports_files([
+    "vivado_repl.sh.tpl",
+    "vivado_gui.sh.tpl",
+])
 
 bzl_library(
     name = "defines",
@@ -111,6 +114,14 @@ bzl_library(
     ],
 )
 
+bzl_library(
+    name = "vivado_gui",
+    srcs = ["vivado_gui.bzl"],
+    deps = [
+        ":defines",
+    ],
+)
+
 stardoc(
     name = "md_defines",
     out = "gen.defines.md",
@@ -175,6 +186,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_gui",
+    out = "gen.vivado_gui.md",
+    input = "vivado_gui.bzl",
+    deps = [":vivado_gui"],
+)
+
+stardoc(
     name = "md_vivado_simulation",
     out = "gen.vivado_simulation.md",
     input = "vivado_simulation.bzl",
@@ -214,6 +232,7 @@ write_source_files(
         "vivado_program_device.md": ":md_vivado_program_device",
         "vivado_project.md": ":md_vivado_project",
         "vivado_repl.md": ":md_vivado_repl",
+        "vivado_gui.md": ":md_vivado_gui",
         "vivado_simulation.md": ":md_vivado_simulation",
         "vivado_synthesis.md": ":md_vivado_synthesis",
         "vivado_synthesis2.md": ":md_vivado_synthesis2",
