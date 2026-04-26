@@ -67,5 +67,8 @@ vivado_simulation(
     name = "sim",
     library = ":lib",
     top = "tb",
+    tags = [
+        "manual",
+    ],
 )
 

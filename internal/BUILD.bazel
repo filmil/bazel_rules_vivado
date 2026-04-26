@@ -10,6 +10,97 @@ bzl_library(
     deps = ["@rules_bid//build:rules"],
 )
 
+bzl_library(
+    name = "providers",
+    srcs = ["providers.bzl"],
+)
+
+bzl_library(
+    name = "vivado_project",
+    srcs = ["vivado_project.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+        "@bazel_skylib//lib:paths",
+    ],
+)
+
+bzl_library(
+    name = "vivado_synthesis",
+    srcs = ["vivado_synthesis.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_synthesis2",
+    srcs = ["vivado_synthesis2.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_place_and_route",
+    srcs = ["vivado_place_and_route.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_place_and_route2",
+    srcs = ["vivado_place_and_route2.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_program_device",
+    srcs = ["vivado_program_device.bzl"],
+    deps = [
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_library",
+    srcs = ["vivado_library.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_simulation",
+    srcs = ["vivado_simulation.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_unisims_library",
+    srcs = ["vivado_unisims_library.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_generics",
+    srcs = ["vivado_generics.bzl"],
+)
+
 stardoc(
     name = "md_defines",
     out = "gen.defines.md",
@@ -30,9 +121,4 @@ write_source_files(
         "defines.md": ":md_defines",
         "providers.md": ":md_providers",
     },
-)
-
-bzl_library(
-    name = "providers",
-    srcs = ["providers.bzl"],
 )

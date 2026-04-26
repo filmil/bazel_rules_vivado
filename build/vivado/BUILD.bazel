@@ -42,10 +42,16 @@ bzl_library(
     name = "rules",
     srcs = ["rules.bzl"],
     deps = [
-        "//internal:defines",
-        "//internal:providers",
-        "@bazel_skylib//lib:paths",
-        #"@rules_bid//build:rules",
+        "//internal:vivado_project",
+        "//internal:vivado_synthesis",
+        "//internal:vivado_synthesis2",
+        "//internal:vivado_place_and_route",
+        "//internal:vivado_place_and_route2",
+        "//internal:vivado_program_device",
+        "//internal:vivado_library",
+        "//internal:vivado_simulation",
+        "//internal:vivado_unisims_library",
+        "//internal:vivado_generics",
     ],
 )
 
