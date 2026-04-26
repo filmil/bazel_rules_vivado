@@ -258,8 +258,8 @@ vivado_unisims_library(<a href="#vivado_unisims_library-name">name</a>, <a href=
 | <a id="vivado_unisims_library-no_systemc_compile"></a>no_systemc_compile |  Whether to skip SystemC compile.   | Boolean | optional |  `False`  |
 | <a id="vivado_unisims_library-quiet"></a>quiet |  Whether to be quiet.   | Boolean | optional |  `False`  |
 | <a id="vivado_unisims_library-simulator"></a>simulator |  Name of the top level entity to simulate   | String | optional |  `"xsim"`  |
-| <a id="vivado_unisims_library-skip_libraries"></a>skip_libraries |  The list of libraries NOT to compile   | List of strings | optional |  `[]`  |
-| <a id="vivado_unisims_library-template"></a>template |  The TCL template to run.   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:compile_simlib.tcl.template"`  |
+| <a id="vivado_unisims_library-skip_libraries"></a>skip_libraries |  The list of libraries to skip.   | List of strings | optional |  `[]`  |
+| <a id="vivado_unisims_library-template"></a>template |  The template for the compile_simlib script.   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `"@rules_vivado//build/vivado:compile_simlib_tcl_template"`  |
 | <a id="vivado_unisims_library-verbose"></a>verbose |  Whether to be verbose.   | Boolean | optional |  `False`  |
 
 
