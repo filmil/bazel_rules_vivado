@@ -53,13 +53,18 @@ bzl_library(
         "//internal:vivado_unisims_library",
         "//internal:vivado_generics",
         "//internal:vivado_repl",
+        "//internal:vivado_gui",
     ],
 )
 
-load(":rules.bzl", "vivado_repl")
+load(":rules.bzl", "vivado_gui", "vivado_repl")
 
 vivado_repl(
     name = "repl",
+)
+
+vivado_gui(
+    name = "gui",
 )
 
 stardoc(
