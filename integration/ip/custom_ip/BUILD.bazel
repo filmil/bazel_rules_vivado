@@ -17,6 +17,6 @@ vivado_ip(
 # This target shows how to use the generated IP as a dependency
 vivado_library(
     name = "lib_using_ip",
-    srcs = [],
+    srcs = ["top.sv"],
     deps = [":clk_wiz_0"],
 )
