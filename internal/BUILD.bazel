@@ -126,10 +126,80 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_generics",
+    out = "gen.vivado_generics.md",
+    input = "vivado_generics.bzl",
+    deps = [":vivado_generics"],
+)
+
+stardoc(
+    name = "md_vivado_library",
+    out = "gen.vivado_library.md",
+    input = "vivado_library.bzl",
+    deps = [":vivado_library"],
+)
+
+stardoc(
+    name = "md_vivado_place_and_route",
+    out = "gen.vivado_place_and_route.md",
+    input = "vivado_place_and_route.bzl",
+    deps = [":vivado_place_and_route"],
+)
+
+stardoc(
+    name = "md_vivado_place_and_route2",
+    out = "gen.vivado_place_and_route2.md",
+    input = "vivado_place_and_route2.bzl",
+    deps = [":vivado_place_and_route2"],
+)
+
+stardoc(
+    name = "md_vivado_program_device",
+    out = "gen.vivado_program_device.md",
+    input = "vivado_program_device.bzl",
+    deps = [":vivado_program_device"],
+)
+
+stardoc(
+    name = "md_vivado_project",
+    out = "gen.vivado_project.md",
+    input = "vivado_project.bzl",
+    deps = [":vivado_project"],
+)
+
+stardoc(
     name = "md_vivado_repl",
     out = "gen.vivado_repl.md",
     input = "vivado_repl.bzl",
     deps = [":vivado_repl"],
+)
+
+stardoc(
+    name = "md_vivado_simulation",
+    out = "gen.vivado_simulation.md",
+    input = "vivado_simulation.bzl",
+    deps = [":vivado_simulation"],
+)
+
+stardoc(
+    name = "md_vivado_synthesis",
+    out = "gen.vivado_synthesis.md",
+    input = "vivado_synthesis.bzl",
+    deps = [":vivado_synthesis"],
+)
+
+stardoc(
+    name = "md_vivado_synthesis2",
+    out = "gen.vivado_synthesis2.md",
+    input = "vivado_synthesis2.bzl",
+    deps = [":vivado_synthesis2"],
+)
+
+stardoc(
+    name = "md_vivado_unisims_library",
+    out = "gen.vivado_unisims_library.md",
+    input = "vivado_unisims_library.bzl",
+    deps = [":vivado_unisims_library"],
 )
 
 write_source_files(
@@ -137,6 +207,16 @@ write_source_files(
     files = {
         "defines.md": ":md_defines",
         "providers.md": ":md_providers",
+        "vivado_generics.md": ":md_vivado_generics",
+        "vivado_library.md": ":md_vivado_library",
+        "vivado_place_and_route.md": ":md_vivado_place_and_route",
+        "vivado_place_and_route2.md": ":md_vivado_place_and_route2",
+        "vivado_program_device.md": ":md_vivado_program_device",
+        "vivado_project.md": ":md_vivado_project",
         "vivado_repl.md": ":md_vivado_repl",
+        "vivado_simulation.md": ":md_vivado_simulation",
+        "vivado_synthesis.md": ":md_vivado_synthesis",
+        "vivado_synthesis2.md": ":md_vivado_synthesis2",
+        "vivado_unisims_library.md": ":md_vivado_unisims_library",
     },
 )
