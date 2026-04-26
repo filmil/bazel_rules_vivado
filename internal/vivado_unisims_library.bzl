@@ -176,7 +176,8 @@ vivado_unisims_library = rule(
             doc = "The list of libraries to skip.",
         ),
         "template": attr.label(
-            default = Label("//build/vivado:compile_simlib_tcl_template"),
+            allow_single_file = True,
+            default = Label("//build/vivado:compile_simlib.tcl.template"),
             doc = "The template for the compile_simlib script.",
         ),
         # These parameters are part of the docker_run setup.
