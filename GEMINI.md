@@ -4,19 +4,23 @@
 * Ensure that tests pass after every change.
 * When you need to generate scripts, always create file templates, then load
   those into rules.
+* If you need to create temporary files, create them in the `local/` subdir,
+  create one if not existing already.
 
 
 ## General git commit rules
 
-Any git commit created by Gemini must contain this note as the last line in the
-commit message in addition to any commit summaries added:
+* Use Conventional Commits v1.0.0 to write commit messages.
 
-```
-This commit has been created by an automated coding assistant,
-with human supervision.
-```
+* Any git commit created by Gemini must contain this note as the last line in
+  the commit message in addition to any commit summaries added:
 
-Also append the prompt used to generate the commit in full.
+  ```
+  This commit has been created by an automated coding assistant,
+  with human supervision.
+  ```
+
+* Append the prompt used to generate the commit in full.
 
 ### Prefer rebase over merge
 
@@ -30,8 +34,9 @@ top of another.
 
 * Use the `gh` utility to create the pull request.
 * Use the remote `origin/main` as a baseline for the pull request.
+* Use Conventional Commits v1.0.0 to write PR descriptions.
 * Any pull request you create must contain this note as the last line in the
-commit message in addition to any commit summaries added:
+  commit message in addition to any commit summaries added:
 
 ```
 This pull request has been created by an automated coding assistant,
