@@ -4,6 +4,8 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files(["vivado_repl.sh.tpl"])
+
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
@@ -123,10 +125,18 @@ stardoc(
     deps = [":providers"],
 )
 
+stardoc(
+    name = "md_vivado_repl",
+    out = "gen.vivado_repl.md",
+    input = "vivado_repl.bzl",
+    deps = [":vivado_repl"],
+)
+
 write_source_files(
     name = "update",
     files = {
         "defines.md": ":md_defines",
         "providers.md": ":md_providers",
+        "vivado_repl.md": ":md_vivado_repl",
     },
 )
