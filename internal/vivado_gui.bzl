@@ -16,20 +16,20 @@ def _vivado_gui_impl(ctx):
       A DefaultInfo provider.
     """
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
-    
+
     docker_run = ctx.executable._script
-    
+
     # We use rlocation to find the docker_run script at runtime.
     docker_run_rlocation = "rules_bid/build/docker_run"
-    
+
     # Generate the command using the helper.
     cmd = _script_cmd(
         script_path = "DOCKER_RUN_PLACEHOLDER",
         dir_reference = ".",
         cache_dir = ".vivado_gui_cache",
-        freeargs = ["-it", "--net=host", "-e", "HOME=/work"],
+        freeargs = ["-it", "--net=host"],
     )
-    
+
     ctx.actions.expand_template(
         template = ctx.file._template,
         output = executable,

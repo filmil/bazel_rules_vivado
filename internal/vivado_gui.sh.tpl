@@ -40,9 +40,15 @@ if [[ -z "${DISPLAY}" ]]; then
   echo >&2 "WARNING: DISPLAY is not set. GUI might not start correctly."
 fi
 
+# Create a local home directory to give Vivado write access for its configs.
+VIVADO_HOME_DIR="${PWD}/.vivado_home"
+mkdir -p "${VIVADO_HOME_DIR}"
+chmod a+w "${VIVADO_HOME_DIR}"
+
 ${CMD_FINAL} \
-    -e DISPLAY="${DISPLAY}" \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --envs="DISPLAY=${DISPLAY},HOME=/home/vivado" \
+    --mounts="/tmp/.X11-unix:/tmp/.X11-unix,${VIVADO_HOME_DIR}:/home/vivado:rw" \
+    -- \
     LD_LIBRARY_PATH="{{VIVADO_PATH}}/lib/lnx64.o" \
     "{{VIVADO_PATH}}/bin/setEnvAndRunCmd.sh vivado" \
     -mode gui "$@"
