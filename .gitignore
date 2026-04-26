@@ -1,3 +1,7 @@
 bazel-*
 user.bazelrc
 *.orig
+local/
+.nvim/
+pr_body.txt
+
