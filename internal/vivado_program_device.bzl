@@ -130,7 +130,7 @@ vivado_program_device = rule(
         "_data": attr.label(
             default=Label("//build/vivado/bin/proggen:data"),
             doc = "The program to generate a programming wrapper",
-            providers = ["files"],
+            providers = [DefaultInfo],
         ),
         "prog_daemon": attr.label(
             doc = "The binary to start before programming",
