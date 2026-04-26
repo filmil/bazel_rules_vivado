@@ -7,6 +7,7 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "vivado_repl.sh.tpl",
     "vivado_gui.sh.tpl",
+    "vivado_ip.sh.tpl",
 ])
 
 bzl_library(
@@ -122,6 +123,15 @@ bzl_library(
     ],
 )
 
+bzl_library(
+    name = "vivado_ip",
+    srcs = ["vivado_ip.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
 stardoc(
     name = "md_defines",
     out = "gen.defines.md",
@@ -193,6 +203,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_ip",
+    out = "gen.vivado_ip.md",
+    input = "vivado_ip.bzl",
+    deps = [":vivado_ip"],
+)
+
+stardoc(
     name = "md_vivado_simulation",
     out = "gen.vivado_simulation.md",
     input = "vivado_simulation.bzl",
@@ -233,6 +250,7 @@ write_source_files(
         "vivado_project.md": ":md_vivado_project",
         "vivado_repl.md": ":md_vivado_repl",
         "vivado_gui.md": ":md_vivado_gui",
+        "vivado_ip.md": ":md_vivado_ip",
         "vivado_simulation.md": ":md_vivado_simulation",
         "vivado_synthesis.md": ":md_vivado_synthesis",
         "vivado_synthesis2.md": ":md_vivado_synthesis2",

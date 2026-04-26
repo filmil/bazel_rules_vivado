@@ -1,0 +1,10 @@
+# {{COMMENT}}
+# IP Generation script for {{MODULE_NAME}}
+
+create_project {{MODULE_NAME}} -force -part {{PART}}
+
+create_ip -vlnv {{VLNV}} -module_name {{MODULE_NAME}}
+
+{{CONFIG_COMMANDS}}
+
+generate_target all [get_ips {{MODULE_NAME}}]

@@ -8,6 +8,7 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "compile_simlib.tcl.template",
     "xsim.tcl.template",
+    "generate_ip.tcl.template",
 ])
 
 filegroup(
@@ -54,6 +55,7 @@ bzl_library(
         "//internal:vivado_generics",
         "//internal:vivado_repl",
         "//internal:vivado_gui",
+        "//internal:vivado_ip",
     ],
 )
 

@@ -1,0 +1,22 @@
+load(
+    "@rules_vivado//build/vivado:rules.bzl",
+    "vivado_ip",
+    "vivado_library",
+)
+
+vivado_ip(
+    name = "clk_wiz_0",
+    vlnv = "xilinx.com:ip:clk_wiz:6.0",
+    part = "xc7a200tfbg484-2",
+    config = {
+        "PRIM_SOURCE": "Single_ended_clock_capable_pin",
+        "CLKOUT1_REQUESTED_OUT_FREQ": "100.000",
+    },
+)
+
+# This target shows how to use the generated IP as a dependency
+vivado_library(
+    name = "lib_using_ip",
+    srcs = [],
+    deps = [":clk_wiz_0"],
+)
