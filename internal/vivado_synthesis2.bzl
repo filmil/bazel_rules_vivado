@@ -106,8 +106,6 @@ def _vivado_synthesis2_impl(ctx):
         expanded = ctx.expand_location(v, targets = ctx.attr.data)
         processed_generics += ["{}={}".format(k, expanded)]
 
-    # data_files = [ file for file in target.files.to_list() for target in ctx.attr.data ]
-    # ???
     data_files = []
     for target in ctx.attr.data:
         for file in target.files.to_list():
