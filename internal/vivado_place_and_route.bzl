@@ -83,7 +83,7 @@ def _vivado_pnr_impl(ctx):
   # The copy/chmod shenanigans are needed to work around Vivado's hostile
   # attitude towards sandboxing.
   ctx.actions.run_shell(
-    progress_message = "Vivado Place and Route \"{}\"".format(name),
+    progress_message = "Vivado Place and Route: \"{}\"".format(name),
     inputs = inputs + [docker_run],
     outputs = outputs,
     mnemonic = "VPNR",
