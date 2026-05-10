@@ -62,7 +62,11 @@ read_xdc {{"{"}} {{- . -}} {{"}"}}
 # Set the top-level entity/module and target part
 synth_design -top {{ .Top }} -part {{ .Part }} {{range .VHDLGenerics }} \
   -generic   {{.}} {{end}} {{range .VerilogProperties }} \
-  -parameter {{.}} {{end}}
+  -parameter {{.}} {{end}} {{ .SynthDesignOptions }}
+
+{{- range .PostSynthDesign}}
+{{ . }}
+{{- end}}
 
 # Write the synthesized netlist
 write_checkpoint -force {{ .SaveDcpFile }}
