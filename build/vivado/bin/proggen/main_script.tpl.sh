@@ -28,21 +28,28 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
-readonly _log_bash_loc="$(rlocation fshlib~/log.bash)"
+_log_bash_loc="$(rlocation fshlib~/log.bash)"
+if [[ "${_log_bash_loc}" == "" ]]; then
+    _log_bash_loc="$(rlocation fshlib+/log.bash)"
+    if [[ "${_log_bash_loc}" == "" ]]; then
+        echo >2 "ERROR: could not find:fshlib/log.bash"
+        exit 1
+    fi
+fi
 source "${_log_bash_loc}"
 
 readonly _this_dir="${0%/*}"
 log::debug "this_dir: ${_this_dir}"
 
 # These should be immune to path changes.
-readonly _run_docker="$(rlocation rules_bid/build/docker_run.sh)"
+readonly _run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
 
 _gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)"
 if [[ "${_gotopt2}" == "" ]]; then
     # Try for the new repo names.
     _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)"
     if [[ "${_gotopt2}" == "" ]]; then
-        echo "gotopt2 not found"
+        eilo::error "gotopt2 not found"
         exit 1
     fi
 fi
@@ -83,6 +90,7 @@ readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
 
 log::debug "Creating script file: ${_tcl_script_file}"
 log::debug "Using bitfile:        ${_bitfile}"
+log::debug "Using PWD:            ${PWD}"
 
 # Now, run the daemon.
 readonly _prog_runner_binary="{{ .ProgRunnerBinary }}"
@@ -99,7 +107,7 @@ else
     log::warn "No programmer binary, skipping"
 fi
 
-cat <<EOF > "${_tcl_script_file}"
+cat <<EOF > "${_tcl_script_file}" || log::error "Could not create the file: ${_tcl_script_file}"
 # Vivado tcl script here.
 #
 # https://stackoverflow.com/questions/50060337/programming-device-in-vivado-using-tcl
@@ -134,7 +142,7 @@ env RUNFILES_DIR="$PWD/.." \
     --container=xilinx-vivado:${_vivado_version} \
     --dir-reference=${PWD} \
     --source-dir=${PWD} \
-    --mounts=/tmp/.X11-unix:/tmp/.X11-unix:ro \
+    --mounts=/tmp/.X11-unix:/tmp/.X11-unix:ro,"${PWD}:/work:rw" \
     --freeargs=--net=host,-e,HOME=/work,-w,/work \
     --src-mount=/work \
     LD_LIBRARY_PATH="${_vivado_root}/lib/lnx64.o" \
@@ -142,5 +150,5 @@ env RUNFILES_DIR="$PWD/.." \
     -notrace -mode batch \
     -source "/work/${_tcl_script_file}" | log::prefix "[vivado] " \
     && log::info "OK" \
-    || log::error "Programmming error"
+    || log::error "The programming command failed."
 
