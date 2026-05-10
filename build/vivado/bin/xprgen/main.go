@@ -76,6 +76,11 @@ type XPRBinding struct {
 	RouteDesignOptions string
 	// PostRouteDesign are appended after `route_design` line.
 	PostRouteDesign []string
+
+	// SynthDesignOptions are appended to `synth_design` line.
+	SynthDesignOptions string
+	// PostSynthDesign are appended after `synth_design` line.
+	PostSynthDesign []string
 }
 
 var _ flag.Value = (*RepeatedString)(nil)
@@ -203,6 +208,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 	var postRouteDesign RepeatedString
 	fs.Var(&postRouteDesign, "post-route-design", "Commands to run after route_design")
 
+	fs.StringVar(&xpr.SynthDesignOptions, "synth-design-options", "", "Options to append to synth_design")
+	var postSynthDesign RepeatedString
+	fs.Var(&postSynthDesign, "post-synth-design", "Commands to run after synth_design")
+
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -274,6 +283,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	xpr.VHDLGenerics = generics.values
 	xpr.PostRouteDesign = postRouteDesign.values
 	xpr.PostPlaceDesign = postPlaceDesign.values
+	xpr.PostSynthDesign = postSynthDesign.values
 
 	if xpr.OutXpr != "" {
 		if err := WriteFile(xpr.OutXpr, xprTpl, &xpr); err != nil {

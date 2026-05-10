@@ -10,7 +10,7 @@ Vivado synthesis2 rule.
 load("@rules_vivado//internal:vivado_synthesis2.bzl", "vivado_synthesis2")
 
 vivado_synthesis2(<a href="#vivado_synthesis2-name">name</a>, <a href="#vivado_synthesis2-deps">deps</a>, <a href="#vivado_synthesis2-srcs">srcs</a>, <a href="#vivado_synthesis2-data">data</a>, <a href="#vivado_synthesis2-hdrs">hdrs</a>, <a href="#vivado_synthesis2-defines">defines</a>, <a href="#vivado_synthesis2-env">env</a>, <a href="#vivado_synthesis2-generics">generics</a>, <a href="#vivado_synthesis2-include_dirs">include_dirs</a>, <a href="#vivado_synthesis2-mount">mount</a>, <a href="#vivado_synthesis2-part">part</a>,
-                  <a href="#vivado_synthesis2-top">top</a>, <a href="#vivado_synthesis2-xdcs">xdcs</a>)
+                  <a href="#vivado_synthesis2-post_synth_design">post_synth_design</a>, <a href="#vivado_synthesis2-synth_design_options">synth_design_options</a>, <a href="#vivado_synthesis2-top">top</a>, <a href="#vivado_synthesis2-xdcs">xdcs</a>)
 </pre>
 
 
@@ -31,6 +31,8 @@ vivado_synthesis2(<a href="#vivado_synthesis2-name">name</a>, <a href="#vivado_s
 | <a id="vivado_synthesis2-include_dirs"></a>include_dirs |  A list of include directories.   | List of strings | optional |  `[]`  |
 | <a id="vivado_synthesis2-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_synthesis2-part"></a>part |  The part that is targeted by this project   | String | required |  |
+| <a id="vivado_synthesis2-post_synth_design"></a>post_synth_design |  TCL commands, one per line, to add after `synth_design` command in Vivado   | List of strings | optional |  `[]`  |
+| <a id="vivado_synthesis2-synth_design_options"></a>synth_design_options |  Additional options to pass to the `synth_design` command in Vivado   | String | optional |  `""`  |
 | <a id="vivado_synthesis2-top"></a>top |  Mandatory name of the top level entity   | String | required |  |
 | <a id="vivado_synthesis2-xdcs"></a>xdcs |  Constraint files   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 

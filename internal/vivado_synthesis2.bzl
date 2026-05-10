@@ -127,6 +127,8 @@ def _vivado_synthesis2_impl(ctx):
     args.add_all(include_dirs, before_each="--include-dir")
     args.add_all(src_paths, before_each="--source")
     args.add_all(xdcs_paths, before_each="--constraints")
+    args.add("--synth-design-options", ctx.attr.synth_design_options)
+    args.add_all(ctx.attr.post_synth_design, before_each="--post-synth-design")
 
 
     part = ctx.attr.part
@@ -247,6 +249,14 @@ vivado_synthesis2 = rule(
         "include_dirs": attr.string_list(
             allow_empty = True,
             doc = "A list of include directories.",
+        ),
+        "synth_design_options": attr.string(
+            default = "",
+            doc = "Additional options to pass to the `synth_design` command in Vivado",
+        ),
+        "post_synth_design": attr.string_list(
+            default = [],
+            doc = "TCL commands, one per line, to add after `synth_design` command in Vivado",
         ),
         "_generator": attr.label(
             doc = "xprgen binary",
