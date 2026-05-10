@@ -61,6 +61,10 @@ def _vivado_place_and_route2_impl(ctx):
     args.add("--top-name", name)
     args.add("--bitstream", bit_file.path)
     args.add_all(xdc_files_paths, before_each = "--constraints")
+    args.add("--place-design-options", ctx.attr.place_design_options)
+    args.add("--route-design-options", ctx.attr.route_design_options)
+    args.add_all(ctx.attr.post_place_design, before_each = "--post-place-design")
+    args.add_all(ctx.attr.post_route_design, before_each = "--post-route-design")
 
     ctx.actions.run(
         outputs = [tcl_file],
@@ -155,6 +159,22 @@ vivado_place_and_route2 = rule(
         ),
         "xdcs": attr.label_list(
             doc = "Constraint files",
+        ),
+        "place_design_options": attr.string(
+            default = "",
+            doc = "Additional options to pass to the `place_design` command in Vivado",
+        ),
+        "route_design_options": attr.string(
+            default = "",
+            doc = "Additional options to pass to the `route_design` command in Vivado",
+        ),
+        "post_place_design": attr.string_list(
+            default = [],
+            doc = "TCL commands, one per line, to add after `place_design` command in Vivado",
+        ),
+        "post_route_design": attr.string_list(
+            default = [],
+            doc = "TCL commands, one per line, to add after `route_design` command in Vivado",
         ),
         "_generator": attr.label(
             doc = "xprgen binary",

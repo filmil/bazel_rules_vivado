@@ -17,10 +17,16 @@ read_xdc {{"{"}} {{- . -}} {{"}"}}
 # end: constraints files
 
 # Step 3: Place the design
-place_design
+place_design {{ .PlaceDesignOptions }}
+{{- range .PostPlaceDesign}}
+{{ . }}
+{{- end}}
 
 # Step 4: Route the design
-route_design
+route_design {{ .RouteDesignOptions }}
+{{- range .PostRouteDesign}}
+{{ . }}
+{{- end}}
 
 # Step 5 (Optional but Recommended): Write reports to check the results
 report_timing_summary -file {{ .TimingSummaryFile }}
