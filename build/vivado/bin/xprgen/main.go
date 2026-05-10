@@ -67,6 +67,15 @@ type XPRBinding struct {
 
 	TimingSummaryFile, UtilizationFile, DRCFile string
 	SynthFileName, PnrFileName, CustomFileName  string
+
+	// PlaceDesignOptions are appended to `place_design` line.
+	PlaceDesignOptions string
+	// PostPlaceDesignOptions are appended after `place_design` line.
+	PostPlaceDesign []string
+	// RouteDesignOptions are appended to `route_design` line.
+	RouteDesignOptions string
+	// PostRouteDesign are appended after `route_design` line.
+	PostRouteDesign []string
 }
 
 var _ flag.Value = (*RepeatedString)(nil)
@@ -187,6 +196,13 @@ func run(args []string, stdout, stderr io.Writer) error {
 	var generics RepeatedString
 	fs.Var(&generics, "generic", "a VHDL generic in KEY=VALUE format")
 
+	fs.StringVar(&xpr.PlaceDesignOptions, "place-design-options", "", "Options to append to place_design")
+	var postPlaceDesign RepeatedString
+	fs.Var(&postPlaceDesign, "post-place-design", "Commands to run after place_design")
+	fs.StringVar(&xpr.RouteDesignOptions, "route-design-options", "", "Options to append to route_design")
+	var postRouteDesign RepeatedString
+	fs.Var(&postRouteDesign, "post-route-design", "Commands to run after route_design")
+
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -256,6 +272,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 	xpr.XDCFiles = xdcFiles.values
 	xpr.PWD = pwd
 	xpr.VHDLGenerics = generics.values
+	xpr.PostRouteDesign = postRouteDesign.values
+	xpr.PostPlaceDesign = postPlaceDesign.values
 
 	if xpr.OutXpr != "" {
 		if err := WriteFile(xpr.OutXpr, xprTpl, &xpr); err != nil {
