@@ -157,7 +157,7 @@ def _vivado_project_impl(ctx):
     hdrs_files = []
 
     # Get library deps.
-    seen_libraries = []
+    seen_libraries = {}
     for dep in ctx.attr.deps:
         # process dep deps.
         provider = dep[VivadoLibraryProvider]
@@ -165,7 +165,7 @@ def _vivado_project_impl(ctx):
         for provider_dep in provider.deps.to_list():
             lib_name = provider_dep.name
             if lib_name not in seen_libraries:
-                seen_libraries += [lib_name]
+                seen_libraries[lib_name] = True
 
                 provider_dep_files = provider_dep.files
                 for file in provider_dep_files:
@@ -175,7 +175,7 @@ def _vivado_project_impl(ctx):
 
         lib_name = provider.name
         if lib_name not in seen_libraries:
-            seen_libraries += [lib_name]
+            seen_libraries[lib_name] = True
 
             for file in provider.files:
                 inputs += [file]
