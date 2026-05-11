@@ -51,7 +51,7 @@ read_verilog {{with .Library }} -library {{ . }} {{- end}} {{"{"}} {{- .Name -}}
 # Verilog headers
 # Ordering is important.
 {{- range .VerilogHeaders}}
-read_verilog {{with .Library }} -library {{ . }} {{- end}} -sv {{"{"}} {{- .Name -}} {{"}"}}
+read_verilog -sv {{"{"}} {{- . -}} {{"}"}}
 {{- end}}
 
 # VHDL files
