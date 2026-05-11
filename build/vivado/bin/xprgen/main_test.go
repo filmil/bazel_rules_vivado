@@ -170,6 +170,18 @@ func TestWriteFile(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "success",
+			fn:      filepath.Join(tmpDir, "out.txt"),
+			xpr:     &XPRBinding{Project: "TestProj"},
+			wantErr: false,
+			wantStr: "Project: TestProj",
+		},
+		{
+			name:    "invalid path",
+			fn:      filepath.Join(tmpDir, "nonexistent", "out.txt"),
+			wantErr: true,
+		},
+		{
 			name: "template execution error via missingkey",
 			fn:   filepath.Join(tmpDir, "error_missingkey.txt"),
 			tpl:  template.Must(template.New("error").Option("missingkey=error").Parse("{{.NonExistent}}")),
