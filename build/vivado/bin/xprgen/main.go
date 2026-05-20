@@ -309,11 +309,15 @@ func run(args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func main() {
-	p := path.Base(os.Args[0])
+func runCLI(osArgs []string, stdout, stderr io.Writer) error {
+	p := path.Base(osArgs[0])
 	log.SetPrefix(fmt.Sprintf("%v: ", p))
 
-	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+	return run(osArgs[1:], stdout, stderr)
+}
+
+func main() {
+	if err := runCLI(os.Args, os.Stdout, os.Stderr); err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
 }
