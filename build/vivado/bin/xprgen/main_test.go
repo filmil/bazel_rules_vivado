@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,41 +13,41 @@ import (
 
 func TestAppendTo(t *testing.T) {
 	tests := []struct {
-		name               string
-		fl                 FileLib
-		initialSV          []FileLib
-		initialV           []FileLib
-		initialVHDL        []FileLib
-		initialOther       []FileLib
-		wantSV             []FileLib
-		wantV              []FileLib
-		wantVHDL           []FileLib
-		wantOther          []FileLib
-		wantErr            bool
+		name         string
+		fl           FileLib
+		initialSV    []FileLib
+		initialV     []FileLib
+		initialVHDL  []FileLib
+		initialOther []FileLib
+		wantSV       []FileLib
+		wantV        []FileLib
+		wantVHDL     []FileLib
+		wantOther    []FileLib
+		wantErr      bool
 	}{
 		{
-			name: "SystemVerilog file",
-			fl:   FileLib{Name: "test.sv"},
+			name:   "SystemVerilog file",
+			fl:     FileLib{Name: "test.sv"},
 			wantSV: []FileLib{{Name: "test.sv"}},
 		},
 		{
-			name: "Verilog file",
-			fl:   FileLib{Name: "test.v"},
+			name:  "Verilog file",
+			fl:    FileLib{Name: "test.v"},
 			wantV: []FileLib{{Name: "test.v"}},
 		},
 		{
-			name: "VHDL file 1",
-			fl:   FileLib{Name: "test.vhd"},
+			name:     "VHDL file 1",
+			fl:       FileLib{Name: "test.vhd"},
 			wantVHDL: []FileLib{{Name: "test.vhd"}},
 		},
 		{
-			name: "VHDL file 2",
-			fl:   FileLib{Name: "test.vhdl"},
+			name:     "VHDL file 2",
+			fl:       FileLib{Name: "test.vhdl"},
 			wantVHDL: []FileLib{{Name: "test.vhdl"}},
 		},
 		{
-			name: "Other file",
-			fl:   FileLib{Name: "test.txt"},
+			name:      "Other file",
+			fl:        FileLib{Name: "test.txt"},
 			wantOther: []FileLib{{Name: "test.txt"}},
 		},
 		{
@@ -86,16 +86,6 @@ func TestAppendTo(t *testing.T) {
 	}
 }
 
-func TestWriteFile(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	tests := []struct {
-		name    string
-		fn      string
-		tpl     *template.Template
-		xpr     *XPRBinding
-		wantErr bool
-		verify  func(t *testing.T, fn string)
 func TestRepeatedString(t *testing.T) {
 	rs := RepeatedString{}
 
@@ -133,6 +123,7 @@ func TestWriteFile(t *testing.T) {
 		xpr     *XPRBinding
 		wantErr bool
 		wantStr string
+		verify  func(t *testing.T, fn string)
 	}{
 		{
 			name: "empty filename",
@@ -143,6 +134,13 @@ func TestWriteFile(t *testing.T) {
 		{
 			name: "successful write",
 			fn:   filepath.Join(tmpDir, "output.txt"),
+			tpl:  template.Must(template.New("test").Parse("Project: {{.Project}}")),
+			xpr:  &XPRBinding{Project: "test_proj"},
+			wantStr: "Project: test_proj",
+		},
+		{
+			name: "successful write with verify",
+			fn:   filepath.Join(tmpDir, "output_verify.txt"),
 			tpl:  template.Must(template.New("test").Parse("Project: {{.Project}}")),
 			xpr:  &XPRBinding{Project: "test_proj"},
 			verify: func(t *testing.T, fn string) {
@@ -170,23 +168,10 @@ func TestWriteFile(t *testing.T) {
 			tpl:     template.Must(template.New("test").Funcs(template.FuncMap{"fail": func() (string, error) { return "", errors.New("template fail") }}).Parse("{{fail}}")),
 			xpr:     &XPRBinding{},
 			wantErr: true,
-			wantErr: false,
 		},
 		{
-			name: "success",
-			fn:   filepath.Join(tmpDir, "out.txt"),
-			xpr:  &XPRBinding{Project: "TestProj"},
-			wantErr: false,
-			wantStr: "Project: TestProj",
-		},
-		{
-			name: "invalid path",
-			fn:   filepath.Join(tmpDir, "nonexistent", "out.txt"),
-			wantErr: true,
-		},
-		{
-			name: "template execution error",
-			fn:   filepath.Join(tmpDir, "error.txt"),
+			name: "template execution error via missingkey",
+			fn:   filepath.Join(tmpDir, "error_missingkey.txt"),
 			tpl:  template.Must(template.New("error").Option("missingkey=error").Parse("{{.NonExistent}}")),
 			xpr:  &XPRBinding{Project: "TestProj"},
 			wantErr: true,
@@ -204,12 +189,16 @@ func TestWriteFile(t *testing.T) {
 				t.Errorf("WriteFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil && tt.fn != "" {
-				b, err := os.ReadFile(tt.fn)
-				if err != nil {
-					t.Fatalf("failed to read file: %v", err)
-				}
-				if string(b) != tt.wantStr {
-					t.Errorf("file content = %q, want %q", string(b), tt.wantStr)
+				if tt.verify != nil {
+					tt.verify(t, tt.fn)
+				} else if tt.wantStr != "" {
+					b, err := os.ReadFile(tt.fn)
+					if err != nil {
+						t.Fatalf("failed to read file: %v", err)
+					}
+					if string(b) != tt.wantStr {
+						t.Errorf("file content = %q, want %q", string(b), tt.wantStr)
+					}
 				}
 			}
 		})
@@ -233,14 +222,14 @@ func TestRun(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid flag",
-			args: []string{"--invalid-flag"},
+			name:    "invalid flag",
+			args:    []string{"--invalid-flag"},
 			wantErr: true,
 		},
 		{
-			name: "invalid library file format",
-			args: []string{"--library-file", "invalid_format"},
-			wantErr: true,
+			name:       "invalid library file format",
+			args:       []string{"--library-file", "invalid_format"},
+			wantErr:    true,
 			wantErrStr: "invalid format for library-file",
 		},
 		{
@@ -255,12 +244,6 @@ func TestRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WriteFile(tt.fn, tt.tpl, tt.xpr)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("WriteFile() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.verify != nil {
-				tt.verify(t, tt.fn)
 			stdout := &bytes.Buffer{}
 			stderr := &bytes.Buffer{}
 
@@ -272,6 +255,42 @@ func TestRun(t *testing.T) {
 				if !strings.Contains(err.Error(), tt.wantErrStr) {
 					t.Errorf("run() error = %v, want containing %v", err, tt.wantErrStr)
 				}
+			}
+		})
+	}
+}
+
+func TestRunCLI(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name: "success",
+			args: []string{
+				"xprgen",
+				"--project-name", "TestProject",
+			},
+			wantErr: false,
+		},
+		{
+			name: "error from run",
+			args: []string{
+				"xprgen",
+				"--invalid-flag",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+			err := runCLI(tt.args, stdout, stderr)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("runCLI() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
