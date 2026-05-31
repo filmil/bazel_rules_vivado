@@ -42,7 +42,11 @@ readonly _this_dir="${0%/*}"
 log::debug "this_dir: ${_this_dir}"
 
 # These should be immune to path changes.
-readonly _run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
+_run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
+if [[ "${_run_docker}" == "" ]]; then
+    _run_docker="$(rlocation rules_bid+/build/docker_run_/docker_run)"
+fi
+readonly _run_docker
 
 _gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)"
 if [[ "${_gotopt2}" == "" ]]; then
