@@ -2,6 +2,7 @@ load(
     "//build/vivado:rules.bzl",
     "vivado_library",
     "vivado_simulation",
+    "vivado_test",
 )
 
 vivado_library(
@@ -14,6 +15,12 @@ vivado_library(
 
 vivado_simulation(
     name = "sim",
+    library = ":test_library",
+    top = "tb",
+)
+
+vivado_test(
+    name = "sim_test",
     library = ":test_library",
     top = "tb",
 )
