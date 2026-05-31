@@ -36,14 +36,10 @@ sh_binary(
     name = "pnr",
     srcs = ["pnr.bash"],
     data = [
-        "@bazel_tools//tools/bash/runfiles",
         "@fshlib//:log",
-        "@gotopt2//:bin",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
         "@rules_bid//build:resolve",
     ],
+    visibility = ["//visibility:public"],
 )
 
 bzl_library(
