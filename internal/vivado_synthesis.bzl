@@ -1,9 +1,10 @@
 """Vivado synthesis rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
-    _script_cmd = "script_cmd",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_CONFIG_ATTRS",
+    _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoGenProvider",
@@ -19,6 +20,7 @@ def _vivado_synthesis_impl(ctx):
   Returns:
     A list of providers, including DefaultInfo, VivadoGenProvider, and VivadoSynthProvider.
   """
+  config = _vivado_config(ctx)
   # Rule name. Must be unique.
   name = ctx.attr.name
   project = ctx.attr.project
@@ -91,6 +93,7 @@ def _vivado_synthesis_impl(ctx):
       "--net=host",
       "-e", "HOME=/work",
     ],
+    container=config.container,
   )
 
   # Run vivado with the script in the container
@@ -153,7 +156,7 @@ def _vivado_synthesis_impl(ctx):
       xpr_src = provider.xpr_file.path,
 
       # tools
-      vivado_path = VIVADO_PATH,
+      vivado_path = config.vivado_path,
       user_files_dir = ip_user_files_dir_rpath,
       script = script,
       synth_tcl = synth_tcl_script.path,
@@ -176,7 +179,7 @@ def _vivado_synthesis_impl(ctx):
 
 vivado_synthesis = rule(
     implementation = _vivado_synthesis_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
         "project": attr.label(
             doc = "The Vivado project to work on",
             mandatory = True,

@@ -10,7 +10,7 @@ Module providing documentation helper functions.
 load("@rules_vivado//:doc.bzl", "script_cmd")
 
 script_cmd(<a href="#script_cmd-script_path">script_path</a>, <a href="#script_cmd-dir_reference">dir_reference</a>, <a href="#script_cmd-cache_dir">cache_dir</a>, <a href="#script_cmd-source_dir">source_dir</a>, <a href="#script_cmd-mounts">mounts</a>, <a href="#script_cmd-envs">envs</a>, <a href="#script_cmd-tools">tools</a>, <a href="#script_cmd-freeargs">freeargs</a>,
-           <a href="#script_cmd-workdir_name">workdir_name</a>)
+           <a href="#script_cmd-workdir_name">workdir_name</a>, <a href="#script_cmd-container">container</a>)
 </pre>
 
 Generates the command line to run a docker container.
@@ -29,6 +29,7 @@ Generates the command line to run a docker container.
 | <a id="script_cmd-tools"></a>tools |  Tools to add.   |  `None` |
 | <a id="script_cmd-freeargs"></a>freeargs |  Additional arguments to pass.   |  `[]` |
 | <a id="script_cmd-workdir_name"></a>workdir_name |  The working directory name.   |  `"/work"` |
+| <a id="script_cmd-container"></a>container |  Optional container image override. When None, the default CONTAINER is used. Pass `vivado_config(ctx).container` to honor user-supplied build setting flags.   |  `None` |
 
 **RETURNS**
 

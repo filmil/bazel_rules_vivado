@@ -1,8 +1,9 @@
 """Vivado simulation rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -17,6 +18,7 @@ def _vivado_simulation_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and OutputGroupInfo.
     """
+    config = _vivado_config(ctx)
     args = ["-debug", "typical"]
     args += ctx.attr.xelab_args
     files = []
@@ -102,6 +104,7 @@ def _vivado_simulation_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
 
     if ctx.attr.xelab_relaxed:
@@ -127,7 +130,7 @@ def _vivado_simulation_impl(ctx):
             {args} 2>&1 > {log} || ( cat {log} && exit 1 ) {suffix}
         """.format(
             script=script,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             command="xelab",
             args=" ".join(args),
             suffix=" ".join(suffix),
@@ -184,7 +187,7 @@ def _vivado_simulation_impl(ctx):
         """.format(
             prefix=" ".join(prefix),
             script=script,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             command="xsim",
             args=" ".join(args),
             log=sim_log_file.path,
@@ -222,7 +225,7 @@ def _vivado_simulation_impl(ctx):
 
 vivado_simulation = rule(
     implementation = _vivado_simulation_impl,
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "library": attr.label(
             doc = "The library to run the simulation from",
             providers = [VivadoLibraryProvider],

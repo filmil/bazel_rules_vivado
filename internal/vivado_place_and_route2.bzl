@@ -1,9 +1,10 @@
 """Vivado place and route2 rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
-    _script_cmd = "script_cmd",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_CONFIG_ATTRS",
+    _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoSynthProvider",
@@ -19,6 +20,7 @@ def _vivado_place_and_route2_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoBitstreamProvider.
     """
+    config = _vivado_config(ctx)
     args = ctx.actions.args()
     name = ctx.attr.name
     generator = ctx.attr._generator.files
@@ -103,6 +105,7 @@ def _vivado_place_and_route2_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
 
     outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
@@ -128,7 +131,7 @@ def _vivado_place_and_route2_impl(ctx):
         """.format(
             pnr_binary=pnr_binary.path,
             script=script_file.path,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             tcl=tcl_file.path,
             cache=cache_dir.path,
             work=output_dir.path,
@@ -151,7 +154,7 @@ def _vivado_place_and_route2_impl(ctx):
 
 vivado_place_and_route2 = rule(
     implementation = _vivado_place_and_route2_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
         "synthesis": attr.label(
             doc = "The mandatory synth2 target to use",
             mandatory = True,

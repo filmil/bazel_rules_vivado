@@ -1,8 +1,9 @@
 """Vivado place and route rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoGenProvider",
@@ -19,6 +20,7 @@ def _vivado_pnr_impl(ctx):
   Returns:
     A list of providers, including DefaultInfo and VivadoBitstreamProvider.
   """
+  config = _vivado_config(ctx)
   name = ctx.attr.name
   project = ctx.attr.synthesis
   provider = project[VivadoGenProvider]
@@ -77,6 +79,7 @@ def _vivado_pnr_impl(ctx):
       "--net=host",
       "-e", "HOME=/work",
     ],
+    container=config.container,
   )
 
   # Run vivado with the script in the container
@@ -117,7 +120,7 @@ def _vivado_pnr_impl(ctx):
       pnr_tcl = provider.pnr_tcl_script.path,
 
       # tools
-      vivado_path = VIVADO_PATH,
+      vivado_path = config.vivado_path,
       vivado_workdir = output_dir.path,
       script = script,
       synth_tcl = synth_tcl_script.path,
@@ -140,7 +143,7 @@ def _vivado_pnr_impl(ctx):
 
 vivado_place_and_route = rule(
     implementation = _vivado_pnr_impl,
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "synthesis": attr.label(
             doc = "The vivado synthesis to place and route",
             mandatory = True,

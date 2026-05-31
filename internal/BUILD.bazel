@@ -1,5 +1,6 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
@@ -10,10 +11,34 @@ exports_files([
     "vivado_ip.sh.tpl",
 ])
 
+# Override with --//internal:vivado_version=<version>. When empty, the default
+# baked into //internal:defines.bzl is used.
+string_flag(
+    name = "vivado_version",
+    build_setting_default = "",
+)
+
+# Override with --//internal:vivado_container=<image>. When empty, derives from
+# vivado_version as "xilinx-vivado:<version>".
+string_flag(
+    name = "vivado_container",
+    build_setting_default = "",
+)
+
+# Override with --//internal:vivado_path=<path>. When empty, derives from
+# vivado_version as "/opt/Xilinx/<version>/Vivado".
+string_flag(
+    name = "vivado_path",
+    build_setting_default = "",
+)
+
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
-    deps = ["@rules_bid//build:rules"],
+    deps = [
+        "@bazel_skylib//rules:common_settings",
+        "@rules_bid//build:rules",
+    ],
 )
 
 bzl_library(

@@ -1,8 +1,9 @@
 """Vivado library rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -17,6 +18,7 @@ def _vivado_library_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoLibraryProvider.
     """
+    config = _vivado_config(ctx)
     args = [] # Not using ctx.actions.args() because of the very specific scripting.
     # Process inputs to the compilation.
     inputs = []
@@ -106,6 +108,7 @@ def _vivado_library_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
 
     inputs += files
@@ -191,7 +194,7 @@ def _vivado_library_impl(ctx):
     # Special Vivado sauce.
     if ctx.attr.use_glbl:
         command = "xvlog"
-        args = ["{}/data/verilog/src/glbl.v".format(VIVADO_PATH)] + args
+        args = ["{}/data/verilog/src/glbl.v".format(config.vivado_path)] + args
 
     log_file = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
     outputs += [log_file]
@@ -210,7 +213,7 @@ def _vivado_library_impl(ctx):
             {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
             script=script,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             command=command,
             args=" ".join(args),
             log=log_file.path,
@@ -243,7 +246,7 @@ def _vivado_library_impl(ctx):
 
 vivado_library = rule(
     implementation = _vivado_library_impl,
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "srcs": attr.label_list(
             # I think that Verilog does not have libraries.
             allow_files = [ "vhd", "vhdl", "v", "sv" ],
