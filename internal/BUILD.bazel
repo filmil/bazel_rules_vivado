@@ -8,6 +8,7 @@ exports_files([
     "vivado_repl.sh.tpl",
     "vivado_gui.sh.tpl",
     "vivado_ip.sh.tpl",
+    "vivado_test.sh.tpl",
 ])
 
 bzl_library(
@@ -87,6 +88,15 @@ bzl_library(
 bzl_library(
     name = "vivado_simulation",
     srcs = ["vivado_simulation.bzl"],
+    deps = [
+        ":defines",
+        ":providers",
+    ],
+)
+
+bzl_library(
+    name = "vivado_test",
+    srcs = ["vivado_test.bzl"],
     deps = [
         ":defines",
         ":providers",
@@ -217,6 +227,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_test",
+    out = "gen.vivado_test.md",
+    input = "vivado_test.bzl",
+    deps = [":vivado_test"],
+)
+
+stardoc(
     name = "md_vivado_synthesis",
     out = "gen.vivado_synthesis.md",
     input = "vivado_synthesis.bzl",
@@ -252,6 +269,7 @@ write_source_files(
         "vivado_gui.md": ":md_vivado_gui",
         "vivado_ip.md": ":md_vivado_ip",
         "vivado_simulation.md": ":md_vivado_simulation",
+        "vivado_test.md": ":md_vivado_test",
         "vivado_synthesis.md": ":md_vivado_synthesis",
         "vivado_synthesis2.md": ":md_vivado_synthesis2",
         "vivado_unisims_library.md": ":md_vivado_unisims_library",

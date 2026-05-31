@@ -6,6 +6,7 @@ load(
     "vivado_place_and_route2",
     "vivado_program_device",
     "vivado_simulation",
+    "vivado_test",
 
     # Version2
     "vivado_synthesis2",
@@ -55,6 +56,12 @@ vivado_place_and_route2(
 vivado_simulation(
     name = "sim",
     #config = "cfg_tb",
+    library = ":test1",
+    top = "tb",
+)
+
+vivado_test(
+    name = "test",
     library = ":test1",
     top = "tb",
 )
