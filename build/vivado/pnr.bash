@@ -33,6 +33,7 @@ if [[ "${DEBUG}" == "true" ]]; then
 fi
 
 readonly _gotopt2_binary="$(resolve_gotopt2)"
+log::warn "gotopt2 binary: {$_gotopt2_binary}"
 
 # Exit quickly if the binary isn't found. This may happen if the binary location
 # moves internally in bazel.
@@ -79,7 +80,7 @@ readonly _tcl="${gotopt2_tcl_file}"
 set -euo pipefail
 mkdir -p "${_cache}" || log::error "Could not create dir: ${_cache}"
 mkdir -p "${_work}" || log::error "Could not create dir: ${_work}"
-${_script} \
+eval "${_script}" \
 LD_LIBRARY_PATH="${_vivado_path}/lib/lnx64.o" \
 "${_vivado_path}/bin/setEnvAndRunCmd.sh vivado" \
     -notrace -mode batch -source "${_tcl}"

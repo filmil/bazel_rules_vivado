@@ -108,8 +108,8 @@ def script_cmd(
     return run_docker_cmd(
         container or CONTAINER,
         script_path,
-        dir_reference,
-        scratch_dir="{}:/tmp/.cache".format(cache_dir),
+        "$(pwd)/" + dir_reference,
+        scratch_dir="$(pwd)/{}:/tmp/.cache".format(cache_dir),
         source_dir=source_dir,
         mounts=mounts,
         envs=envs,
