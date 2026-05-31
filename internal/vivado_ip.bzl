@@ -1,9 +1,10 @@
 """Vivado IP generation rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -18,6 +19,7 @@ def _vivado_ip_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoLibraryProvider.
     """
+    config = _vivado_config(ctx)
     name = ctx.attr.name
     module_name = ctx.attr.module_name or name
     vlnv = ctx.attr.vlnv
@@ -70,6 +72,7 @@ def _vivado_ip_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
 
     log_file = ctx.actions.declare_file("{}.log".format(name))
@@ -82,7 +85,7 @@ def _vivado_ip_impl(ctx):
         template = ctx.file._shell_template,
         substitutions = {
             "{SCRIPT}": script,
-            "{VIVADO_PATH}": VIVADO_PATH,
+            "{VIVADO_PATH}": config.vivado_path,
             "{TCL_SCRIPT}": tcl_script.path,
             "{LOG}": log_file.path,
             "{MODULE_NAME}": module_name,
@@ -115,7 +118,7 @@ def _vivado_ip_impl(ctx):
 
 vivado_ip = rule(
     implementation = _vivado_ip_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
         "vlnv": attr.string(
             mandatory = True,
             doc = "The VLNV of the IP.",

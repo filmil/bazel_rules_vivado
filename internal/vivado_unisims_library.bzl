@@ -1,8 +1,9 @@
 """Vivado unisims library rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -17,6 +18,7 @@ def _vivado_unisims_library_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoLibraryProvider.
     """
+    config = _vivado_config(ctx)
     # General
     name = ctx.attr.name
     docker_run = ctx.executable._script
@@ -47,6 +49,7 @@ def _vivado_unisims_library_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
     output_dir2 = ctx.actions.declare_directory("{}.unisims.top".format(ctx.label.name))
     outputs += [output_dir2]
@@ -105,7 +108,7 @@ def _vivado_unisims_library_impl(ctx):
             {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
             script=script,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             command="vivado",
             args=" ".join(args),
             log=unisims_log.path,
@@ -130,7 +133,7 @@ vivado_unisims_library = rule(
     implementation = _vivado_unisims_library_impl,
     # Options of the compile_simlib script.
     # See: https://docs.amd.com/r/en-US/ug835-vivado-tcl-commands/compile_simlib
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "simulator": attr.string(
             default = "xsim",
             doc = "Name of the top level entity to simulate",

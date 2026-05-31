@@ -1,9 +1,10 @@
 """Vivado REPL rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_PATH",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 
 def _vivado_repl_impl(ctx):
@@ -15,8 +16,9 @@ def _vivado_repl_impl(ctx):
     Returns:
       A DefaultInfo provider.
     """
+    config = _vivado_config(ctx)
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
-    
+
     docker_run = ctx.executable._script
     
     # We use rlocation to find the docker_run script at runtime.
@@ -40,8 +42,9 @@ def _vivado_repl_impl(ctx):
         dir_reference = ".",
         cache_dir = ".vivado_repl_cache",
         freeargs = ["-it", "--net=host", "-e", "HOME=/work"],
+        container = config.container,
     )
-    
+
     ctx.actions.expand_template(
         template = ctx.file._template,
         output = executable,
@@ -49,7 +52,7 @@ def _vivado_repl_impl(ctx):
             "{{DOCKER_RUN_RLOCATION}}": docker_run_rlocation,
             "{{SCRIPT_RLOCATION}}": script_rlocation,
             "{{CMD}}": cmd,
-            "{{VIVADO_PATH}}": VIVADO_PATH,
+            "{{VIVADO_PATH}}": config.vivado_path,
         },
         is_executable = True,
     )
@@ -65,7 +68,7 @@ def _vivado_repl_impl(ctx):
 vivado_repl = rule(
     implementation = _vivado_repl_impl,
     executable = True,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
         "script": attr.label(
             allow_single_file = [".tcl"],
             doc = "Optional TCL script to run on startup.",

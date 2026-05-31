@@ -2,8 +2,9 @@
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
+    "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -18,6 +19,7 @@ def _xpr_gen(
   include_dirs,
   xpr_tcl_script,
   deps_files,
+  config,
 ):
   """Generates a Vivado project file.
 
@@ -29,6 +31,7 @@ def _xpr_gen(
     include_dirs: List of include directories.
     xpr_tcl_script: The TCL script to generate the project.
     deps_files: List of dependency files.
+    config: Resolved Vivado config returned by `vivado_config(ctx)`.
 
   Returns:
     A tuple containing the project file, all outputs, and the output directory.
@@ -63,6 +66,7 @@ def _xpr_gen(
       "--net=host",
       "-e", "HOME=/work",
     ],
+    container=config.container,
   )
 
 
@@ -106,7 +110,7 @@ def _xpr_gen(
       echo "BAZEL: Done" \
     """.format(
       script = script,
-      vivado_path = VIVADO_PATH,
+      vivado_path = config.vivado_path,
       xpr_tcl = xpr_tcl_script.path,
       xprdest = project_file.path,
       xprsrc = tmp_project_file_path,
@@ -133,6 +137,7 @@ def _vivado_project_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoGenProvider.
     """
+    config = _vivado_config(ctx)
     args = ctx.actions.args()
 
     # General setup
@@ -234,7 +239,8 @@ def _vivado_project_impl(ctx):
         mnemonic = "XPRGEN"
     )
     project, other_outputs, xpr_gen_output_dir = _xpr_gen(
-      ctx, srcs_files, hdrs_files, xdcs_files, include_dirs, xpr, deps_files)
+      ctx, srcs_files, hdrs_files, xdcs_files, include_dirs, xpr, deps_files,
+      config)
     outputs += other_outputs + [project]
 
     return [
@@ -260,7 +266,7 @@ def _vivado_project_impl(ctx):
 
 vivado_project = rule(
     implementation = _vivado_project_impl,
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "top_level": attr.string(
             doc = "Top level entity name",
             mandatory = True,

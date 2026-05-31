@@ -1,9 +1,10 @@
 """Vivado synthesis2 rule."""
 
 load("//internal:defines.bzl",
-    "VIVADO_VERSION", "CONTAINER", "VIVADO_PATH",
-    _script_cmd = "script_cmd",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_CONFIG_ATTRS",
+    _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
@@ -19,6 +20,7 @@ def _vivado_synthesis2_impl(ctx):
     Returns:
       A list of providers, including DefaultInfo and VivadoSynthProvider.
     """
+    config = _vivado_config(ctx)
     args = ctx.actions.args()
 
     # General setup
@@ -170,6 +172,7 @@ def _vivado_synthesis2_impl(ctx):
         "--net=host",
         "-e", "HOME=/work",
       ],
+      container=config.container,
     )
 
     inputs += [tcl_file]
@@ -192,7 +195,7 @@ def _vivado_synthesis2_impl(ctx):
                 2>&1 > {name} || (cat {name} && exit 1)
         """.format(
             script=script,
-            vivado_path=VIVADO_PATH,
+            vivado_path=config.vivado_path,
             synth_tcl=tcl_file.path,
             cache=cache_dir.path,
             work=output_dir.path,
@@ -212,7 +215,7 @@ def _vivado_synthesis2_impl(ctx):
 
 vivado_synthesis2 = rule(
     implementation = _vivado_synthesis2_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
         "srcs": attr.label_list(
             allow_files = True,
             doc = "The sources for the `work` library",
