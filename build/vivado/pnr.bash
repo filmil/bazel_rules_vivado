@@ -33,13 +33,12 @@ if [[ "${DEBUG}" == "true" ]]; then
 fi
 
 readonly _gotopt2_binary="$(resolve_gotopt2)"
-log::warn "gotopt2 binary: {$_gotopt2_binary}"
 
 # Exit quickly if the binary isn't found. This may happen if the binary location
 # moves internally in bazel.
 if [[ ! -f "${_gotopt2_binary}" ]]; then
-  log::error "gotopt2 binary not found at: ${_binary_path}"
-  ls ${_binary_path}
+  log::error "gotopt2 binary not found at: ${_gotopt2_binary}"
+  ls "${_gotopt2_binary}"
   exit 240
 fi
 
