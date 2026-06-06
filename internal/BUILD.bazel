@@ -10,6 +10,7 @@ exports_files([
     "vivado_gui.sh.tpl",
     "vivado_ip.sh.tpl",
     "vivado_test.sh.tpl",
+    "vivado_view.sh.tpl",
 ])
 
 # Override with --//internal:vivado_version=<version>. When empty, the default
@@ -159,6 +160,14 @@ bzl_library(
 )
 
 bzl_library(
+    name = "vivado_view",
+    srcs = ["vivado_view.bzl"],
+    deps = [
+        ":defines",
+    ],
+)
+
+bzl_library(
     name = "vivado_ip",
     srcs = ["vivado_ip.bzl"],
     deps = [
@@ -238,6 +247,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_view",
+    out = "gen.vivado_view.md",
+    input = "vivado_view.bzl",
+    deps = [":vivado_view"],
+)
+
+stardoc(
     name = "md_vivado_ip",
     out = "gen.vivado_ip.md",
     input = "vivado_ip.bzl",
@@ -292,6 +308,7 @@ write_source_files(
         "vivado_project.md": ":md_vivado_project",
         "vivado_repl.md": ":md_vivado_repl",
         "vivado_gui.md": ":md_vivado_gui",
+        "vivado_view.md": ":md_vivado_view",
         "vivado_ip.md": ":md_vivado_ip",
         "vivado_simulation.md": ":md_vivado_simulation",
         "vivado_test.md": ":md_vivado_test",

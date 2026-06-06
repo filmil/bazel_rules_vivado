@@ -22,7 +22,11 @@ def _vivado_gui_impl(ctx):
     docker_run = ctx.executable._script
 
     # We use rlocation to find the docker_run script at runtime.
-    docker_run_rlocation = "rules_bid/build/docker_run"
+    docker_run_rlocation = ""
+    if docker_run.short_path.startswith("../"):
+        docker_run_rlocation = docker_run.short_path[3:]
+    else:
+        docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
 
     script_rlocation = ""
     runfiles_list = [docker_run]
