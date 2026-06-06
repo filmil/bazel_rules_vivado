@@ -1,6 +1,6 @@
 <!-- Generated with Stardoc: http://skydoc.bazel.build -->
 
-Vivado view rule.
+
 
 <a id="vivado_view"></a>
 

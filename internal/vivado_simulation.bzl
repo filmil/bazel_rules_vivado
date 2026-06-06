@@ -7,6 +7,7 @@ load("//internal:defines.bzl",
 )
 load("//internal:providers.bzl",
     "VivadoLibraryProvider",
+    "VivadoSimulationProvider",
 )
 
 def _vivado_simulation_impl(ctx):
@@ -216,10 +217,16 @@ def _vivado_simulation_impl(ctx):
     return [
         DefaultInfo(
           files = depset([wdb_file, vcd_file]),
+          runfiles = ctx.runfiles(files = [wdb_file, xsim_dir]),
         ),
         OutputGroupInfo(
             vcd = [vcd_file],
             wdb = [wdb_file],
+        ),
+        VivadoSimulationProvider(
+            wdb = wdb_file,
+            snapshot_name = snapshot_name,
+            xsim_dir = xsim_dir,
         ),
     ]
 

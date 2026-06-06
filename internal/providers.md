@@ -81,6 +81,27 @@ A library of files used for vivado
 | <a id="VivadoLibraryProvider-unisims_libs"></a>unisims_libs |  A boolean indicating if this library contains UNISIMs    |
 
 
+<a id="VivadoSimulationProvider"></a>
+
+## VivadoSimulationProvider
+
+<pre>
+load("@rules_vivado//internal:providers.bzl", "VivadoSimulationProvider")
+
+VivadoSimulationProvider(<a href="#VivadoSimulationProvider-wdb">wdb</a>, <a href="#VivadoSimulationProvider-snapshot_name">snapshot_name</a>, <a href="#VivadoSimulationProvider-xsim_dir">xsim_dir</a>)
+</pre>
+
+Information about the simulation step
+
+**FIELDS**
+
+| Name  | Description |
+| :------------- | :------------- |
+| <a id="VivadoSimulationProvider-wdb"></a>wdb |  The waveform database file    |
+| <a id="VivadoSimulationProvider-snapshot_name"></a>snapshot_name |  The name of the simulation snapshot    |
+| <a id="VivadoSimulationProvider-xsim_dir"></a>xsim_dir |  The xsim.dir directory containing the snapshot    |
+
+
 <a id="VivadoSynthProvider"></a>
 
 ## VivadoSynthProvider

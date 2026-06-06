@@ -1,3 +1,4 @@
+load("//internal:providers.bzl", "VivadoSimulationProvider")
 """Vivado view rule."""
 
 load("//internal:defines.bzl",
@@ -28,13 +29,22 @@ def _vivado_view_impl(ctx):
     else:
         docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
 
-    # Find the wdb file
+    # Find the wdb file and snapshot name
     wdb_file = None
-    if OutputGroupInfo in ctx.attr.dep:
-        if hasattr(ctx.attr.dep[OutputGroupInfo], "wdb"):
-            wdb_files = ctx.attr.dep[OutputGroupInfo].wdb.to_list()
-            if wdb_files:
-                wdb_file = wdb_files[0]
+    snapshot_name = ""
+    xsim_dir = None
+    if VivadoSimulationProvider in ctx.attr.dep:
+        prov = ctx.attr.dep[VivadoSimulationProvider]
+        wdb_file = prov.wdb
+        snapshot_name = prov.snapshot_name
+        xsim_dir = prov.xsim_dir
+    
+    if not wdb_file:
+        if OutputGroupInfo in ctx.attr.dep:
+            if hasattr(ctx.attr.dep[OutputGroupInfo], "wdb"):
+                wdb_files = ctx.attr.dep[OutputGroupInfo].wdb.to_list()
+                if wdb_files:
+                    wdb_file = wdb_files[0]
 
     if not wdb_file:
         for file in ctx.attr.dep.files.to_list():
@@ -51,7 +61,30 @@ def _vivado_view_impl(ctx):
     else:
         wdb_file_rlocation = ctx.workspace_name + "/" + wdb_file.short_path
 
+    xsim_dir_rlocation = ""
+    if xsim_dir:
+        if xsim_dir.short_path.startswith("../"):
+            xsim_dir_rlocation = xsim_dir.short_path[3:]
+        else:
+            xsim_dir_rlocation = ctx.workspace_name + "/" + xsim_dir.short_path
+
+    # Find a .wcfg file if provided in data
+    wcfg_file = None
+    for data_target in ctx.attr.data:
+        for file in data_target.files.to_list():
+            if file.extension == "wcfg":
+                wcfg_file = file
+                break
+
+    wcfg_file_rlocation = ""
+    if wcfg_file:
+        if wcfg_file.short_path.startswith("../"):
+            wcfg_file_rlocation = wcfg_file.short_path[3:]
+        else:
+            wcfg_file_rlocation = ctx.workspace_name + "/" + wcfg_file.short_path
+
     runfiles_list = [docker_run, wdb_file]
+    if xsim_dir: runfiles_list.append(xsim_dir)
     for data_target in ctx.attr.data:
         for file in data_target.files.to_list():
             runfiles_list.append(file)
@@ -72,6 +105,10 @@ def _vivado_view_impl(ctx):
             "{{DOCKER_RUN_RLOCATION}}": docker_run_rlocation,
             "{{WDB_FILE_RLOCATION}}": wdb_file_rlocation,
             "{{CMD}}": cmd,
+            "{{SNAPSHOT_NAME}}": snapshot_name,
+            "{{WCFG_FILE_RLOCATION}}": wcfg_file_rlocation,
+            "{{XSIM_DIR_RLOCATION}}": xsim_dir_rlocation,
+            "{{ARGS}}": "",
             "{{VIVADO_PATH}}": config.vivado_path,
         },
         is_executable = True,
