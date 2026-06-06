@@ -23,8 +23,11 @@ def _vivado_repl_impl(ctx):
     
     # We use rlocation to find the docker_run script at runtime.
     # For external repositories, the rlocation path is usually <repo_name>/<path>.
-    # rules_bid is the repo name.
-    docker_run_rlocation = "rules_bid/build/docker_run"
+    docker_run_rlocation = ""
+    if docker_run.short_path.startswith("../"):
+        docker_run_rlocation = docker_run.short_path[3:]
+    else:
+        docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
     
     script_rlocation = ""
     runfiles_list = [docker_run]

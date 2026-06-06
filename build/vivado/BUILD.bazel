@@ -61,6 +61,7 @@ bzl_library(
         "//internal:vivado_repl",
         "//internal:vivado_gui",
         "//internal:vivado_ip",
+        "//internal:vivado_view",
     ],
 )
 
