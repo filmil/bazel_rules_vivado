@@ -56,3 +56,13 @@ VivadoBitstreamProvider = provider(
   },
 )
 
+
+VivadoSimulationProvider = provider(
+    "Information about the simulation step",
+    fields = {
+        "wdb": "The waveform database file",
+        "snapshot_name": "The name of the simulation snapshot",
+        "xsim_dir": "The xsim.dir directory containing the snapshot",
+    },
+)
+

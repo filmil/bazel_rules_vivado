@@ -46,10 +46,44 @@ mkdir -p "${VIVADO_HOME_DIR}"
 chmod a+w "${VIVADO_HOME_DIR}"
 
 WDB_FILE=$(rlocation {{WDB_FILE_RLOCATION}})
-if [[ ! -f "${WDB_FILE}" ]]; then
-  echo >&2 "ERROR: Cannot find WDB file at ${WDB_FILE}"
-  exit 1
+WCFG_FILE_PATH=$(rlocation {{WCFG_FILE_RLOCATION}})
+XSIM_DIR_PATH=$(rlocation {{XSIM_DIR_RLOCATION}})
+
+# Create a writable work directory.
+WORK_DIR="${PWD}/.vivado_view_work"
+rm -rf "${WORK_DIR}"
+mkdir -p "${WORK_DIR}"
+
+# Copy xsim.dir to the work directory and make it writable.
+if [[ -d "${XSIM_DIR_PATH}/xsim.dir" ]]; then
+    cp -R "${XSIM_DIR_PATH}/xsim.dir" "${WORK_DIR}/"
+    chmod -R +w "${WORK_DIR}/xsim.dir"
 fi
+
+# Copy the WDB file.
+if [[ -f "${WDB_FILE}" ]]; then
+    cp "${WDB_FILE}" "${WORK_DIR}/sim.wdb"
+fi
+
+# Copy WCFG if present.
+WCFG_IN_WORK=""
+if [[ -n "${WCFG_FILE_PATH}" && -f "${WCFG_FILE_PATH}" ]]; then
+    cp "${WCFG_FILE_PATH}" "${WORK_DIR}/view.wcfg"
+    WCFG_IN_WORK="view.wcfg"
+fi
+
+# Create the TCL script.
+cat <<TCL > "${WORK_DIR}/view.tcl"
+if { [file exists sim.wdb] } {
+    open_wave_database sim.wdb
+}
+if { "${WCFG_IN_WORK}" != "" } {
+    open_wave_config "${WCFG_IN_WORK}"
+}
+TCL
+
+# Change to the work directory.
+cd "${WORK_DIR}"
 
 ${CMD_FINAL} \
     --envs="DISPLAY=${DISPLAY},HOME=/home/vivado" \
@@ -57,6 +91,6 @@ ${CMD_FINAL} \
     -- \
     LD_LIBRARY_PATH="{{VIVADO_PATH}}/lib/lnx64.o" \
     "{{VIVADO_PATH}}/bin/setEnvAndRunCmd.sh" xsim \
-    "${WDB_FILE}" -gui {{ARGS}} "$@"
+    {{SNAPSHOT_NAME}} -gui -tclbatch view.tcl {{ARGS}} "$@"
 
 # vim: ft=bash
