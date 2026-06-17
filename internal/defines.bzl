@@ -20,7 +20,7 @@ DOCKER_RUN_SCRIPT_ATTRS = {
     ),
 }
 
-DEFAULT_VIVADO_VERSION = "2025.1"
+DEFAULT_VIVADO_VERSION = "2025.2"
 # This needs to exist on your computer before we begin.
 DEFAULT_CONTAINER = "xilinx-vivado:{}".format(DEFAULT_VIVADO_VERSION)
 # This is tied to the contents of the above CONTAINER.
