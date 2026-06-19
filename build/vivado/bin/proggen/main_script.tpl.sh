@@ -89,7 +89,7 @@ fi
 
 readonly _tcl_script_file="prog.tcl"
 # The root of the Vivado installation in the container's filesystem.
-readonly _vivado_version="2025.1"
+readonly _vivado_version="{{ .VivadoVersion }}"
 readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
 
 log::debug "Creating script file: ${_tcl_script_file}"

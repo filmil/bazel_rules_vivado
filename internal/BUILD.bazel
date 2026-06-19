@@ -105,6 +105,7 @@ bzl_library(
     name = "vivado_program_device",
     srcs = ["vivado_program_device.bzl"],
     deps = [
+        ":defines",
         ":providers",
     ],
 )

@@ -18,6 +18,8 @@ type Args struct {
 
 	ProgRunnerArgs   string
 	ProgRunnerBinary string
+
+	VivadoVersion string
 }
 
 func printEnv() {
@@ -43,6 +45,9 @@ func run(args Args) error {
 	}
 	if args.TemplateFile == "" {
 		return fmt.Errorf("param --template is required")
+	}
+	if args.VivadoVersion == "" {
+		return fmt.Errorf("param --vivado-version is required")
 	}
 
 	tpl, err := template.ParseFiles(args.TemplateFile)
@@ -73,6 +78,7 @@ func runCLI(cmdArgs []string) error {
 	fs.StringVar(&args.BitFile, "bitfile", "", "")
 	fs.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
 	fs.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
+	fs.StringVar(&args.VivadoVersion, "vivado-version", "", "The Vivado version to use")
 
 	if err := fs.Parse(cmdArgs); err != nil {
 		return err
