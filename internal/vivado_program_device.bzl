@@ -3,6 +3,10 @@
 load("//internal:providers.bzl",
     "VivadoBitstreamProvider",
 )
+load("//internal:defines.bzl",
+    "VIVADO_CONFIG_ATTRS",
+    _vivado_config = "vivado_config",
+)
 
 def _vivado_program_device(ctx):
     """Implementation for the vivado_program_device rule.
@@ -45,6 +49,8 @@ def _vivado_program_device(ctx):
     daemon_outputs = []
     default_runfiles = []
 
+    config = _vivado_config(ctx)
+
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
     args = ctx.actions.args()
     args.add("--outfile", outfile.path)
@@ -52,6 +58,7 @@ def _vivado_program_device(ctx):
     args.add("--run-docker", script.path)
     args.add("--template", tpl1.path)
     args.add("--bitfile", bitfile.short_path)
+    args.add("--vivado-version", config.vivado_version)
 
     # Add runner arguments here.
     prog_runner_args = ctx.expand_location(
@@ -104,7 +111,7 @@ def _vivado_program_device(ctx):
 vivado_program_device = rule(
     implementation = _vivado_program_device,
     executable = True,
-    attrs = {
+    attrs = VIVADO_CONFIG_ATTRS | {
         "deps": attr.label_list(
             providers = [VivadoBitstreamProvider],
             doc = "The list of deps containing bitstream code",
