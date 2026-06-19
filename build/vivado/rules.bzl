@@ -6,7 +6,10 @@ load("//internal:vivado_synthesis2.bzl", _vivado_synthesis2 = "vivado_synthesis2
 load("//internal:vivado_place_and_route.bzl", _vivado_place_and_route = "vivado_place_and_route")
 load("//internal:vivado_place_and_route2.bzl", _vivado_place_and_route2 = "vivado_place_and_route2")
 load("//internal:vivado_program_device.bzl", _vivado_program_device = "vivado_program_device")
-load("//internal:vivado_library.bzl", _vivado_library = "vivado_library")
+load("//internal:vivado_library.bzl",
+    _vivado_library = "vivado_library",
+    _vivado_library_transition = "vivado_library_transition",
+)
 load("//internal:vivado_simulation.bzl", _vivado_simulation = "vivado_simulation")
 load("//internal:vivado_test.bzl", _vivado_test = "vivado_test")
 load("//internal:vivado_unisims_library.bzl", _vivado_unisims_library = "vivado_unisims_library")
@@ -23,6 +26,7 @@ vivado_place_and_route = _vivado_place_and_route
 vivado_place_and_route2 = _vivado_place_and_route2
 vivado_program_device = _vivado_program_device
 vivado_library = _vivado_library
+vivado_library_transition = _vivado_library_transition
 vivado_simulation = _vivado_simulation
 vivado_test = _vivado_test
 vivado_unisims_library = _vivado_unisims_library

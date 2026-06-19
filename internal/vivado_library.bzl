@@ -1,5 +1,6 @@
 """Vivado library rule."""
 
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//internal:defines.bzl",
     "VIVADO_CONFIG_ATTRS",
     _script_cmd = "script_cmd",
@@ -120,6 +121,12 @@ def _vivado_library_impl(ctx):
     # Determine the compilation command
     command = None
     library_type = None
+
+    # Resolve effective HDL standard (supporting full year numbers)
+    effective_standard = ctx.attr.standard
+    if ctx.attr._standard_flag[BuildSettingInfo].value:
+        effective_standard = ctx.attr._standard_flag[BuildSettingInfo].value
+
     for file in files:
         if file.extension == "v": # Verilog (ordinary)
             if command and command != "xvlog":
@@ -142,8 +149,17 @@ def _vivado_library_impl(ctx):
             standard_flag = ["--2008"]
             if ctx.attr.vhdl1993:
                 standard_flag = []
-            if ctx.attr.standard and ctx.attr.standard != "2008":
-                standard_flag = ["--{}".format(ctx.attr.standard)]
+            if effective_standard:
+                if effective_standard in ["1993", "93"]:
+                    standard_flag = ["--93"]
+                elif effective_standard in ["1987", "87"]:
+                    standard_flag = ["--87"]
+                elif effective_standard in ["2008", "08"]:
+                    standard_flag = ["--2008"]
+                elif effective_standard in ["2019", "19"]:
+                    standard_flag = ["--2019"]
+                else:
+                    standard_flag = ["--{}".format(effective_standard)]
             args += standard_flag
 
     args += ["--work", "{}={}".format(library_name, library_output_dir.path)]
@@ -300,6 +316,47 @@ vivado_library = rule(
         "standard": attr.string(
             default = "2008",
             doc = "Specify the language standard to use",
+        ),
+        "_standard_flag": attr.label(
+            default = Label("//internal:standard"),
+            doc = "Build setting override for the VHDL standard.",
+        ),
+    },
+)
+
+def _standard_transition_impl(settings, attr):
+    return {
+        "//internal:standard": attr.standard,
+    }
+
+_standard_transition = transition(
+    implementation = _standard_transition_impl,
+    inputs = [],
+    outputs = ["//internal:standard"],
+)
+
+def _vivado_library_transition_impl(ctx):
+    dep = ctx.attr.library[0]
+    return [
+        dep[DefaultInfo],
+        dep[VivadoLibraryProvider],
+    ]
+
+vivado_library_transition = rule(
+    implementation = _vivado_library_transition_impl,
+    attrs = {
+        "library": attr.label(
+            cfg = _standard_transition,
+            providers = [VivadoLibraryProvider],
+            mandatory = True,
+            doc = "The library to transition.",
+        ),
+        "standard": attr.string(
+            mandatory = True,
+            doc = "The standard to transition to.",
+        ),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
     },
 )
