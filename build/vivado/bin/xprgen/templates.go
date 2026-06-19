@@ -73,7 +73,15 @@ read_xdc {{"{"}} {{- . -}} {{"}"}}
 
 # Other files.
 {{- range .OtherFiles}}
-add_files -norecurse {{ . }}
+{{- if .IsIPGen}}
+file mkdir ip_cores
+exec cp -RL {{ .Name }} ip_cores/
+catch { exec chmod -R +w ip_cores/ }
+read_ip ip_cores/{{ .Library }}.ip_gen/{{ .Library }}.xci
+synth_ip [get_ips {{ .Library }}]
+{{- else}}
+add_files -norecurse {{ .Name }}
+{{- end}}
 {{- end}}
 # end: constraints files
 

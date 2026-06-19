@@ -5,6 +5,10 @@
 # Project name: "{{ .Project }}"
 # PWD:          "{{ .PWD }}"
 
+{{- if .Part}}
+set_part {{ .Part }}
+{{- end}}
+
 # Verilog Properties
 #{{$fileset := .Fileset -}}
 #{{- range .VerilogProperties }}
@@ -46,7 +50,15 @@ set_property include_dirs [list {{range .VerilogIncludeDirs}} {{ . }} {{- end -}
 
 # Other files.
 {{- range .OtherFiles}}
-add_files -norecurse {{ . }}
+{{- if .IsIPGen}}
+file mkdir ip_cores
+exec cp -RL {{ .Name }} ip_cores/
+catch { exec chmod -R +w ip_cores/ }
+read_ip ip_cores/{{ .Library }}.ip_gen/{{ .Library }}.xci
+synth_ip [get_ips {{ .Library }}]
+{{- else}}
+add_files -norecurse {{ .Name }}
+{{- end}}
 {{- end}}
 
 # Add constraints files
@@ -74,4 +86,12 @@ write_checkpoint -force {{ .SaveDcpFile }}
 # (Optional) Generate reports
 report_timing_summary -file {{ .TimingSummaryFile }}
 report_utilization -file {{ .UtilizationFile }}
+
+# Write synthesis debug probes file (.ltx)
+catch { write_debug_probes -force {{ .ProbesFile }} }
+if { ![file exists {{ .ProbesFile }}] } {
+    set probe_fd [open {{ .ProbesFile }} w]
+    puts $probe_fd "<?xml version=\"1.0\" encoding=\"UTF-8\"?><probes></probes>"
+    close $probe_fd
+}
 

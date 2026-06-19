@@ -9,7 +9,7 @@ Defines providers used in Vivado rules.
 <pre>
 load("@rules_vivado//internal:providers.bzl", "VivadoBitstreamProvider")
 
-VivadoBitstreamProvider(<a href="#VivadoBitstreamProvider-bitstream">bitstream</a>)
+VivadoBitstreamProvider(<a href="#VivadoBitstreamProvider-bitstream">bitstream</a>, <a href="#VivadoBitstreamProvider-probes">probes</a>)
 </pre>
 
 Information about the bitstream
@@ -19,6 +19,7 @@ Information about the bitstream
 | Name  | Description |
 | :------------- | :------------- |
 | <a id="VivadoBitstreamProvider-bitstream"></a>bitstream |  The bitstream to program into the FPGA    |
+| <a id="VivadoBitstreamProvider-probes"></a>probes |  The probes file (.ltx) generated during place and route (optional)    |
 
 
 <a id="VivadoGenProvider"></a>
@@ -109,7 +110,7 @@ Information about the simulation step
 <pre>
 load("@rules_vivado//internal:providers.bzl", "VivadoSynthProvider")
 
-VivadoSynthProvider(<a href="#VivadoSynthProvider-synth_output_dir">synth_output_dir</a>, <a href="#VivadoSynthProvider-synth_xpr_file">synth_xpr_file</a>, <a href="#VivadoSynthProvider-synth_dcp_file">synth_dcp_file</a>)
+VivadoSynthProvider(<a href="#VivadoSynthProvider-synth_output_dir">synth_output_dir</a>, <a href="#VivadoSynthProvider-synth_xpr_file">synth_xpr_file</a>, <a href="#VivadoSynthProvider-synth_dcp_file">synth_dcp_file</a>, <a href="#VivadoSynthProvider-probes">probes</a>)
 </pre>
 
 Information about the synthesis step
@@ -121,5 +122,6 @@ Information about the synthesis step
 | <a id="VivadoSynthProvider-synth_output_dir"></a>synth_output_dir |  The output directory for the synthesis step    |
 | <a id="VivadoSynthProvider-synth_xpr_file"></a>synth_xpr_file |  The XPR file after synthesis    |
 | <a id="VivadoSynthProvider-synth_dcp_file"></a>synth_dcp_file |  The DCP file of synthesis step    |
+| <a id="VivadoSynthProvider-probes"></a>probes |  The probes file (.ltx) generated during synthesis (optional)    |
 
 

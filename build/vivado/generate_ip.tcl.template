@@ -8,3 +8,8 @@ create_ip -vlnv {{VLNV}} -module_name {{MODULE_NAME}}
 {{CONFIG_COMMANDS}}
 
 generate_target all [get_ips {{MODULE_NAME}}]
+
+catch {
+    launch_runs {{MODULE_NAME}}_synth_1
+    wait_on_run {{MODULE_NAME}}_synth_1
+}

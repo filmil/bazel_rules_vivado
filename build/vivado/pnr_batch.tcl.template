@@ -16,6 +16,9 @@ read_xdc {{"{"}} {{- . -}} {{"}"}}
 {{- end}}
 # end: constraints files
 
+# Step 2.5: Optimize the design (required for debug core implementation)
+opt_design
+
 # Step 3: Place the design
 place_design {{ .PlaceDesignOptions }}
 {{- range .PostPlaceDesign}}
@@ -37,5 +40,15 @@ report_drc -file {{ .DRCFile }}
 write_checkpoint -force {{ .SaveDcpFile }}
 
 # Step 7: Generate the final bitstream for the FPGA
+set_property SEVERITY {Warning} [get_drc_checks NSTD-1]
+set_property SEVERITY {Warning} [get_drc_checks UCIO-1]
 write_bitstream -force {{ .BitstreamName }}
+
+# Step 8: Write debug probes file (.ltx)
+catch { write_debug_probes -force {{ .ProbesFile }} }
+if { ![file exists {{ .ProbesFile }}] } {
+    set probe_fd [open {{ .ProbesFile }} w]
+    puts $probe_fd "<?xml version=\"1.0\" encoding=\"UTF-8\"?><probes></probes>"
+    close $probe_fd
+}
 

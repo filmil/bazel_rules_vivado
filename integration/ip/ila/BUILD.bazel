@@ -1,0 +1,40 @@
+load(
+    "@rules_vivado//build/vivado:rules.bzl",
+    "vivado_library",
+    "vivado_ila",
+    "vivado_synthesis2",
+    "vivado_place_and_route2",
+    "vivado_read_ila",
+)
+
+# ----------------------------------------------------------------------
+# 1. Generate ILA Core
+# ----------------------------------------------------------------------
+vivado_ila(
+    name = "my_ila_core",
+    part = "xc7a200tfbg484-2",
+    probe_widths = [1, 8],  # 1-bit PROBE0, 8-bit PROBE1
+)
+
+# ----------------------------------------------------------------------
+# 2. SystemVerilog Example
+# ----------------------------------------------------------------------
+vivado_synthesis2(
+    name = "ila_top_sv_synth",
+    srcs = ["ila_top.sv"],
+    part = "xc7a200tfbg484-2",
+    top = "ila_top",
+    deps = [
+        ":my_ila_core",
+    ],
+)
+
+vivado_place_and_route2(
+    name = "ila_pnr_sv",
+    synthesis = ":ila_top_sv_synth",
+)
+
+vivado_read_ila(
+    name = "read_ila_sv",
+    deps = [":ila_pnr_sv"],
+)
