@@ -45,6 +45,8 @@ def _vivado_place_and_route2_impl(ctx):
     utilization_file = ctx.actions.declare_file("{}.utilization.pnr.rpt".format(name))
     outputs += [utilization_file]
     bit_file = ctx.actions.declare_file("{}.bit".format(name))
+    probes_file = ctx.actions.declare_file("{}.ltx".format(name))
+    outputs += [probes_file]
 
     xdc_files = []
     xdc_files_paths = []
@@ -62,6 +64,7 @@ def _vivado_place_and_route2_impl(ctx):
     args.add("--drc-report", drc_report_file.path)
     args.add("--top-name", name)
     args.add("--bitstream", bit_file.path)
+    args.add("--probes-file", probes_file.path)
     args.add_all(xdc_files_paths, before_each = "--constraints")
     args.add("--place-design-options", ctx.attr.place_design_options)
     args.add("--route-design-options", ctx.attr.route_design_options)
@@ -108,7 +111,7 @@ def _vivado_place_and_route2_impl(ctx):
       container=config.container,
     )
 
-    outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file]
+    outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file, probes_file]
     inputs = [tcl_file, input_dcp_file] + xdc_files
     logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
     script_file = ctx.actions.declare_file("{}.script".format(ctx.attr.name))
@@ -141,6 +144,7 @@ def _vivado_place_and_route2_impl(ctx):
     return [
         DefaultInfo(files=depset([
             bit_file,
+            probes_file,
             utilization_file,
             timing_summary_file,
             drc_report_file,
@@ -149,6 +153,7 @@ def _vivado_place_and_route2_impl(ctx):
         ])),
         VivadoBitstreamProvider(
             bitstream = bit_file,
+            probes = probes_file,
         ),
     ]
 

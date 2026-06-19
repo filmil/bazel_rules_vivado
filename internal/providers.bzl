@@ -44,7 +44,8 @@ VivadoSynthProvider = provider(
     "synth_output_dir": "The output directory for the synthesis step",
     # It seems that Vivado wants to write into it.
     "synth_xpr_file": "The XPR file after synthesis",
-    "synth_dcp_file": "The DCP file of synthesis step"
+    "synth_dcp_file": "The DCP file of synthesis step",
+    "probes": "The probes file (.ltx) generated during synthesis (optional)",
   },
 )
 
@@ -53,6 +54,7 @@ VivadoBitstreamProvider = provider(
   "Information about the bitstream",
   fields = {
     "bitstream": "The bitstream to program into the FPGA",
+    "probes": "The probes file (.ltx) generated during place and route (optional)",
   },
 )
 

@@ -1,0 +1,11 @@
+flags:
+- name: "hostport"
+  type: string
+- name: "device"
+  type: string
+  default: "*/xilinx_tcf/Digilent/210251130202"
+- name: "trigger"
+  type: string
+- name: "vcd"
+  type: string
+  default: "ila_data.vcd"

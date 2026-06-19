@@ -67,6 +67,7 @@ type XPRBinding struct {
 
 	TimingSummaryFile, UtilizationFile, DRCFile string
 	SynthFileName, PnrFileName, CustomFileName  string
+	ProbesFile                                  string
 
 	// PlaceDesignOptions are appended to `place_design` line.
 	PlaceDesignOptions string
@@ -127,6 +128,10 @@ type FileLib struct {
 	Name string
 	// If empty, the library is "work" or whatever "current" is.
 	Library string
+}
+
+func (fl FileLib) IsIPGen() bool {
+	return strings.HasSuffix(fl.Name, ".ip_gen")
 }
 
 // AppendTo appends `fl` into one of the typed file lists.
@@ -194,6 +199,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&xpr.TimingSummaryFile, "timing-report", "", "The file to write the timing report to")
 	fs.StringVar(&xpr.UtilizationFile, "utilization-report", "", "The file to write the utilization report to")
 	fs.StringVar(&xpr.DRCFile, "drc-report", "", "The file to write the desitn rule check report to")
+	fs.StringVar(&xpr.ProbesFile, "probes-file", "", "The file to write the debug probes to")
 
 	var defines RepeatedString
 	fs.Var(&defines, "define", "list of (System)Verilog defines")

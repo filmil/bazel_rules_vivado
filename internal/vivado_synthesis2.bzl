@@ -96,6 +96,8 @@ def _vivado_synthesis2_impl(ctx):
     outputs += [timing_summary_file]
     utilization_file = ctx.actions.declare_file("{}.utilization_synth.rpt".format(name))
     outputs += [utilization_file]
+    probes_file = ctx.actions.declare_file("{}.ltx".format(name))
+    outputs += [probes_file]
 
     tcl_file = ctx.actions.declare_file("{}.synth.tcl".format(name))
 
@@ -120,6 +122,7 @@ def _vivado_synthesis2_impl(ctx):
     args.add("--custom-template", template_file.path)
     args.add("--project-name", name)
     args.add("--save-dcp", dcp_file.path)
+    args.add("--probes-file", probes_file.path)
     args.add("--timing-report", timing_summary_file.path)
     args.add("--top-name", top_level)
     args.add("--utilization-report", utilization_file.path)
@@ -210,6 +213,7 @@ def _vivado_synthesis2_impl(ctx):
         ),
         VivadoSynthProvider(
             synth_dcp_file = dcp_file,
+            probes = probes_file,
         ),
     ]
 
