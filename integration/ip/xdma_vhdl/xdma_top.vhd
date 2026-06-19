@@ -20,7 +20,7 @@
 -- - IBUFDS_GTE2: Xilinx primitive for differential MGT reference clocks
 -- 
 -- Revision:
--- Revision 0.03 - All config ports fully mapped and tied off to prevent opt_design errors.
+-- Revision 0.04 - Switched to deferred VHDL component instantiation for compile compatibility.
 -- Additional Comments:
 -- Copious comments describing the Top Level API elements have been added.
 --------------------------------------------------------------------------------
@@ -132,6 +132,55 @@ architecture rtl of xdma_top is
     signal wr_addr : integer range 0 to 511 := 0;
     signal rd_addr : integer range 0 to 511 := 0;
 
+    ----------------------------------------------------------------------------
+    -- 0. Deferred Component Declaration for the XDMA IP Core
+    -- Tells the VHDL compiler the exact pin interface of the IP, allowing the
+    -- target to compile successfully even before the IP netlist is generated.
+    ----------------------------------------------------------------------------
+    COMPONENT my_xdma_core
+      PORT (
+        sys_clk : IN STD_LOGIC;
+        sys_rst_n : IN STD_LOGIC;
+        pci_exp_rxp : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        pci_exp_rxn : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        pci_exp_txp : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+        pci_exp_txn : OUT STD_LOGIC_VECTOR(0 DOWNTO 0);
+        axi_aclk : OUT STD_LOGIC;
+        axi_aresetn : OUT STD_LOGIC;
+        usr_irq_req : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        m_axi_awaddr : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+        m_axi_awlen : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+        m_axi_awsize : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+        m_axi_awburst : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+        m_axi_awvalid : OUT STD_LOGIC;
+        m_axi_awready : IN STD_LOGIC;
+        m_axi_wdata : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+        m_axi_wstrb : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+        m_axi_wlast : OUT STD_LOGIC;
+        m_axi_wvalid : OUT STD_LOGIC;
+        m_axi_wready : IN STD_LOGIC;
+        m_axi_bid : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+        m_axi_bresp : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+        m_axi_bvalid : IN STD_LOGIC;
+        m_axi_bready : OUT STD_LOGIC;
+        m_axi_araddr : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+        m_axi_rdata : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        m_axi_rresp : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+        m_axi_rlast : IN STD_LOGIC;
+        m_axi_rvalid : IN STD_LOGIC;
+        m_axi_rready : OUT STD_LOGIC;
+        m_axi_rid : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+        m_axi_arready : IN STD_LOGIC;
+        m_axi_arvalid : OUT STD_LOGIC;
+        cfg_mgmt_byte_enable : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+        cfg_mgmt_addr : IN STD_LOGIC_VECTOR(18 DOWNTO 0);
+        cfg_mgmt_write_data : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+        cfg_mgmt_write : IN STD_LOGIC;
+        cfg_mgmt_read : IN STD_LOGIC;
+        cfg_mgmt_type1_cfg_reg_access : IN STD_LOGIC
+      );
+    END COMPONENT;
+
 begin
 
     ----------------------------------------------------------------------------
@@ -152,7 +201,7 @@ begin
     -- 2. XDMA Core Instantiation
     -- Bridges PCIe packets to the local AXI system-on-chip interfaces.
     ----------------------------------------------------------------------------
-    xdma_inst : entity work.my_xdma_core
+    xdma_inst : my_xdma_core
         port map (
             --------------------------------------------------------------------
             -- Clocks, Resets & Serial Lanes

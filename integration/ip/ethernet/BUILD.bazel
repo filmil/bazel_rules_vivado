@@ -1,0 +1,48 @@
+load(
+    "@rules_vivado//build/vivado:rules.bzl",
+    "vivado_ip",
+    "vivado_library",
+    "vivado_synthesis2",
+    "vivado_place_and_route2",
+)
+
+# 1. Generate Tri-Mode Ethernet MAC IP Core
+vivado_ip(
+    name = "my_temac_core",
+    vlnv = "xilinx.com:ip:tri_mode_ethernet_mac:9.0",
+    part = "xc7a200tfbg484-2",
+    config = {
+        "Physical_Interface": "RGMII",
+        "Management_Interface": "true",
+        "Management_Frequency": "125.0",
+    },
+)
+
+# 2. Compile our VHDL top-level entity into a library
+vivado_library(
+    name = "ethernet_top_lib",
+    srcs = ["ethernet_top.vhd"],
+    deps = [
+        ":my_temac_core",
+    ],
+)
+
+# 3. Synthesize the VHDL top-level entity + TEMAC
+vivado_synthesis2(
+    name = "ethernet_synth",
+    srcs = ["ethernet_top.vhd"],
+    deps = [
+        ":my_temac_core",
+    ],
+    part = "xc7a200tfbg484-2",
+    top = "ethernet_top",
+)
+
+# 4. Place & Route the synthesized design using the Alinx A200T board pinout
+vivado_place_and_route2(
+    name = "ethernet_pnr",
+    synthesis = ":ethernet_synth",
+    xdcs = [
+        "//boards:alinx-a200t-b",
+    ],
+)
