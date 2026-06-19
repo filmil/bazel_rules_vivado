@@ -35,3 +35,25 @@ vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library
 | <a id="vivado_library-vhdl1993"></a>vhdl1993 |  Use VHDL-1993 standard else use VHDL-2008   | Boolean | optional |  `False`  |
 
 
+<a id="vivado_library_transition"></a>
+
+## vivado_library_transition
+
+<pre>
+load("@rules_vivado//internal:vivado_library.bzl", "vivado_library_transition")
+
+vivado_library_transition(<a href="#vivado_library_transition-name">name</a>, <a href="#vivado_library_transition-library">library</a>, <a href="#vivado_library_transition-standard">standard</a>)
+</pre>
+
+
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="vivado_library_transition-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
+| <a id="vivado_library_transition-library"></a>library |  The library to transition.   | <a href="https://bazel.build/concepts/labels">Label</a> | required |  |
+| <a id="vivado_library_transition-standard"></a>standard |  The standard to transition to.   | String | required |  |
+
+

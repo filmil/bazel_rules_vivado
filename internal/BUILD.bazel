@@ -34,6 +34,13 @@ string_flag(
     build_setting_default = "",
 )
 
+# Override with --//internal:standard=<std>. Specifying this overrides the
+# standard attribute on vivado_library rules.
+string_flag(
+    name = "standard",
+    build_setting_default = "",
+)
+
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
@@ -108,6 +115,7 @@ bzl_library(
     deps = [
         ":defines",
         ":providers",
+        "@bazel_skylib//rules:common_settings",
     ],
 )
 

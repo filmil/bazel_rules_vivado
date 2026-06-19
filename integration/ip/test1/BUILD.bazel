@@ -2,6 +2,7 @@ load(
     "@rules_vivado//build/vivado:rules.bzl",
     "vivado_generics",
     "vivado_library",
+    "vivado_library_transition",
     "vivado_place_and_route",
     "vivado_place_and_route2",
     "vivado_program_device",
@@ -63,6 +64,27 @@ vivado_simulation(
 vivado_test(
     name = "test",
     library = ":test1",
+    top = "tb",
+)
+
+
+# Example of transitioning the test1 library to the VHDL-2019 standard.
+# The year "2019" is a full year number which translates to "--2019" for xvhdl.
+vivado_library_transition(
+    name = "test1_2019",
+    library = ":test1",
+    standard = "2019",
+)
+
+vivado_simulation(
+    name = "sim_2019",
+    library = ":test1_2019",
+    top = "tb",
+)
+
+vivado_test(
+    name = "test_2019",
+    library = ":test1_2019",
     top = "tb",
 )
 
