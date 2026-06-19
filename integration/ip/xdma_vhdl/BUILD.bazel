@@ -1,0 +1,52 @@
+load(
+    "@rules_vivado//build/vivado:rules.bzl",
+    "vivado_ip",
+    "vivado_library",
+    "vivado_synthesis2",
+    "vivado_place_and_route2",
+)
+
+# 1. Generate PCIe XDMA IP Core (X1 Setup, Gen2 speed, 64-bit AXI Data width)
+vivado_ip(
+    name = "my_xdma_core",
+    vlnv = "xilinx.com:ip:xdma:4.2",
+    part = "xc7a200tfbg484-2",
+    config = {
+        "mode_selection": "Advanced",
+        "pl_link_cap_max_link_speed": "5.0_GT/s",
+        "pl_link_cap_max_link_width": "X1",
+        "axi_data_width": "64_bit",
+        "axisten_freq": "125",
+        "xdma_rnum_chnl": "1",
+        "xdma_wnum_chnl": "1",
+    },
+)
+
+# 2. Compile our VHDL top-level entity into a library
+vivado_library(
+    name = "xdma_top_lib",
+    srcs = ["xdma_top.vhd"],
+    deps = [
+        ":my_xdma_core",
+    ],
+)
+
+# 3. Synthesize the VHDL top-level entity + XDMA
+vivado_synthesis2(
+    name = "xdma_synth",
+    srcs = ["xdma_top.vhd"],
+    deps = [
+        ":my_xdma_core",
+    ],
+    part = "xc7a200tfbg484-2",
+    top = "xdma_top",
+)
+
+# 4. Place & Route the synthesized design using the Alinx A200T pinout (XDC)
+vivado_place_and_route2(
+    name = "xdma_pnr",
+    synthesis = ":xdma_synth",
+    xdcs = [
+        "//boards:alinx-a200t-b",
+    ],
+)

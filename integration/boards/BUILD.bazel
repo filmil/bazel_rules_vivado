@@ -6,6 +6,12 @@ filegroup(
     srcs = [
         "basic.xdc",
     ],
+)
 
+filegroup(
+    name = "alinx-a200t-b",
+    srcs = [
+        "alinx-a200t-b.xdc",
+    ],
 )
 
