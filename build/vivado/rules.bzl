@@ -21,6 +21,7 @@ load("//internal:vivado_view.bzl", _vivado_view = "vivado_view")
 load("//internal:vivado_ila.bzl", _vivado_ila = "vivado_ila")
 load("//internal:vivado_read_ila.bzl", _vivado_read_ila = "vivado_read_ila")
 load("//internal:vivado_extract.bzl", _vivado_extract = "vivado_extract")
+load("//internal:vivado_program_flash.bzl", _vivado_program_flash = "vivado_program_flash")
 
 vivado_project = _vivado_project
 vivado_synthesis = _vivado_synthesis
@@ -41,3 +42,4 @@ vivado_view = _vivado_view
 vivado_ila = _vivado_ila
 vivado_read_ila = _vivado_read_ila
 vivado_extract = _vivado_extract
+vivado_program_flash = _vivado_program_flash

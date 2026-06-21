@@ -95,6 +95,19 @@ func TestRun(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "success flash mode (mcs instead of bit)",
+			args: Args{
+				McsFile:       "test.mcs",
+				FlashPart:     "mt25ql256-spi-x1_x2_x4",
+				RunDockerFile: "docker.sh",
+				GotoptFile:    "gotopt2",
+				Outfile:       filepath.Join(tmpDir, "out5_flash.sh"),
+				TemplateFile:  templatePath,
+				VivadoVersion: "2025.1",
+			},
+			wantErr: false,
+		},
+		{
 			name: "template does not exist",
 			args: Args{
 				BitFile:       "test.bit",
