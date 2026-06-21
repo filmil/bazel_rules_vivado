@@ -36,12 +36,24 @@ def _vivado_program_device(ctx):
     generator = ctx.attr._proggen.files.to_list()[0]
 
     data = ctx.attr._data.files.to_list()
+
+    # Select the template and flag config by name. The proggen:data filegroup
+    # holds more than one template (main_script.tpl.sh for SRAM/bit programming
+    # and flash_script.tpl.sh for flash), so positional indexing is unsafe --
+    # adding a file to the filegroup shifts the positions and silently picks the
+    # wrong template.
+    tpl1 = None
+    yaml = None
+    for f in data:
+        if f.basename == "main_script.tpl.sh":
+            tpl1 = f
+        elif f.basename == "flags.yaml":
+            yaml = f
+    if tpl1 == None or yaml == None:
+        fail("vivado_program_device: could not find main_script.tpl.sh/flags.yaml in proggen data")
+
     for target in ctx.attr._tools:
         data += target.files.to_list()
-
-    # These do not seem to be stable; why?
-    tpl1 = data[1]
-    yaml = data[0]
 
 
     # Generated script file.
