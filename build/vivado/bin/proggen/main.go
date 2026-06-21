@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
@@ -15,6 +16,13 @@ type Args struct {
 	RunDockerFile string
 	GotoptFile    string
 	BitFile       string
+
+	// Flash (cfgmem) programming mode. When McsFile is set, the generator
+	// emits a script that programs the device's non-volatile configuration
+	// flash with the given flash image instead of the FPGA SRAM.
+	McsFile        string
+	FlashPart      string
+	FlashInterface string
 
 	ProgRunnerArgs   string
 	ProgRunnerBinary string
@@ -31,8 +39,8 @@ func printEnv() {
 func run(args Args) error {
 	printEnv()
 
-	if args.BitFile == "" {
-		return fmt.Errorf("param --bitfile is required.")
+	if args.BitFile == "" && args.McsFile == "" {
+		return fmt.Errorf("one of --bitfile or --mcs-file is required.")
 	}
 	if args.RunDockerFile == "" {
 		return fmt.Errorf("param --run-docker is required.")
@@ -61,7 +69,7 @@ func run(args Args) error {
 	}
 	defer of.Close()
 
-	if err := tpl.ExecuteTemplate(of, "main_script.tpl.sh", &args); err != nil {
+	if err := tpl.ExecuteTemplate(of, filepath.Base(args.TemplateFile), &args); err != nil {
 		return fmt.Errorf("could not write outfile:\n\t%v:\n\t\t%w", args.Outfile, err)
 	}
 
@@ -76,6 +84,9 @@ func runCLI(cmdArgs []string) error {
 	fs.StringVar(&args.RunDockerFile, "run-docker", "", "The script for running docker")
 	fs.StringVar(&args.GotoptFile, "gotopt2", "", "the gotopt2 binary to use")
 	fs.StringVar(&args.BitFile, "bitfile", "", "")
+	fs.StringVar(&args.McsFile, "mcs-file", "", "The flash image (.mcs/.bin) to program into configuration flash")
+	fs.StringVar(&args.FlashPart, "flash-part", "", "The Vivado cfgmem part name of the target flash device")
+	fs.StringVar(&args.FlashInterface, "flash-interface", "", "The flash programming interface, e.g. SPIx4")
 	fs.StringVar(&args.ProgRunnerArgs, "prog-runner-args", "", "the arguments to invoke the runner with")
 	fs.StringVar(&args.ProgRunnerBinary, "prog-runner-binary", "", "The program runner binary")
 	fs.StringVar(&args.VivadoVersion, "vivado-version", "", "The Vivado version to use")

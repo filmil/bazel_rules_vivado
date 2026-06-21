@@ -1,6 +1,7 @@
 load(
     "//build/vivado:rules.bzl",
     "vivado_place_and_route",
+    "vivado_program_flash",
     "vivado_project",
     "vivado_synthesis",
 )
@@ -23,4 +24,19 @@ vivado_synthesis(
 vivado_place_and_route(
     name = "blinky_pnr",
     synthesis = ":blinky_synth",
+)
+
+# Program the bitstream permanently into the Alinx A200T's QSPI flash. The
+# Micron MT25QL256 (256 Mbit = 32 MB) is the flash on the AX7A200 board.
+#
+#   bazel build //build/tests/vivado:blinky_flash       # builds blinky_flash.mcs
+#   bazel run   //build/tests/vivado:blinky_flash -- \
+#       --hostport localhost:3122 \
+#       --device '*/xilinx_tcf/Digilent/<serial>'       # writes the flash
+vivado_program_flash(
+    name = "blinky_flash",
+    deps = [":blinky_pnr"],
+    flash_part = "mt25ql256-spi-x1_x2_x4",
+    interface = "SPIx4",
+    size = 32,
 )
