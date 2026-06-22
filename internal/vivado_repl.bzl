@@ -38,13 +38,24 @@ def _vivado_repl_impl(ctx):
         else:
             script_rlocation = ctx.workspace_name + "/" + ctx.file.script.short_path
 
+    # `data` files are placed in the runfiles tree, which is mounted into the
+    # container as the working directory, so they are available to the REPL.
+    runfiles_list += ctx.files.data
+
+    # `-it` gives docker an interactive TTY (needed for the interactive REPL),
+    # but fails when there is no TTY (e.g. piped input or CI). `use_terminal`
+    # lets callers drop it.
+    freeargs = ["--net=host", "-e", "HOME=/work"]
+    if ctx.attr.use_terminal:
+        freeargs = ["-it"] + freeargs
+
     # Generate the command using the helper.
     # We'll use a placeholder for the script path and replace it in the bash script.
     cmd = _script_cmd(
         script_path = "DOCKER_RUN_PLACEHOLDER",
         dir_reference = ".",
         cache_dir = ".vivado_repl_cache",
-        freeargs = ["-it", "--net=host", "-e", "HOME=/work"],
+        freeargs = freeargs,
         container = config.container,
     )
 
@@ -60,11 +71,18 @@ def _vivado_repl_impl(ctx):
         is_executable = True,
     )
 
+    runfiles = (
+        ctx.runfiles(files = runfiles_list)
+            .merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
+            .merge(ctx.attr._script[DefaultInfo].default_runfiles)
+    )
+    for d in ctx.attr.data:
+        runfiles = runfiles.merge(d[DefaultInfo].default_runfiles)
+
     return [
         DefaultInfo(
             executable = executable,
-            runfiles = ctx.runfiles(files = runfiles_list).merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
-              .merge(ctx.attr._script[DefaultInfo].default_runfiles),
+            runfiles = runfiles,
         ),
     ]
 
@@ -75,6 +93,19 @@ vivado_repl = rule(
         "script": attr.label(
             allow_single_file = [".tcl"],
             doc = "Optional TCL script to run on startup.",
+        ),
+        "data": attr.label_list(
+            allow_files = True,
+            doc = "Files (or targets whose default outputs and runfiles) to " +
+                  "make available in the REPL's working directory inside the " +
+                  "container.",
+        ),
+        "use_terminal": attr.bool(
+            default = True,
+            doc = "If true (default), run the container with `-it` so Vivado " +
+                  "gets an interactive TTY. Set to false for non-interactive " +
+                  "contexts (e.g. piped input or CI), where `-it` would fail " +
+                  "with 'the input device is not a TTY'.",
         ),
         "_bash_runfiles": attr.label(
             default = "@bazel_tools//tools/bash/runfiles",
