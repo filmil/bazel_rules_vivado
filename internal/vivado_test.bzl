@@ -25,7 +25,7 @@ def _vivado_test_impl(ctx):
       A list of providers.
     """
     # 1. Elaboration step (identical to vivado_simulation)
-    args = ["-debug", "typical"]
+    args = []
     args += ctx.attr.xelab_args
     files = []
 

@@ -48,7 +48,7 @@ if [ -n "$V_FILES" ] || [ -n "$SV_FILES" ] || [ -n "$VHDL_FILES" ]; then
     if [ -n "$VHDL_FILES" ]; then
         {SCRIPT} \
         LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
-        {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvhdl --2008 \
+        {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvhdl -2008 \
             --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $VHDL_FILES 2>&1 >> {LOG}
     fi
 else
