@@ -20,7 +20,7 @@ def _vivado_simulation_impl(ctx):
       A list of providers, including DefaultInfo and OutputGroupInfo.
     """
     config = _vivado_config(ctx)
-    args = ["-debug", "typical"]
+    args = []
     args += ctx.attr.xelab_args
     files = []
     # elaborate first

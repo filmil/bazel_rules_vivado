@@ -146,20 +146,20 @@ def _vivado_library_impl(ctx):
             library_type = "VHDL"
             # VHDL 2008 is used by default, use bool flag `vhdl1993 = True`
             # to revert to 1993.
-            standard_flag = ["--2008"]
+            standard_flag = ["-2008"]
             if ctx.attr.vhdl1993:
                 standard_flag = []
             if effective_standard:
                 if effective_standard in ["1993", "93"]:
-                    standard_flag = ["--93"]
+                    standard_flag = ["-93"]
                 elif effective_standard in ["1987", "87"]:
-                    standard_flag = ["--87"]
+                    standard_flag = ["-87"]
                 elif effective_standard in ["2008", "08"]:
-                    standard_flag = ["--2008"]
+                    standard_flag = ["-2008"]
                 elif effective_standard in ["2019", "19"]:
-                    standard_flag = ["--2019"]
+                    standard_flag = ["-2019"]
                 else:
-                    standard_flag = ["--{}".format(effective_standard)]
+                    standard_flag = ["-{}".format(effective_standard)]
             args += standard_flag
 
     args += ["--work", "{}={}".format(library_name, library_output_dir.path)]
