@@ -104,6 +104,7 @@ vivado_simulation(
 ## Prior Art
 
 *   [agoessling/rules_vivado](https://github.com/agoessling/rules_vivado): This repository predates `bazel_rules_vivado`. It adopts a different approach, requiring a pre-installed Vivado instance rather than using a containerized version.
+*   [hw-bzl/rules_vivado](https://github.com/hw-bzl/rules_vivado): Another set of Bazel rules for the Vivado FPGA toolchain.
 
 ## Contributing
 
