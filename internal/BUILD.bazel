@@ -1,6 +1,7 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
@@ -41,11 +42,27 @@ string_flag(
     build_setting_default = "",
 )
 
+# The host-execution counterpart of @rules_bid//build:docker_run: accepts the
+# same command line, but runs the command directly on the host. Used as the
+# `runner` of the host Vivado toolchain (see //toolchains).
+sh_binary(
+    name = "host_run",
+    srcs = ["host_run.sh"],
+)
+
+bzl_library(
+    name = "toolchain",
+    srcs = ["toolchain.bzl"],
+    deps = [
+        "@bazel_skylib//rules:common_settings",
+    ],
+)
+
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
     deps = [
-        "@bazel_skylib//rules:common_settings",
+        ":toolchain",
         "@rules_bid//build:rules",
     ],
 )
@@ -228,6 +245,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_toolchain",
+    out = "gen.toolchain.md",
+    input = "toolchain.bzl",
+    deps = [":toolchain"],
+)
+
+stardoc(
     name = "md_providers",
     out = "gen.providers.md",
     input = "providers.bzl",
@@ -372,6 +396,7 @@ write_source_files(
     files = {
         "defines.md": ":md_defines",
         "providers.md": ":md_providers",
+        "toolchain.md": ":md_toolchain",
         "vivado_generics.md": ":md_vivado_generics",
         "vivado_library.md": ":md_vivado_library",
         "vivado_place_and_route.md": ":md_vivado_place_and_route",

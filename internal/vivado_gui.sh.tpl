@@ -56,7 +56,7 @@ if [[ -n "{{SCRIPT_RLOCATION}}" ]]; then
 fi
 
 ${CMD_FINAL} \
-    --envs="DISPLAY=${DISPLAY},HOME=/home/vivado" \
+    --envs="{{GUI_ENVS}}" \
     --mounts="/tmp/.X11-unix:/tmp/.X11-unix,${VIVADO_HOME_DIR}:/home/vivado:rw" \
     -- \
     LD_LIBRARY_PATH="{{VIVADO_PATH}}/lib/lnx64.o" \

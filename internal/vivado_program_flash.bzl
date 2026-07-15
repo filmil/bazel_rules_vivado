@@ -17,13 +17,16 @@ It works in two phases:
    `create_hw_cfgmem` / `program_hw_cfgmem`. This needs the physical board.
 """
 
-load("//internal:providers.bzl",
-    "VivadoBitstreamProvider",
-)
-load("//internal:defines.bzl",
-    "VIVADO_CONFIG_ATTRS",
+load(
+    "//internal:defines.bzl",
+    "VIVADO_TOOLCHAIN_TYPE",
+    _rlocation_path = "rlocation_path",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
+)
+load(
+    "//internal:providers.bzl",
+    "VivadoBitstreamProvider",
 )
 
 def _vivado_program_flash_impl(ctx):
@@ -41,7 +44,7 @@ def _vivado_program_flash_impl(ctx):
              "providing VivadoBitstreamProvider.")
 
     config = _vivado_config(ctx)
-    docker_run = ctx.executable._script
+    runner = config.runner
     bitfile = ctx.attr.deps[0][VivadoBitstreamProvider].bitstream
 
     # --- Phase 1: build the flash image with write_cfgmem (no hardware). ---
@@ -50,9 +53,10 @@ def _vivado_program_flash_impl(ctx):
         "_vivado_program_flash.cache.{}".format(ctx.label.name),
     )
 
-    # write_cfgmem runs inside the container whose working directory is the exec
-    # root, so exec-root-relative paths (bitfile.path, mcs.path) resolve. The
-    # TCL braces around `up 0x0 <bit>` are required by write_cfgmem.
+    # write_cfgmem runs with the exec root as the working directory (inside
+    # the container in docker mode, directly on the host in host mode), so
+    # exec-root-relative paths (bitfile.path, mcs.path) resolve. The TCL
+    # braces around `up 0x0 <bit>` are required by write_cfgmem.
     cfgmem_tcl = ctx.actions.declare_file("{}.cfgmem.tcl".format(ctx.attr.name))
     ctx.actions.write(
         output = cfgmem_tcl,
@@ -69,7 +73,7 @@ def _vivado_program_flash_impl(ctx):
     )
 
     script = _script_cmd(
-        docker_run.path,
+        runner.executable.path,
         mcs.path,
         cache_dir.path,
         freeargs = ["--net=host", "-e", "HOME=/work"],
@@ -82,9 +86,9 @@ def _vivado_program_flash_impl(ctx):
             ctx.attr.format,
             ctx.attr.flash_part,
         ),
-        inputs = [docker_run, cfgmem_tcl, bitfile],
+        inputs = [cfgmem_tcl, bitfile],
         outputs = [mcs, cache_dir],
-        tools = [docker_run],
+        tools = [runner],
         mnemonic = "VivadoCfgmem",
         command = (
             "mkdir -p \"$(dirname {mcs})\" && " +
@@ -119,12 +123,16 @@ def _vivado_program_flash_impl(ctx):
     args = ctx.actions.args()
     args.add("--outfile", outfile.path)
     args.add("--gotopt2", gotopt2.path)
-    args.add("--run-docker", docker_run.path)
+    args.add("--run-docker", runner.executable.path)
+    args.add("--runner-rlocation", _rlocation_path(ctx, runner.executable))
     args.add("--template", template.path)
     args.add("--mcs-file", mcs.short_path)
     args.add("--flash-part", ctx.attr.flash_part)
     args.add("--flash-interface", ctx.attr.interface)
     args.add("--vivado-version", config.vivado_version)
+    args.add("--vivado-path", config.vivado_path)
+    args.add("--container", config.container)
+    args.add("--vivado-mode", config.mode)
 
     if ctx.attr.prog_daemon:
         prog_runner_args = ctx.expand_location(
@@ -135,10 +143,10 @@ def _vivado_program_flash_impl(ctx):
         args.add("--prog-runner-binary", ctx.files.prog_daemon[0].short_path)
 
     ctx.actions.run(
-        inputs = [generator, gotopt2, docker_run, mcs],
+        inputs = [generator, gotopt2, mcs],
         outputs = [outfile],
         executable = generator,
-        tools = [gotopt2, docker_run] + data,
+        tools = [gotopt2, runner] + data,
         arguments = [args],
         mnemonic = "FLASHGEN",
         progress_message = "Generating flash programming script: {}".format(outfile.path),
@@ -146,7 +154,7 @@ def _vivado_program_flash_impl(ctx):
 
     # --- Runfiles for the generated wrapper. ---
     runfiles = ctx.runfiles(
-        files = [docker_run, gotopt2, yaml, mcs],
+        files = [runner.executable, gotopt2, yaml, mcs],
         collect_data = True,
     )
     tools_files = []
@@ -155,7 +163,7 @@ def _vivado_program_flash_impl(ctx):
     tools_runfiles = ctx.runfiles(files = tools_files, collect_data = True)
 
     default_runfiles = [
-        ctx.attr._script[DefaultInfo].default_runfiles,
+        config.runner_default_runfiles,
         ctx.attr._proggen[DefaultInfo].default_runfiles,
         ctx.attr._data[DefaultInfo].default_runfiles,
         ctx.attr._gotopt2[DefaultInfo].default_runfiles,
@@ -181,7 +189,8 @@ vivado_program_flash = rule(
           "flash (SPI/QSPI) so it loads automatically on power-up. " +
           "`bazel build` produces the flash image (.mcs/.bin); `bazel run` " +
           "writes it to the board (requires --hostport and --device).",
-    attrs = VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = {
         "deps": attr.label_list(
             providers = [VivadoBitstreamProvider],
             doc = "Exactly one target providing the bitstream to flash.",
@@ -217,12 +226,6 @@ vivado_program_flash = rule(
         ),
         "data": attr.label_list(
             doc = "The list of dependencies to expand in prog_daemon_args.",
-        ),
-        "_script": attr.label(
-            default = "@rules_bid//build:docker_run",
-            executable = True,
-            cfg = "host",
-            doc = "The docker run script.",
         ),
         "_gotopt2": attr.label(
             default = "@gotopt2//:bin",

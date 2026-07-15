@@ -20,7 +20,15 @@ fi
 
 source "$(rlocation fshlib/log.sh)"
 
-_run_docker="$(rlocation rules_bid/build/docker_run)"
+# The runner script comes from the Vivado toolchain: docker_run in docker
+# mode, host_run in host mode.
+_run_docker=""
+if [[ "{{ .RunnerRlocation }}" != "" ]]; then
+    _run_docker="$(rlocation "{{ .RunnerRlocation }}")"
+fi
+if [[ "${_run_docker}" == "" ]]; then
+    _run_docker="$(rlocation rules_bid/build/docker_run)"
+fi
 _gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)"
 if [[ "${_gotopt2}" == "" ]]; then
     _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)"
@@ -58,15 +66,19 @@ if [[ "${gotopt2_device}" == "" ]]; then
 fi
 
 readonly _tcl_script_file="read_ila.tcl"
-# The root of the Vivado installation in the container's filesystem.
+# The root of the Vivado installation (in the container's filesystem in
+# docker mode, on the host filesystem in host mode).
 readonly _vivado_version="{{ .VivadoVersion }}"
-readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
+readonly _vivado_root="{{ .VivadoPath }}"
+# Where generated files are visible to Vivado: /work in the container,
+# the current directory on the host.
+readonly _work_dir="{{ .WorkDir }}"
 
 log::debug "Creating TCL script: ${_tcl_script_file}"
 log::debug "Using probes file:   ${_ltxfile}"
 log::debug "Using PWD:            ${PWD}"
 
-# We write the TCL script that Vivado executes inside Docker.
+# We write the TCL script that Vivado executes.
 cat <<EOF > "${_tcl_script_file}" || log::error "Could not create the file: ${_tcl_script_file}"
 open_hw_manager
 puts "INFO: Connecting to hardware server ${gotopt2_hostport}"
@@ -109,7 +121,7 @@ EOF
 
 env RUNFILES_DIR="$PWD/.." \
 "${_run_docker}" \
-    --container=xilinx-vivado:${_vivado_version} \
+    --container={{ .Container }} \
     --dir-reference=${PWD} \
     --source-dir=${PWD} \
     --mounts=/tmp/.X11-unix:/tmp/.X11-unix:ro,"${PWD}:/work:rw" \
@@ -118,6 +130,6 @@ env RUNFILES_DIR="$PWD/.." \
     LD_LIBRARY_PATH="${_vivado_root}/lib/lnx64.o" \
     "${_vivado_root}/bin/setEnvAndRunCmd.sh" vivado \
     -notrace -mode batch \
-    -source "/work/${_tcl_script_file}" | log::prefix "[vivado] " \
+    -source "${_work_dir}/${_tcl_script_file}" | log::prefix "[vivado] " \
     && log::info "VCD file successfully created at ${PWD}/${gotopt2_vcd}" \
     || log::error "The ILA reading command failed."

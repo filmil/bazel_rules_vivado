@@ -12,7 +12,7 @@ load("@rules_vivado//build/vivado:rules.bzl", "vivado_extract")
 vivado_extract(<a href="#vivado_extract-name">name</a>, <a href="#vivado_extract-env">env</a>, <a href="#vivado_extract-files">files</a>, <a href="#vivado_extract-mount">mount</a>)
 </pre>
 
-Extracts files from the Vivado Docker image into Bazel outputs.
+Extracts files from the Vivado installation into Bazel outputs.
 
 **ATTRIBUTES**
 
@@ -21,7 +21,7 @@ Extracts files from the Vivado Docker image into Bazel outputs.
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | <a id="vivado_extract-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
 | <a id="vivado_extract-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
-| <a id="vivado_extract-files"></a>files |  Map of output path (relative to this package) to a path inside the Vivado container. A container path starting with '/' is treated as absolute; otherwise it is resolved relative to the Vivado install path (e.g. /opt/Xilinx/<version>/Vivado).   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | required |  |
+| <a id="vivado_extract-files"></a>files |  Map of output path (relative to this package) to a path in the Vivado installation (inside the container in docker mode; on the host in host mode). A path starting with '/' is treated as absolute; otherwise it is resolved relative to the Vivado install path (e.g. /opt/Xilinx/<version>/Vivado).   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | required |  |
 | <a id="vivado_extract-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 
 
@@ -435,6 +435,45 @@ vivado_test(<a href="#vivado_test-name">name</a>, <a href="#vivado_test-data">da
 | <a id="vivado_test-top"></a>top |  Name of the top level entity to simulate   | String | optional |  `""`  |
 | <a id="vivado_test-xelab_args"></a>xelab_args |  Custom args to elaboration step   | List of strings | optional |  `[]`  |
 | <a id="vivado_test-xelab_relaxed"></a>xelab_relaxed |  Relax HDL checks, sometimes needed for Verilog modules   | Boolean | optional |  `False`  |
+
+
+<a id="vivado_toolchain"></a>
+
+## vivado_toolchain
+
+<pre>
+load("@rules_vivado//build/vivado:rules.bzl", "vivado_toolchain")
+
+vivado_toolchain(<a href="#vivado_toolchain-name">name</a>, <a href="#vivado_toolchain-container">container</a>, <a href="#vivado_toolchain-mode">mode</a>, <a href="#vivado_toolchain-runner">runner</a>, <a href="#vivado_toolchain-vivado_path">vivado_path</a>, <a href="#vivado_toolchain-vivado_version">vivado_version</a>)
+</pre>
+
+Declares a Vivado execution toolchain.
+
+The built-in instances live in `//toolchains`. Declare your own instance (and
+register it with a `toolchain()` wrapper) to customize how Vivado is invoked,
+e.g. to point at a nonstandard host installation:
+
+```python
+vivado_toolchain(
+    name = "my_host_vivado",
+    mode = "host",
+    vivado_path = "/tools/Xilinx/Vivado/2024.2",
+    vivado_version = "2024.2",
+    runner = "@rules_vivado//internal:host_run",
+)
+```
+
+**ATTRIBUTES**
+
+
+| Name  | Description | Type | Mandatory | Default |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| <a id="vivado_toolchain-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
+| <a id="vivado_toolchain-container"></a>container |  The Vivado Docker image (docker mode only). Empty means derived from the version as `xilinx-vivado:<version>`, unless overridden by the --//internal:vivado_container flag.   | String | optional |  `""`  |
+| <a id="vivado_toolchain-mode"></a>mode |  How Vivado is executed: in the Docker container, or directly on the host.   | String | required |  |
+| <a id="vivado_toolchain-runner"></a>runner |  The runner executable that command lines are prefixed with: `@rules_bid//build:docker_run` for docker mode, `//internal:host_run` for host mode. Both accept the same command line flags.   | <a href="https://bazel.build/concepts/labels">Label</a> | required |  |
+| <a id="vivado_toolchain-vivado_path"></a>vivado_path |  The Vivado install path (inside the container in docker mode; on the host filesystem in host mode). Empty means derived from the version as `/opt/Xilinx/<version>/Vivado`, unless overridden by the --//internal:vivado_path flag.   | String | optional |  `""`  |
+| <a id="vivado_toolchain-vivado_version"></a>vivado_version |  The Vivado version. Empty means the built-in default, unless overridden by the --//internal:vivado_version flag.   | String | optional |  `""`  |
 
 
 <a id="vivado_unisims_library"></a>

@@ -1,12 +1,14 @@
 """Vivado IP generation rule."""
 
-load("//internal:defines.bzl",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
-    "VIVADO_CONFIG_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
-load("//internal:providers.bzl",
+load(
+    "//internal:providers.bzl",
     "VivadoLibraryProvider",
 )
 
@@ -28,6 +30,7 @@ def _vivado_ip_impl(ctx):
     # Outputs
     # We want to capture the generated IP directory.
     ip_output_dir = ctx.actions.declare_directory("{}.ip_gen".format(name))
+
     # And the compiled library directory for simulation.
     library_output_dir = ctx.actions.declare_directory("{}.hdlib".format(name))
 
@@ -42,7 +45,9 @@ def _vivado_ip_impl(ctx):
         for k, v in ctx.attr.config.items():
             config_list.append("CONFIG.{} {{{}}}".format(k, v))
         config_commands = "set_property -dict [list {}] [get_ips {}]".format(
-            " ".join(config_list), module_name)
+            " ".join(config_list),
+            module_name,
+        )
 
     ctx.actions.expand_template(
         output = tcl_script,
@@ -57,22 +62,23 @@ def _vivado_ip_impl(ctx):
     )
 
     # Prepare to run Vivado
-    docker_run = ctx.executable._script
+    runner = config.runner
     cache_dir = ctx.actions.declare_directory("_vivado_ip.cache.{}".format(name))
     work_dir = ctx.actions.declare_directory("_vivado_ip.work.{}".format(name))
     outputs += [cache_dir, work_dir]
 
     script = _script_cmd(
-      docker_run.path,
-      work_dir.path,
-      cache_dir.path,
-      envs="",
-      mounts="",
-      freeargs=[
-        "--net=host",
-        "-e", "HOME=/work",
-      ],
-      container=config.container,
+        runner.executable.path,
+        work_dir.path,
+        cache_dir.path,
+        envs = "",
+        mounts = "",
+        freeargs = [
+            "--net=host",
+            "-e",
+            "HOME=/work",
+        ],
+        container = config.container,
     )
 
     log_file = ctx.actions.declare_file("{}.log".format(name))
@@ -96,29 +102,30 @@ def _vivado_ip_impl(ctx):
 
     ctx.actions.run_shell(
         progress_message = "Vivado generate IP \"{}\"".format(module_name),
-        inputs = [tcl_script, docker_run, shell_script],
+        inputs = [tcl_script, shell_script],
         outputs = outputs,
-        tools = [docker_run],
+        tools = [runner],
         mnemonic = "VivadoIP",
         command = "bash {}".format(shell_script.path),
     )
     return [
-        DefaultInfo(files=depset([ip_output_dir, library_output_dir])),
+        DefaultInfo(files = depset([ip_output_dir, library_output_dir])),
         VivadoLibraryProvider(
-            name=module_name,
-            files=[ip_output_dir],
-            hdrs=depset([]),
-            includes=depset([]),
-            deps=depset([]),
-            deps_names=depset([module_name]),
-            library_dir=library_output_dir,
-            unisims_libs=False,
+            name = module_name,
+            files = [ip_output_dir],
+            hdrs = depset([]),
+            includes = depset([]),
+            deps = depset([]),
+            deps_names = depset([module_name]),
+            library_dir = library_output_dir,
+            unisims_libs = False,
         ),
     ]
 
 vivado_ip = rule(
     implementation = _vivado_ip_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "vlnv": attr.string(
             mandatory = True,
             doc = "The VLNV of the IP.",

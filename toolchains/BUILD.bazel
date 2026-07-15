@@ -1,0 +1,38 @@
+load("//internal:toolchain.bzl", "vivado_toolchain")
+
+package(default_visibility = ["//visibility:public"])
+
+# The Vivado execution toolchain type. Rules that invoke Vivado depend on
+# this toolchain type; the registered instance decides whether Vivado runs
+# in the Docker container (the default) or directly on the host.
+#
+# Select the mode with the `--//:vivado_mode` flag, e.g. in your `.bazelrc`:
+#
+#   build --@rules_vivado//:vivado_mode=host
+toolchain_type(name = "toolchain_type")
+
+vivado_toolchain(
+    name = "docker_vivado",
+    mode = "docker",
+    runner = "@rules_bid//build:docker_run",
+)
+
+toolchain(
+    name = "docker_vivado_toolchain",
+    target_settings = ["//:vivado_mode_docker"],
+    toolchain = ":docker_vivado",
+    toolchain_type = ":toolchain_type",
+)
+
+vivado_toolchain(
+    name = "host_vivado",
+    mode = "host",
+    runner = "//internal:host_run",
+)
+
+toolchain(
+    name = "host_vivado_toolchain",
+    target_settings = ["//:vivado_mode_host"],
+    toolchain = ":host_vivado",
+    toolchain_type = ":toolchain_type",
+)

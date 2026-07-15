@@ -1,8 +1,10 @@
 """Vivado REPL rule."""
 
-load("//internal:defines.bzl",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
-    "VIVADO_CONFIG_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
+    _rlocation_path = "rlocation_path",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
@@ -19,18 +21,14 @@ def _vivado_repl_impl(ctx):
     config = _vivado_config(ctx)
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
 
-    docker_run = ctx.executable._script
-    
-    # We use rlocation to find the docker_run script at runtime.
+    runner = config.runner
+
+    # We use rlocation to find the runner script at runtime.
     # For external repositories, the rlocation path is usually <repo_name>/<path>.
-    docker_run_rlocation = ""
-    if docker_run.short_path.startswith("../"):
-        docker_run_rlocation = docker_run.short_path[3:]
-    else:
-        docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
-    
+    docker_run_rlocation = _rlocation_path(ctx, runner.executable)
+
     script_rlocation = ""
-    runfiles_list = [docker_run]
+    runfiles_list = [runner.executable]
     if ctx.file.script:
         runfiles_list.append(ctx.file.script)
         if ctx.file.script.short_path.startswith("../"):
@@ -74,7 +72,7 @@ def _vivado_repl_impl(ctx):
     runfiles = (
         ctx.runfiles(files = runfiles_list)
             .merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
-            .merge(ctx.attr._script[DefaultInfo].default_runfiles)
+            .merge(config.runner_default_runfiles)
     )
     for d in ctx.attr.data:
         runfiles = runfiles.merge(d[DefaultInfo].default_runfiles)
@@ -89,7 +87,8 @@ def _vivado_repl_impl(ctx):
 vivado_repl = rule(
     implementation = _vivado_repl_impl,
     executable = True,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "script": attr.label(
             allow_single_file = [".tcl"],
             doc = "Optional TCL script to run on startup.",

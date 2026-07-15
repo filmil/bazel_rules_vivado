@@ -1,14 +1,16 @@
 """Vivado place and route2 rule."""
 
-load("//internal:defines.bzl",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
-    "VIVADO_CONFIG_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
-load("//internal:providers.bzl",
-    "VivadoSynthProvider",
+load(
+    "//internal:providers.bzl",
     "VivadoBitstreamProvider",
+    "VivadoSynthProvider",
 )
 
 def _vivado_place_and_route2_impl(ctx):
@@ -51,7 +53,7 @@ def _vivado_place_and_route2_impl(ctx):
     xdc_files = []
     xdc_files_paths = []
     for target in ctx.attr.xdcs:
-        xdc_files_paths += [ file.path for file in target.files.to_list() ]
+        xdc_files_paths += [file.path for file in target.files.to_list()]
         xdc_files += target.files.to_list()
     inputs += xdc_files
 
@@ -74,23 +76,23 @@ def _vivado_place_and_route2_impl(ctx):
     ctx.actions.run(
         outputs = [tcl_file],
         inputs = inputs,
-        tools = [ generator ],
+        tools = [generator],
         executable = generator_path,
-        arguments = [ args ],
+        arguments = [args],
         progress_message = "Vivado PNR XPRGEN {}".format(name),
         mnemonic = "XPRGEN",
     )
 
     # PNR step here.
 
-    # Prepare the docker mount.
-    docker_run = ctx.executable._script
+    # Prepare the runner.
+    runner = config.runner
     env = ctx.attr.env
     mounts = {}
     if ctx.attr.mount:
-      mounts.update(ctx.attr.mount)
+        mounts.update(ctx.attr.mount)
     mounts.update({
-      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+        "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
     })
 
     output_dir_path = "_pnr.work.{}".format(name)
@@ -99,30 +101,31 @@ def _vivado_place_and_route2_impl(ctx):
     cache_dir = ctx.actions.declare_directory(cache_dir_rpath)
 
     script = _script_cmd(
-      docker_run.path,
-      output_dir.path,
-      cache_dir.path,
-      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
-      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
-      freeargs=[
-        "--net=host",
-        "-e", "HOME=/work",
-      ],
-      container=config.container,
+        runner.executable.path,
+        output_dir.path,
+        cache_dir.path,
+        envs = ",".join(["{}={}".format(k, v) for (k, v) in env.items()]),
+        mounts = ",".join(["{}:{}".format(k, v) for (k, v) in mounts.items()]),
+        freeargs = [
+            "--net=host",
+            "-e",
+            "HOME=/work",
+        ],
+        container = config.container,
     )
 
     outputs = [output_dcp_file, drc_report_file, timing_summary_file, utilization_file, bit_file, probes_file]
     inputs = [tcl_file, input_dcp_file] + xdc_files
     logfile = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
     script_file = ctx.actions.declare_file("{}.script".format(ctx.attr.name))
-    ctx.actions.write(script_file, content=script)
+    ctx.actions.write(script_file, content = script)
     pnr_binary = ctx.executable._pnr
 
     ctx.actions.run_shell(
         progress_message = "Vivado Place and Route(2): {}".format(name),
-        inputs = inputs + [docker_run, script_file],
+        inputs = inputs + [script_file],
         outputs = outputs + [output_dir, cache_dir, logfile],
-        tools = [docker_run, pnr_binary],
+        tools = [runner, pnr_binary],
         mnemonic = "VPNR2",
         command = """\
             {pnr_binary} --script-file={script} \
@@ -132,17 +135,17 @@ def _vivado_place_and_route2_impl(ctx):
                 --tcl-file={tcl} \
                 2>&1 > {name} || (cat {name} && exit 1)
         """.format(
-            pnr_binary=pnr_binary.path,
-            script=script_file.path,
-            vivado_path=config.vivado_path,
-            tcl=tcl_file.path,
-            cache=cache_dir.path,
-            work=output_dir.path,
-            name=logfile.path,
+            pnr_binary = pnr_binary.path,
+            script = script_file.path,
+            vivado_path = config.vivado_path,
+            tcl = tcl_file.path,
+            cache = cache_dir.path,
+            work = output_dir.path,
+            name = logfile.path,
         ),
     )
     return [
-        DefaultInfo(files=depset([
+        DefaultInfo(files = depset([
             bit_file,
             probes_file,
             utilization_file,
@@ -159,7 +162,8 @@ def _vivado_place_and_route2_impl(ctx):
 
 vivado_place_and_route2 = rule(
     implementation = _vivado_place_and_route2_impl,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "synthesis": attr.label(
             doc = "The mandatory synth2 target to use",
             mandatory = True,
