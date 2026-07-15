@@ -1,9 +1,12 @@
 load("//internal:providers.bzl", "VivadoSimulationProvider")
+
 """Vivado view rule."""
 
-load("//internal:defines.bzl",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
-    "VIVADO_CONFIG_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
+    _rlocation_path = "rlocation_path",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
@@ -20,14 +23,10 @@ def _vivado_view_impl(ctx):
     config = _vivado_config(ctx)
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
 
-    docker_run = ctx.executable._script
+    runner = config.runner
 
-    # We use rlocation to find the docker_run script at runtime.
-    docker_run_rlocation = ""
-    if docker_run.short_path.startswith("../"):
-        docker_run_rlocation = docker_run.short_path[3:]
-    else:
-        docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
+    # We use rlocation to find the runner script at runtime.
+    docker_run_rlocation = _rlocation_path(ctx, runner.executable)
 
     # Find the wdb file and snapshot name
     wdb_file = None
@@ -38,7 +37,7 @@ def _vivado_view_impl(ctx):
         wdb_file = prov.wdb
         snapshot_name = prov.snapshot_name
         xsim_dir = prov.xsim_dir
-    
+
     if not wdb_file:
         if OutputGroupInfo in ctx.attr.dep:
             if hasattr(ctx.attr.dep[OutputGroupInfo], "wdb"):
@@ -83,8 +82,9 @@ def _vivado_view_impl(ctx):
         else:
             wcfg_file_rlocation = ctx.workspace_name + "/" + wcfg_file.short_path
 
-    runfiles_list = [docker_run, wdb_file]
-    if xsim_dir: runfiles_list.append(xsim_dir)
+    runfiles_list = [runner.executable, wdb_file]
+    if xsim_dir:
+        runfiles_list.append(xsim_dir)
     for data_target in ctx.attr.data:
         for file in data_target.files.to_list():
             runfiles_list.append(file)
@@ -118,13 +118,14 @@ def _vivado_view_impl(ctx):
         DefaultInfo(
             executable = executable,
             runfiles = ctx.runfiles(files = runfiles_list).merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
-              .merge(ctx.attr._script[DefaultInfo].default_runfiles),
+                .merge(config.runner_default_runfiles),
         ),
     ]
 
 vivado_view = rule(
     implementation = _vivado_view_impl,
     executable = True,
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
     doc = """Opens a Vivado simulator GUI (xsim) for a generated waveform database (wdb) file.
 
 Example:
@@ -144,7 +145,7 @@ vivado_view(
 )
 ```
 """,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "dep": attr.label(
             doc = "The dependency that generates the wdb file (e.g. vivado_simulation).",
             mandatory = True,

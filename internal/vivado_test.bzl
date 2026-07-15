@@ -1,11 +1,14 @@
 """Vivado test rule."""
 
-load("//internal:defines.bzl",
-    "VIVADO_PATH",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
     _script_cmd = "script_cmd",
+    _vivado_config = "vivado_config",
 )
-load("//internal:providers.bzl",
+load(
+    "//internal:providers.bzl",
     "VivadoLibraryProvider",
 )
 
@@ -24,14 +27,16 @@ def _vivado_test_impl(ctx):
     Returns:
       A list of providers.
     """
+
     # 1. Elaboration step (identical to vivado_simulation)
+    config = _vivado_config(ctx)
     args = []
     args += ctx.attr.xelab_args
     files = []
 
     provider = ctx.attr.library[VivadoLibraryProvider]
     args += ["-L", "{}={}".format(provider.name, provider.library_dir.path)]
-    
+
     libraries = [(provider.name, provider.library_dir)]
 
     for dep in provider.deps.to_list():
@@ -40,15 +45,19 @@ def _vivado_test_impl(ctx):
             files += [dep_provider.library_dir]
             for unisim_lib in dep_provider.deps_names.to_list():
                 args += ["-L", "{lib_name}={dir_name}/{lib_name}".format(
-                    lib_name=unisim_lib,
-                    dir_name=dep_provider.library_dir.path)]
+                    lib_name = unisim_lib,
+                    dir_name = dep_provider.library_dir.path,
+                )]
                 # For unisims, we might need to handle them specially if they are not in the same dir.
                 # But usually they are.
+
         else:
             files += [file for file in dep_provider.files]
             files += [dep_provider.library_dir]
             args += ["-L", "{}={}".format(
-                dep_provider.name, dep_provider.library_dir.path)]
+                dep_provider.name,
+                dep_provider.library_dir.path,
+            )]
             libraries.append((dep_provider.name, dep_provider.library_dir))
 
     files += [file for file in provider.files]
@@ -65,11 +74,13 @@ def _vivado_test_impl(ctx):
             args += ["-d", "{}={}".format(k, ctx.expand_location(v, ctx.attr.data))]
         else:
             args += ["-d", "{}".format(k)]
-    
+
     generic_tops = []
     for (k, v) in ctx.attr.generic_tops.items():
-        generic_tops += ["-generic_top", '{}={}'.format(
-            k, ctx.expand_location(v, ctx.attr.data))]
+        generic_tops += ["-generic_top", "{}={}".format(
+            k,
+            ctx.expand_location(v, ctx.attr.data),
+        )]
 
     data_files = []
     for target in ctx.attr.data:
@@ -82,32 +93,35 @@ def _vivado_test_impl(ctx):
     xsim_dir = ctx.actions.declare_directory("{}.xsim.dir".format(ctx.label.name))
     outputs += [xsim_dir]
 
-    docker_run = ctx.executable._script
+    runner = config.runner
     env = ctx.attr.env
     mounts = {}
     if ctx.attr.mount:
-      mounts.update(ctx.attr.mount)
+        mounts.update(ctx.attr.mount)
     mounts.update({
-      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+        "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
     })
 
     output_dir_path = "_xpr_gen.work.{}".format(ctx.label.name)
     output_dir = ctx.actions.declare_directory(output_dir_path)
     outputs += [output_dir]
     cache_dir = ctx.actions.declare_directory(
-      "_xpr_gen.cache.{}".format(ctx.label.name))
+        "_xpr_gen.cache.{}".format(ctx.label.name),
+    )
     outputs += [cache_dir]
 
     script = _script_cmd(
-      docker_run.path,
-      output_dir.path,
-      cache_dir.path,
-      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
-      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
-      freeargs=[
-        "--net=host",
-        "-e", "HOME=/work",
-      ],
+        runner.executable.path,
+        output_dir.path,
+        cache_dir.path,
+        envs = ",".join(["{}={}".format(k, v) for (k, v) in env.items()]),
+        mounts = ",".join(["{}:{}".format(k, v) for (k, v) in mounts.items()]),
+        freeargs = [
+            "--net=host",
+            "-e",
+            "HOME=/work",
+        ],
+        container = config.container,
     )
 
     if ctx.attr.xelab_relaxed:
@@ -117,34 +131,35 @@ def _vivado_test_impl(ctx):
     suffix = ["&&", "mv xsim.dir {}".format(xsim_dir.path)]
     compile_log = ctx.actions.declare_file("{}.log".format(ctx.attr.name))
     outputs += [compile_log]
-    
+
     ctx.actions.run_shell(
         progress_message = "Vivado elaborate library \"{}\"".format(provider.name),
-        inputs = files + data_files + [docker_run],
+        inputs = files + data_files,
         outputs = outputs,
         mnemonic = "VivadoElab",
-        tools = [docker_run],
+        tools = [runner],
         command = """\
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
             {args} 2>&1 > {log} || ( cat {log} && exit 1 ) {suffix}
         """.format(
-            script=script,
-            vivado_path=VIVADO_PATH,
-            command="xelab",
-            args=" ".join(args),
-            suffix=" ".join(suffix),
-            log=compile_log.path,
+            script = script,
+            vivado_path = config.vivado_path,
+            command = "xelab",
+            args = " ".join(args),
+            suffix = " ".join(suffix),
+            log = compile_log.path,
         ),
     )
 
     # 2. Test execution script generation
-    
+
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
-    
+
     xsim_script_file = ctx.actions.declare_file(
-        "{}.xsim.tcl".format(ctx.label.name))
+        "{}.xsim.tcl".format(ctx.label.name),
+    )
     tcl_script_template = ctx.file.custom_tcl_script or ctx.file.template
     ctx.actions.expand_template(
         output = xsim_script_file,
@@ -156,40 +171,43 @@ def _vivado_test_impl(ctx):
     )
 
     library_symlinks = []
-    runfiles_files = [xsim_dir, xsim_script_file, docker_run] + data_files
-    
+    runfiles_files = [xsim_dir, xsim_script_file, runner.executable] + data_files
+
     for name, lib_dir in libraries:
         runfiles_files.append(lib_dir)
         library_symlinks.append("""
     LIB_PATH_VAR=$(rlocation {rloc})
     mkdir -p $(dirname {orig_path})
     ln -sf "$LIB_PATH_VAR" {orig_path}
-""".format(rloc=_get_rlocation(lib_dir, ctx), orig_path=lib_dir.path))
+""".format(rloc = _get_rlocation(lib_dir, ctx), orig_path = lib_dir.path))
 
-    # Docker run command for the test script
+    # Runner command for the test script (docker_run or host_run, from the
+    # toolchain).
     # Note: we use DOCKER_RUN_PLACEHOLDER to be replaced by the actual path at runtime.
     cmd = _script_cmd(
         script_path = "DOCKER_RUN_PLACEHOLDER",
         dir_reference = ".",
         cache_dir = ".vivado_test_cache",
-        envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
-        mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
-        freeargs=[
+        envs = ",".join(["{}={}".format(k, v) for (k, v) in env.items()]),
+        mounts = ",".join(["{}:{}".format(k, v) for (k, v) in mounts.items()]),
+        freeargs = [
             "--net=host",
-            "-e", "HOME=/work",
+            "-e",
+            "HOME=/work",
         ],
+        container = config.container,
     )
 
     ctx.actions.expand_template(
         template = ctx.file._test_template,
         output = executable,
         substitutions = {
-            "{{DOCKER_RUN_RLOCATION}}": _get_rlocation(docker_run, ctx),
+            "{{DOCKER_RUN_RLOCATION}}": _get_rlocation(runner.executable, ctx),
             "{{XSIM_DIR_RLOCATION}}": _get_rlocation(xsim_dir, ctx),
             "{{XSIM_TCL_RLOCATION}}": _get_rlocation(xsim_script_file, ctx),
             "{{LIBRARY_SYMLINKS}}": "\n".join(library_symlinks),
             "{{CMD}}": cmd,
-            "{{VIVADO_PATH}}": VIVADO_PATH,
+            "{{VIVADO_PATH}}": config.vivado_path,
             "{{XSIM_ARGS}}": " ".join(ctx.attr.args),
             "{{SNAPSHOT_NAME}}": snapshot_name,
         },
@@ -201,13 +219,14 @@ def _vivado_test_impl(ctx):
             executable = executable,
             runfiles = ctx.runfiles(files = runfiles_files)
                 .merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
-                .merge(ctx.attr._script[DefaultInfo].default_runfiles),
+                .merge(config.runner_default_runfiles),
         ),
     ]
 
 vivado_test = rule(
     implementation = _vivado_test_impl,
     test = True,
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
     attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "library": attr.label(
             doc = "The library to run the simulation from",
@@ -231,7 +250,7 @@ vivado_test = rule(
         ),
         "template": attr.label(
             allow_single_file = [".tcl.template"],
-            default=Label("//build/vivado:xsim.tcl.template"),
+            default = Label("//build/vivado:xsim.tcl.template"),
             doc = "The TCL template to run.",
         ),
         "data": attr.label_list(

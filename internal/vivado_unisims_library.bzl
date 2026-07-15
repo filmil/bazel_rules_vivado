@@ -1,11 +1,13 @@
 """Vivado unisims library rule."""
 
-load("//internal:defines.bzl",
-    "VIVADO_CONFIG_ATTRS",
+load(
+    "//internal:defines.bzl",
+    "VIVADO_TOOLCHAIN_TYPE",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
-load("//internal:providers.bzl",
+load(
+    "//internal:providers.bzl",
     "VivadoLibraryProvider",
 )
 
@@ -19,15 +21,16 @@ def _vivado_unisims_library_impl(ctx):
       A list of providers, including DefaultInfo and VivadoLibraryProvider.
     """
     config = _vivado_config(ctx)
+
     # General
     name = ctx.attr.name
-    docker_run = ctx.executable._script
+    runner = config.runner
     env = ctx.attr.env
     mounts = {}
     if ctx.attr.mount:
-      mounts.update(ctx.attr.mount)
+        mounts.update(ctx.attr.mount)
     mounts.update({
-      "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
+        "/tmp/.X11-unix": "/tmp/.X11-unix:ro",
     })
 
     # Outputs
@@ -36,27 +39,30 @@ def _vivado_unisims_library_impl(ctx):
     outputs = [output_dir]
 
     cache_dir = ctx.actions.declare_directory(
-      "_xpr_gen.cache.{}".format(ctx.label.name))
+        "_xpr_gen.cache.{}".format(ctx.label.name),
+    )
     outputs += [cache_dir]
 
     script = _script_cmd(
-      docker_run.path,
-      output_dir.path,
-      cache_dir.path,
-      envs=",".join(["{}={}".format(k, v) for (k,v) in env.items()]),
-      mounts=",".join(["{}:{}".format(k, v) for (k,v) in mounts.items()]),
-      freeargs=[
-        "--net=host",
-        "-e", "HOME=/work",
-      ],
-      container=config.container,
+        runner.executable.path,
+        output_dir.path,
+        cache_dir.path,
+        envs = ",".join(["{}={}".format(k, v) for (k, v) in env.items()]),
+        mounts = ",".join(["{}:{}".format(k, v) for (k, v) in mounts.items()]),
+        freeargs = [
+            "--net=host",
+            "-e",
+            "HOME=/work",
+        ],
+        container = config.container,
     )
     output_dir2 = ctx.actions.declare_directory("{}.unisims.top".format(ctx.label.name))
     outputs += [output_dir2]
 
     inputs = []
     compile_script_file = ctx.actions.declare_file(
-        "{}.compile.tcl".format(ctx.label.name))
+        "{}.compile.tcl".format(ctx.label.name),
+    )
     inputs += [compile_script_file]
 
     bool_flags = []
@@ -73,7 +79,7 @@ def _vivado_unisims_library_impl(ctx):
 
     libraries = []
     for lib in ctx.attr.libraries:
-        libraries+= ["-library", lib]
+        libraries += ["-library", lib]
 
     ctx.actions.expand_template(
         output = compile_script_file,
@@ -89,51 +95,56 @@ def _vivado_unisims_library_impl(ctx):
             "{{BOOL_FLAGS}}": " ".join(bool_flags),
         },
     )
+
     #args = ["-batch", compile_script_file.path]
     args = ["-mode", "batch", "-script", compile_script_file.path]
     unisims_log = ctx.actions.declare_file(
-        "{}.unisims.log".format(ctx.label.name))
+        "{}.unisims.log".format(ctx.label.name),
+    )
     outputs += [unisims_log]
     ctx.actions.run_shell(
         progress_message = "Vivado compile unisims {}.{}.{}".format(
-            ctx.label.name, ctx.attr.family, ctx.attr.language),
-        inputs = inputs + [docker_run],
+            ctx.label.name,
+            ctx.attr.family,
+            ctx.attr.language,
+        ),
+        inputs = inputs,
         outputs = outputs,
         mnemonic = "VivadoXsim",
-        tools = [docker_run],
+        tools = [runner],
         command = """\
             {script} \
             LD_LIBRARY_PATH="{vivado_path}/lib/lnx64.o" \
             {vivado_path}/bin/setEnvAndRunCmd.sh {command} \
             {args} 2>&1 > {log} || ( cat {log} && exit 1)
         """.format(
-            script=script,
-            vivado_path=config.vivado_path,
-            command="vivado",
-            args=" ".join(args),
-            log=unisims_log.path,
+            script = script,
+            vivado_path = config.vivado_path,
+            command = "vivado",
+            args = " ".join(args),
+            log = unisims_log.path,
         ),
     )
     return [
-        DefaultInfo(files=depset([output_dir2])),
+        DefaultInfo(files = depset([output_dir2])),
         VivadoLibraryProvider(
-            name="(unisims bundle)",
-            files=[],
-            hdrs=[],
-            includes=[],
-            deps=depset([]),
-            deps_names=depset(ctx.attr.export_libraries),
-            library_dir=output_dir2,
-            unisims_libs=True,
+            name = "(unisims bundle)",
+            files = [],
+            hdrs = [],
+            includes = [],
+            deps = depset([]),
+            deps_names = depset(ctx.attr.export_libraries),
+            library_dir = output_dir2,
+            unisims_libs = True,
         ),
     ]
-
 
 vivado_unisims_library = rule(
     implementation = _vivado_unisims_library_impl,
     # Options of the compile_simlib script.
     # See: https://docs.amd.com/r/en-US/ug835-vivado-tcl-commands/compile_simlib
-    attrs = VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = {
         "simulator": attr.string(
             default = "xsim",
             doc = "Name of the top level entity to simulate",
@@ -183,20 +194,14 @@ vivado_unisims_library = rule(
             default = Label("//build/vivado:compile_simlib.tcl.template"),
             doc = "The template for the compile_simlib script.",
         ),
-        # These parameters are part of the docker_run setup.
+        # These parameters are part of the runner setup.
         "env": attr.string_dict(
             allow_empty = True,
-            doc = "A dictionary of env variables to define for the run."
+            doc = "A dictionary of env variables to define for the run.",
         ),
         "mount": attr.string_dict(
             allow_empty = True,
-            doc = "A dictionary of mounts to define for the run."
-        ),
-        "_script": attr.label(
-            default="@rules_bid//build:docker_run",
-            executable=True,
-            cfg="host",
-            doc = "The docker run script.",
+            doc = "A dictionary of mounts to define for the run.",
         ),
     },
 )

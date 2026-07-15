@@ -1,8 +1,10 @@
 """Vivado GUI rule."""
 
-load("//internal:defines.bzl",
+load(
+    "//internal:defines.bzl",
     "DOCKER_RUN_SCRIPT_ATTRS",
-    "VIVADO_CONFIG_ATTRS",
+    "VIVADO_TOOLCHAIN_TYPE",
+    _rlocation_path = "rlocation_path",
     _script_cmd = "script_cmd",
     _vivado_config = "vivado_config",
 )
@@ -19,17 +21,13 @@ def _vivado_gui_impl(ctx):
     config = _vivado_config(ctx)
     executable = ctx.actions.declare_file(ctx.label.name + ".sh")
 
-    docker_run = ctx.executable._script
+    runner = config.runner
 
-    # We use rlocation to find the docker_run script at runtime.
-    docker_run_rlocation = ""
-    if docker_run.short_path.startswith("../"):
-        docker_run_rlocation = docker_run.short_path[3:]
-    else:
-        docker_run_rlocation = ctx.workspace_name + "/" + docker_run.short_path
+    # We use rlocation to find the runner script at runtime.
+    docker_run_rlocation = _rlocation_path(ctx, runner.executable)
 
     script_rlocation = ""
-    runfiles_list = [docker_run]
+    runfiles_list = [runner.executable]
     if ctx.file.script:
         runfiles_list.append(ctx.file.script)
         if ctx.file.script.short_path.startswith("../"):
@@ -46,6 +44,12 @@ def _vivado_gui_impl(ctx):
         container = config.container,
     )
 
+    # In docker mode HOME points at a directory that is bind-mounted into the
+    # container; in host mode the local home directory is used as is.
+    gui_envs = "DISPLAY=${DISPLAY},HOME=/home/vivado"
+    if config.is_host:
+        gui_envs = "DISPLAY=${DISPLAY},HOME=${VIVADO_HOME_DIR}"
+
     ctx.actions.expand_template(
         template = ctx.file._template,
         output = executable,
@@ -53,6 +57,7 @@ def _vivado_gui_impl(ctx):
             "{{DOCKER_RUN_RLOCATION}}": docker_run_rlocation,
             "{{SCRIPT_RLOCATION}}": script_rlocation,
             "{{CMD}}": cmd,
+            "{{GUI_ENVS}}": gui_envs,
             "{{VIVADO_PATH}}": config.vivado_path,
         },
         is_executable = True,
@@ -62,14 +67,15 @@ def _vivado_gui_impl(ctx):
         DefaultInfo(
             executable = executable,
             runfiles = ctx.runfiles(files = runfiles_list).merge(ctx.attr._bash_runfiles[DefaultInfo].default_runfiles)
-              .merge(ctx.attr._script[DefaultInfo].default_runfiles),
+                .merge(config.runner_default_runfiles),
         ),
     ]
 
 vivado_gui = rule(
     implementation = _vivado_gui_impl,
     executable = True,
-    attrs = DOCKER_RUN_SCRIPT_ATTRS | VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = DOCKER_RUN_SCRIPT_ATTRS | {
         "script": attr.label(
             allow_single_file = [".tcl"],
             doc = "Optional TCL script to run on startup.",

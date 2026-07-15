@@ -1,11 +1,14 @@
 """Vivado program device rule."""
 
-load("//internal:providers.bzl",
-    "VivadoBitstreamProvider",
-)
-load("//internal:defines.bzl",
-    "VIVADO_CONFIG_ATTRS",
+load(
+    "//internal:defines.bzl",
+    "VIVADO_TOOLCHAIN_TYPE",
+    _rlocation_path = "rlocation_path",
     _vivado_config = "vivado_config",
+)
+load(
+    "//internal:providers.bzl",
+    "VivadoBitstreamProvider",
 )
 
 def _vivado_program_device(ctx):
@@ -17,6 +20,7 @@ def _vivado_program_device(ctx):
     Returns:
       A DefaultInfo provider.
     """
+
     # For now, only one bitstream.
     bitstream = None
     bittarget = None
@@ -26,12 +30,12 @@ def _vivado_program_device(ctx):
             bitstream = file
             break
 
-
     bitstream_provider = bittarget[VivadoBitstreamProvider]
     bitfile = bitstream_provider.bitstream
 
     # Needed binaries
-    script = ctx.attr._script.files.to_list()[0]
+    config = _vivado_config(ctx)
+    script = config.runner.executable
     gotopt2 = ctx.attr._gotopt2.files.to_list()[0]
     generator = ctx.attr._proggen.files.to_list()[0]
 
@@ -55,27 +59,29 @@ def _vivado_program_device(ctx):
     for target in ctx.attr._tools:
         data += target.files.to_list()
 
-
     # Generated script file.
     daemon_inputs = []
     daemon_outputs = []
     default_runfiles = []
-
-    config = _vivado_config(ctx)
 
     outfile = ctx.actions.declare_file("{}.sh".format(ctx.attr.name))
     args = ctx.actions.args()
     args.add("--outfile", outfile.path)
     args.add("--gotopt2", gotopt2.path)
     args.add("--run-docker", script.path)
+    args.add("--runner-rlocation", _rlocation_path(ctx, script))
     args.add("--template", tpl1.path)
     args.add("--bitfile", bitfile.short_path)
     args.add("--vivado-version", config.vivado_version)
+    args.add("--vivado-path", config.vivado_path)
+    args.add("--container", config.container)
+    args.add("--vivado-mode", config.mode)
 
     # Add runner arguments here.
     prog_runner_args = ctx.expand_location(
         " ".join(ctx.attr.prog_daemon_args),
-        targets=ctx.attr.data)
+        targets = ctx.attr.data,
+    )
     args.add("--prog-runner-args={}".format(prog_runner_args))
     args.add("--prog-runner-binary", ctx.files.prog_daemon[0].short_path)
 
@@ -84,7 +90,8 @@ def _vivado_program_device(ctx):
         outputs = [outfile],
         executable = generator,
         tools = [
-            gotopt2, script
+            gotopt2,
+            script,
         ] + data,
         arguments = [args],
         mnemonic = "PROGGEN",
@@ -92,17 +99,17 @@ def _vivado_program_device(ctx):
     )
 
     runfiles = ctx.runfiles(
-        files=[script, gotopt2, yaml, bitfile],
+        files = [script, gotopt2, yaml, bitfile],
         collect_data = True,
     )
     tools_files = []
     for target in ctx.attr._tools:
         tools_files += target.files.to_list()
 
-    tools_runfiles = ctx.runfiles(files=tools_files, collect_data=True)
+    tools_runfiles = ctx.runfiles(files = tools_files, collect_data = True)
 
     default_runfiles += [
-        ctx.attr._script[DefaultInfo].default_runfiles,
+        config.runner_default_runfiles,
         ctx.attr._proggen[DefaultInfo].default_runfiles,
         ctx.attr._data[DefaultInfo].default_runfiles,
         ctx.attr._gotopt2[DefaultInfo].default_runfiles,
@@ -114,40 +121,35 @@ def _vivado_program_device(ctx):
 
     return [
         DefaultInfo(
-            files=depset([outfile, yaml, gotopt2]),
-            runfiles=runfiles,
+            files = depset([outfile, yaml, gotopt2]),
+            runfiles = runfiles,
             executable = outfile,
-        )
+        ),
     ]
 
 vivado_program_device = rule(
     implementation = _vivado_program_device,
     executable = True,
-    attrs = VIVADO_CONFIG_ATTRS | {
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+    attrs = {
         "deps": attr.label_list(
             providers = [VivadoBitstreamProvider],
             doc = "The list of deps containing bitstream code",
         ),
-        "_script": attr.label(
-            default="@rules_bid//build:docker_run",
-            executable=True,
-            cfg="host",
-            doc = "The docker run script.",
-        ),
         "_gotopt2": attr.label(
-            default="@gotopt2//:bin",
-            executable=True,
-            cfg="host",
+            default = "@gotopt2//:bin",
+            executable = True,
+            cfg = "host",
             doc = "The gotopt2 binary.",
         ),
         "_proggen": attr.label(
-            default=Label("//build/vivado/bin/proggen"),
-            executable=True,
-            cfg="host",
+            default = Label("//build/vivado/bin/proggen"),
+            executable = True,
+            cfg = "host",
             doc = "The program to generate a programming wrapper",
         ),
         "_data": attr.label(
-            default=Label("//build/vivado/bin/proggen:data"),
+            default = Label("//build/vivado/bin/proggen:data"),
             doc = "The program to generate a programming wrapper",
             providers = [DefaultInfo],
         ),

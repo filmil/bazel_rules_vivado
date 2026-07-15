@@ -44,8 +44,16 @@ source "${_log_bash_loc}"
 readonly _this_dir="${0%/*}"
 log::debug "this_dir: ${_this_dir}"
 
-# These should be immune to path changes.
-_run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
+# The runner script comes from the Vivado toolchain: docker_run in docker
+# mode, host_run in host mode.
+_run_docker=""
+if [[ "{{ .RunnerRlocation }}" != "" ]]; then
+    _run_docker="$(rlocation "{{ .RunnerRlocation }}")"
+fi
+# These fallbacks should be immune to path changes.
+if [[ "${_run_docker}" == "" ]]; then
+    _run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
+fi
 if [[ "${_run_docker}" == "" ]]; then
     _run_docker="$(rlocation rules_bid+/build/docker_run_/docker_run)"
 fi
@@ -97,9 +105,13 @@ if [[ "${gotopt2_device}" == "" ]]; then
 fi
 
 readonly _tcl_script_file="prog_flash.tcl"
-# The root of the Vivado installation in the container's filesystem.
+# The root of the Vivado installation (in the container's filesystem in
+# docker mode, on the host filesystem in host mode).
 readonly _vivado_version="{{ .VivadoVersion }}"
-readonly _vivado_root="/opt/Xilinx/${_vivado_version}/Vivado"
+readonly _vivado_root="{{ .VivadoPath }}"
+# Where generated files are visible to Vivado: /work in the container,
+# the current directory on the host.
+readonly _work_dir="{{ .WorkDir }}"
 
 log::debug "Creating script file: ${_tcl_script_file}"
 log::debug "Using flash image:    ${_mcsfile}"
@@ -164,7 +176,7 @@ EOF
 
 env RUNFILES_DIR="$PWD/.." \
 "${_run_docker}" \
-    --container=xilinx-vivado:${_vivado_version} \
+    --container={{ .Container }} \
     --dir-reference=${PWD} \
     --source-dir=${PWD} \
     --mounts=/tmp/.X11-unix:/tmp/.X11-unix:ro,"${PWD}:/work:rw" \
@@ -173,6 +185,6 @@ env RUNFILES_DIR="$PWD/.." \
     LD_LIBRARY_PATH="${_vivado_root}/lib/lnx64.o" \
     "${_vivado_root}/bin/setEnvAndRunCmd.sh" vivado \
     -notrace -mode batch \
-    -source "/work/${_tcl_script_file}" | log::prefix "[vivado] " \
+    -source "${_work_dir}/${_tcl_script_file}" | log::prefix "[vivado] " \
     && log::info "OK" \
     || log::error "The flash programming command failed."

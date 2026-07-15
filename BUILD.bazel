@@ -1,8 +1,37 @@
 load("@bazel_lib//:bzl_library.bzl", "bzl_library")
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
+
+# Selects how Vivado is executed: "docker" (the default) runs Vivado inside
+# the local `xilinx-vivado:<version>` Docker container; "host" runs a Vivado
+# installed on the host directly (see --//internal:vivado_path for its
+# location). Set it in your `.bazelrc`:
+#
+#   build --@rules_vivado//:vivado_mode=host
+string_flag(
+    name = "vivado_mode",
+    build_setting_default = "docker",
+    values = [
+        "docker",
+        "host",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "vivado_mode_docker",
+    flag_values = {":vivado_mode": "docker"},
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "vivado_mode_host",
+    flag_values = {":vivado_mode": "host"},
+    visibility = ["//visibility:public"],
+)
 
 gazelle_binary(
     name = "gazelle_bin",

@@ -1,27 +1,33 @@
 """Vivado rules for Bazel."""
 
-load("//internal:vivado_project.bzl", _vivado_project = "vivado_project")
-load("//internal:vivado_synthesis.bzl", _vivado_synthesis = "vivado_synthesis")
-load("//internal:vivado_synthesis2.bzl", _vivado_synthesis2 = "vivado_synthesis2")
-load("//internal:vivado_place_and_route.bzl", _vivado_place_and_route = "vivado_place_and_route")
-load("//internal:vivado_place_and_route2.bzl", _vivado_place_and_route2 = "vivado_place_and_route2")
-load("//internal:vivado_program_device.bzl", _vivado_program_device = "vivado_program_device")
-load("//internal:vivado_library.bzl",
+load(
+    "//internal:toolchain.bzl",
+    _VIVADO_TOOLCHAIN_TYPE = "VIVADO_TOOLCHAIN_TYPE",
+    _vivado_toolchain = "vivado_toolchain",
+)
+load("//internal:vivado_extract.bzl", _vivado_extract = "vivado_extract")
+load("//internal:vivado_generics.bzl", _vivado_generics = "vivado_generics")
+load("//internal:vivado_gui.bzl", _vivado_gui = "vivado_gui")
+load("//internal:vivado_ila.bzl", _vivado_ila = "vivado_ila")
+load("//internal:vivado_ip.bzl", _vivado_ip = "vivado_ip")
+load(
+    "//internal:vivado_library.bzl",
     _vivado_library = "vivado_library",
     _vivado_library_transition = "vivado_library_transition",
 )
+load("//internal:vivado_place_and_route.bzl", _vivado_place_and_route = "vivado_place_and_route")
+load("//internal:vivado_place_and_route2.bzl", _vivado_place_and_route2 = "vivado_place_and_route2")
+load("//internal:vivado_program_device.bzl", _vivado_program_device = "vivado_program_device")
+load("//internal:vivado_program_flash.bzl", _vivado_program_flash = "vivado_program_flash")
+load("//internal:vivado_project.bzl", _vivado_project = "vivado_project")
+load("//internal:vivado_read_ila.bzl", _vivado_read_ila = "vivado_read_ila")
+load("//internal:vivado_repl.bzl", _vivado_repl = "vivado_repl")
 load("//internal:vivado_simulation.bzl", _vivado_simulation = "vivado_simulation")
+load("//internal:vivado_synthesis.bzl", _vivado_synthesis = "vivado_synthesis")
+load("//internal:vivado_synthesis2.bzl", _vivado_synthesis2 = "vivado_synthesis2")
 load("//internal:vivado_test.bzl", _vivado_test = "vivado_test")
 load("//internal:vivado_unisims_library.bzl", _vivado_unisims_library = "vivado_unisims_library")
-load("//internal:vivado_generics.bzl", _vivado_generics = "vivado_generics")
-load("//internal:vivado_repl.bzl", _vivado_repl = "vivado_repl")
-load("//internal:vivado_gui.bzl", _vivado_gui = "vivado_gui")
-load("//internal:vivado_ip.bzl", _vivado_ip = "vivado_ip")
 load("//internal:vivado_view.bzl", _vivado_view = "vivado_view")
-load("//internal:vivado_ila.bzl", _vivado_ila = "vivado_ila")
-load("//internal:vivado_read_ila.bzl", _vivado_read_ila = "vivado_read_ila")
-load("//internal:vivado_extract.bzl", _vivado_extract = "vivado_extract")
-load("//internal:vivado_program_flash.bzl", _vivado_program_flash = "vivado_program_flash")
 
 vivado_project = _vivado_project
 vivado_synthesis = _vivado_synthesis
@@ -43,3 +49,9 @@ vivado_ila = _vivado_ila
 vivado_read_ila = _vivado_read_ila
 vivado_extract = _vivado_extract
 vivado_program_flash = _vivado_program_flash
+
+# The Vivado execution toolchain: declare your own instance to customize how
+# Vivado is invoked (docker vs. host, install path, container image). See
+# //internal:toolchain.bzl and the README for details.
+vivado_toolchain = _vivado_toolchain
+VIVADO_TOOLCHAIN_TYPE = _VIVADO_TOOLCHAIN_TYPE
