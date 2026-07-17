@@ -14,3 +14,12 @@ local_path_override(
     module_name = "rules_vivado",
     path = "../",
 )
+
+# Example of a Vivado toolchain provided by a third-party module (i.e. not
+# the root module and not rules_vivado itself). Its toolchain activates
+# under --@rules_vivado//:vivado_mode=custom.
+bazel_dep(name = "vivado_toolchain_provider", version = "0.0.0")
+local_path_override(
+    module_name = "vivado_toolchain_provider",
+    path = "toolchain_provider",
+)

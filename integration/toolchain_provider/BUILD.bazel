@@ -1,0 +1,24 @@
+# An example of a module -- other than the root module and rules_vivado
+# itself -- providing a Vivado toolchain. See MODULE.bazel for how it is
+# registered.
+
+load("@rules_vivado//build/vivado:rules.bzl", "vivado_toolchain")
+
+package(default_visibility = ["//visibility:public"])
+
+vivado_toolchain(
+    name = "provider_vivado",
+    mode = "host",
+    # A deliberately distinctive path: actions resolved against this
+    # toolchain reference Vivado under this prefix, which makes the
+    # selection observable with `bazel aquery`.
+    vivado_path = "/custom/provider/Vivado",
+    runner = "@rules_vivado//internal:host_run",
+)
+
+toolchain(
+    name = "provider_vivado_toolchain",
+    target_settings = ["@rules_vivado//:vivado_mode_custom"],
+    toolchain = ":provider_vivado",
+    toolchain_type = "@rules_vivado//toolchains:toolchain_type",
+)

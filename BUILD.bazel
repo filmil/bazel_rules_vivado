@@ -8,7 +8,9 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 # Selects how Vivado is executed: "docker" (the default) runs Vivado inside
 # the local `xilinx-vivado:<version>` Docker container; "host" runs a Vivado
 # installed on the host directly (see --//internal:vivado_path for its
-# location). Set it in your `.bazelrc`:
+# location); "custom" matches none of the built-in toolchains, guaranteeing
+# that a toolchain registered by your module (or one of your dependencies)
+# is selected regardless of registration order. Set it in your `.bazelrc`:
 #
 #   build --@rules_vivado//:vivado_mode=host
 string_flag(
@@ -17,6 +19,7 @@ string_flag(
     values = [
         "docker",
         "host",
+        "custom",
     ],
     visibility = ["//visibility:public"],
 )
@@ -30,6 +33,15 @@ config_setting(
 config_setting(
     name = "vivado_mode_host",
     flag_values = {":vivado_mode": "host"},
+    visibility = ["//visibility:public"],
+)
+
+# Use this in `target_settings` of your own `toolchain()` registration to
+# activate it only under --//:vivado_mode=custom. No built-in toolchain
+# matches this mode.
+config_setting(
+    name = "vivado_mode_custom",
+    flag_values = {":vivado_mode": "custom"},
     visibility = ["//visibility:public"],
 )
 
