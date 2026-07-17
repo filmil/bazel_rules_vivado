@@ -50,6 +50,7 @@ Two modes are built in:
 | :--- | :--- | :--- |
 | `docker` (default) | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
 | `host` | Runs a Vivado installed on the host machine directly. | A local Vivado installation. |
+| `custom` | Matches no built-in toolchain; a toolchain registered by you or one of your dependency modules is selected instead. | A registered `vivado_toolchain` (see below). |
 
 ### Selecting the mode
 
@@ -122,6 +123,59 @@ flags and are therefore interchangeable:
 *   `@rules_bid//build:docker_run` wraps the command in `docker run`;
 *   `@rules_vivado//internal:host_run` ignores the docker-specific flags and
     executes the command directly on the host.
+
+A custom `runner` may be supplied instead: any executable that accepts the
+same command line contract (flags first, the Vivado command tail after) can
+take their place -- for example a podman wrapper, or a script that runs the
+command on a remote build machine. Set `mode` to whichever of the two
+built-in modes matches the runner's execution semantics: `docker` if the
+command runs in an environment where the working directory is mounted at
+`/work`, `host` if it runs in place.
+
+### Providing a toolchain from another module
+
+A Vivado toolchain does not have to come from your root module: any Bazel
+module that depends on `rules_vivado` can define `vivado_toolchain`
+instances and register them in its own `MODULE.bazel` with
+`register_toolchains()`. This lets e.g. an infrastructure module ship a
+ready-made Vivado setup that all of its dependents pick up automatically.
+
+Bazel selects among registered toolchains in this order: toolchains passed
+via `--extra_toolchains` first, then the root module's registrations, then
+each dependency module's registrations (in module graph order, which for
+direct dependencies follows their `bazel_dep` declaration order). The
+built-in `rules_vivado` toolchains participate in the same ordering.
+
+To make the selection independent of that ordering, the
+`--@rules_vivado//:vivado_mode` flag accepts a third value, `custom`, which
+no built-in toolchain matches. A providing module gates its toolchain on
+that mode:
+
+```python
+# In the providing module's BUILD.bazel:
+toolchain(
+    name = "provider_vivado_toolchain",
+    target_settings = ["@rules_vivado//:vivado_mode_custom"],
+    toolchain = ":provider_vivado",
+    toolchain_type = "@rules_vivado//toolchains:toolchain_type",
+)
+```
+
+```python
+# In the providing module's MODULE.bazel:
+register_toolchains("//:all")
+```
+
+and consumers activate it in their `.bazelrc`:
+
+```
+build --@rules_vivado//:vivado_mode=custom
+```
+
+Under `custom` mode the provided toolchain is guaranteed to be selected (or,
+if none is registered, toolchain resolution fails with a clear error rather
+than silently falling back to Docker). A working example lives in
+[`integration/toolchain_provider`](integration/toolchain_provider/).
 
 ### Notes on host mode
 

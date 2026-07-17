@@ -1,0 +1,15 @@
+module(
+    name = "vivado_toolchain_provider",
+    version = "0.0.0",
+    bazel_compatibility = [
+        ">=8.0.0",
+    ],
+)
+
+bazel_dep(name = "rules_vivado", version = "0.0.0")
+
+# A dependency module can register Vivado toolchains of its own. The
+# registration is gated on --@rules_vivado//:vivado_mode=custom (see
+# BUILD.bazel), a mode that no rules_vivado built-in toolchain matches, so
+# this toolchain is selected regardless of module registration order.
+register_toolchains("//:all")
