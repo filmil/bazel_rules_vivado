@@ -1,4 +1,3 @@
-
 """Defines providers used in Vivado rules."""
 
 VivadoLibraryProvider = provider(
@@ -12,52 +11,48 @@ VivadoLibraryProvider = provider(
         "deps_names": "A depset of library names contained in `deps`",
         "library_dir": "A Vivado compiled library directory",
         "unisims_libs": "A boolean indicating if this library contains UNISIMs",
-    }
+    },
 )
-
 
 VivadoGenProvider = provider(
-  "Information about generated vivado files",
-  fields = {
-    "sources": "The list of the module's source files",
-    "deps": "The list of library dependencies",
-    "headers": "A list of header files. " +
-      " Headers are present in the sandbox, but not on the command line",
-    "constraints": "The list of constraints files to use",
-    "include_dirs": "A list of include directories for the code at hand",
-    "xpr_tcl_script": "The TCL script used by vivado to generate a project file",
-    "synth_tcl_script": "The TCL script used to start synthesis",
-    "pnr_tcl_script": "The TCL script used to start place and route",
-    "pgm_tcl_script": "The TCL script used to start programming the device",
-    "xpr_file": "The generated Vivado project file",
-    "top_level": "The top level entity to process",
-    "project_name": "The name of the project, after the target",
-    "xpr_gen_output_dir": "The output directory from the xpr_gen step",
-    "part": "The part designator that is being targeted in this project",
-  },
+    "Information about generated vivado files",
+    fields = {
+        "sources": "The list of the module's source files",
+        "deps": "The list of library dependencies",
+        "headers": "A list of header files. " +
+                   " Headers are present in the sandbox, but not on the command line",
+        "constraints": "The list of constraints files to use",
+        "include_dirs": "A list of include directories for the code at hand",
+        "xpr_tcl_script": "The TCL script used by vivado to generate a project file",
+        "synth_tcl_script": "The TCL script used to start synthesis",
+        "pnr_tcl_script": "The TCL script used to start place and route",
+        "pgm_tcl_script": "The TCL script used to start programming the device",
+        "xpr_file": "The generated Vivado project file",
+        "top_level": "The top level entity to process",
+        "project_name": "The name of the project, after the target",
+        "xpr_gen_output_dir": "The output directory from the xpr_gen step",
+        "part": "The part designator that is being targeted in this project",
+    },
 )
-
 
 VivadoSynthProvider = provider(
-  "Information about the synthesis step",
-  fields = {
-    "synth_output_dir": "The output directory for the synthesis step",
-    # It seems that Vivado wants to write into it.
-    "synth_xpr_file": "The XPR file after synthesis",
-    "synth_dcp_file": "The DCP file of synthesis step",
-    "probes": "The probes file (.ltx) generated during synthesis (optional)",
-  },
+    "Information about the synthesis step",
+    fields = {
+        "synth_output_dir": "The output directory for the synthesis step",
+        # It seems that Vivado wants to write into it.
+        "synth_xpr_file": "The XPR file after synthesis",
+        "synth_dcp_file": "The DCP file of synthesis step",
+        "probes": "The probes file (.ltx) generated during synthesis (optional)",
+    },
 )
-
 
 VivadoBitstreamProvider = provider(
-  "Information about the bitstream",
-  fields = {
-    "bitstream": "The bitstream to program into the FPGA",
-    "probes": "The probes file (.ltx) generated during place and route (optional)",
-  },
+    "Information about the bitstream",
+    fields = {
+        "bitstream": "The bitstream to program into the FPGA",
+        "probes": "The probes file (.ltx) generated during place and route (optional)",
+    },
 )
-
 
 VivadoSimulationProvider = provider(
     "Information about the simulation step",
@@ -67,4 +62,3 @@ VivadoSimulationProvider = provider(
         "xsim_dir": "The xsim.dir directory containing the snapshot",
     },
 )
-

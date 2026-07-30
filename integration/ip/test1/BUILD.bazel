@@ -7,12 +7,11 @@ load(
     "vivado_place_and_route2",
     "vivado_program_device",
     "vivado_simulation",
-    "vivado_test",
 
     # Version2
     "vivado_synthesis2",
+    "vivado_test",
 )
-
 
 filegroup(
     name = "srcs",
@@ -27,32 +26,27 @@ filegroup(
     ],
 )
 
-
 vivado_library(
     name = "test1",
     srcs = [":srcs"],
 )
-
-
 
 vivado_synthesis2(
     name = "synth",
     srcs = [
         ":srcs",
     ],
+    part = "xc7a200tfbg484-2",
+    top = "test",
     xdcs = [
         "//boards:constraints_basic",
     ],
-    part = "xc7a200tfbg484-2",
-    top = "test",
 )
-
 
 vivado_place_and_route2(
     name = "pnr",
-    synthesis =  ":synth",
+    synthesis = ":synth",
 )
-
 
 vivado_simulation(
     name = "sim",
@@ -66,7 +60,6 @@ vivado_test(
     library = ":test1",
     top = "tb",
 )
-
 
 # Example of transitioning the test1 library to the VHDL-2019 standard.
 # The year "2019" is a full year number which translates to "--2019" for xvhdl.
@@ -87,4 +80,3 @@ vivado_test(
     library = ":test1_2019",
     top = "tb",
 )
-

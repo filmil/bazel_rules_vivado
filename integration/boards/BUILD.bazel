@@ -1,6 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-
 filegroup(
     name = "constraints_basic",
     srcs = [
@@ -14,4 +13,3 @@ filegroup(
         "alinx-a200t-b.xdc",
     ],
 )
-

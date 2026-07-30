@@ -9,11 +9,11 @@ package(default_visibility = ["//visibility:public"])
 vivado_toolchain(
     name = "provider_vivado",
     mode = "host",
+    runner = "@rules_vivado//internal:host_run",
     # A deliberately distinctive path: actions resolved against this
     # toolchain reference Vivado under this prefix, which makes the
     # selection observable with `bazel aquery`.
     vivado_path = "/custom/provider/Vivado",
-    runner = "@rules_vivado//internal:host_run",
 )
 
 toolchain(
