@@ -11,7 +11,6 @@ load(
     "vivado_synthesis2",
 )
 
-
 filegroup(
     name = "srcs",
     # do not sort
@@ -29,11 +28,10 @@ filegroup(
     ],
 )
 
-
 vivado_library(
     name = "lib",
-    library_name = "ip_generics",
     srcs = [":srcs"],
+    library_name = "ip_generics",
 )
 
 filegroup(
@@ -43,32 +41,28 @@ filegroup(
     ],
 )
 
-
 vivado_synthesis2(
     name = "synth",
     srcs = [
         ":srcs",
     ],
+    part = "xc7a200tfbg484-2",
+    top = "test",
     xdcs = [
         ":constraints",
     ],
-    part = "xc7a200tfbg484-2",
-    top = "test",
 )
-
 
 vivado_place_and_route2(
     name = "pnr",
-    synthesis =  ":synth",
+    synthesis = ":synth",
 )
-
 
 vivado_simulation(
     name = "sim",
     library = ":lib",
-    top = "tb",
     tags = [
         "manual",
     ],
+    top = "tb",
 )
-

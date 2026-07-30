@@ -3,17 +3,16 @@
 load("//internal:vivado_ip.bzl", "vivado_ip")
 
 def vivado_ila(
-    name,
-    part,
-    probe_widths,
-    data_depth = 1024,
-    enable_storage_qualification = False,
-    input_pipe_stages = 0,
-    enable_trigger_out = False,
-    enable_trigger_in = False,
-    ila_version = "6.2",
-    **kwargs
-):
+        name,
+        part,
+        probe_widths,
+        data_depth = 1024,
+        enable_storage_qualification = False,
+        input_pipe_stages = 0,
+        enable_trigger_out = False,
+        enable_trigger_in = False,
+        ila_version = "6.2",
+        **kwargs):
     """Generates an Integrated Logic Analyzer (ILA) IP core using the vivado_ip rule.
 
     Args:

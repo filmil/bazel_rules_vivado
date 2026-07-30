@@ -38,4 +38,3 @@ vivado_library(
     # This is a special setting used *only* for the glbl library.
     use_glbl = True,
 )
-
