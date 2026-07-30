@@ -107,7 +107,9 @@ vivado.install(
     urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157.tar"],
     sha256 = "...",  # Optional but recommended; see the caveats below.
     # The device families (and optional tools) to install; everything
-    # not listed here is excluded, keeping the installation small.
+    # not listed here is excluded, keeping the installation small. See
+    # "Selecting installation components" below for the full menu of
+    # names that can appear here and how they are matched.
     modules = [
         "Artix-7",
         "Zynq-7000",

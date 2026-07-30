@@ -13,6 +13,30 @@ vivado.install(
     sha256 = "...",
     # A name selects an installer menu entry exactly or as an unambiguous
     # substring: "Artix-7" selects the 2025.2 entry "Artix-7 FPGAs".
+    #
+    # The 2025.2 installer offers these modules -- device families:
+    #   "Spartan-7 FPGAs", "Spartan UltraScale+",
+    #   "Artix-7 FPGAs", "Artix UltraScale+ FPGAs",
+    #   "Kintex-7 FPGAs", "Kintex UltraScale FPGAs",
+    #   "Kintex UltraScale+ FPGAs",
+    #   "Virtex UltraScale+ FPGAs", "Virtex UltraScale+ HBM FPGAs",
+    #   "Virtex UltraScale+ 58G FPGAs",
+    #   "Zynq-7000 All Programmable SoC", "Zynq UltraScale+ MPSoCs",
+    #   Versal parts (offered individually): "xcv80", "xcvm1102",
+    #   "xcve2002", "xcve2102", "xcve2202", "xcve2302",
+    #   "Versal RF Series ES1",
+    #   "Install devices for Alveo and edge acceleration platforms",
+    #   "Install Devices for Kria SOMs and Starter Kits"
+    # and optional tools:
+    #   "DocNav", "Vitis Model Composer(A toolbox for Simulink)",
+    #   "Vitis Embedded Development", "Vitis Networking P4",
+    #   "Power Design Manager (PDM)"
+    #
+    # Other installer versions differ. To list the menu of *your*
+    # archive, request a nonexistent module (e.g. `modules = ["?"]`):
+    # the fetch fails with the full menu in the error message. After a
+    # successful install the menu is also recorded as AVAILABLE_MODULES
+    # in @vivado_hermetic//:defs.bzl.
     modules = [
         "Artix-7",
         "Zynq-7000",
