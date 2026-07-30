@@ -58,6 +58,14 @@ bzl_library(
     ],
 )
 
+# Deliberately dependency-free: vivado_installation.bzl load()s nothing so
+# that unrelated .bzl edits never invalidate (and re-run) the ~100 GB
+# Vivado installation fetch.
+bzl_library(
+    name = "vivado_installation",
+    srcs = ["vivado_installation.bzl"],
+)
+
 bzl_library(
     name = "defines",
     srcs = ["defines.bzl"],
@@ -252,6 +260,13 @@ stardoc(
 )
 
 stardoc(
+    name = "md_vivado_installation",
+    out = "gen.vivado_installation.md",
+    input = "vivado_installation.bzl",
+    deps = [":vivado_installation"],
+)
+
+stardoc(
     name = "md_providers",
     out = "gen.providers.md",
     input = "providers.bzl",
@@ -398,6 +413,7 @@ write_source_files(
         "providers.md": ":md_providers",
         "toolchain.md": ":md_toolchain",
         "vivado_generics.md": ":md_vivado_generics",
+        "vivado_installation.md": ":md_vivado_installation",
         "vivado_library.md": ":md_vivado_library",
         "vivado_place_and_route.md": ":md_vivado_place_and_route",
         "vivado_place_and_route2.md": ":md_vivado_place_and_route2",

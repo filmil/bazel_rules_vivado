@@ -5,6 +5,7 @@ load(
     "vivado_project",
     "vivado_synthesis",
 )
+load(":hermetic_build_test.bzl", "hermetic_build_test")
 
 # A trivial test project for vivado synthesis.
 vivado_project(
@@ -21,6 +22,22 @@ vivado_synthesis(
     project = ":blinky",
 )
 
+# Example: synthesize blinky with the hermetic (Bazel-installed) Vivado
+# toolchain; the rule transitions to --//:vivado_mode=hermetic on its own.
+# Tagged manual because a cold run downloads and installs Vivado (~100 GB,
+# hours); with a warm install cache only the synthesis itself runs. Invoke
+# explicitly:
+#
+#   bazel test //build/tests/vivado:blinky_synth_hermetic_test
+#
+# See "Hermetic mode" in README.md for how to configure the installation
+# (the vivado.install tag in MODULE.bazel names the installer archive URL).
+hermetic_build_test(
+    name = "blinky_synth_hermetic_test",
+    tags = ["manual"],
+    targets = [":blinky_synth"],
+)
+
 vivado_place_and_route(
     name = "blinky_pnr",
     synthesis = ":blinky_synth",
@@ -35,8 +52,8 @@ vivado_place_and_route(
 #       --device '*/xilinx_tcf/Digilent/<serial>'       # writes the flash
 vivado_program_flash(
     name = "blinky_flash",
-    deps = [":blinky_pnr"],
+    size = 32,
     flash_part = "mt25ql256-spi-x1_x2_x4",
     interface = "SPIx4",
-    size = 32,
+    deps = [":blinky_pnr"],
 )
