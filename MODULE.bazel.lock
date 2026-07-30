@@ -295,6 +295,39 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//:extensions.bzl%vivado": {
+      "general": {
+        "bzlTransitiveDigest": "bemuD8ZNZJFb0lRfoz0zmBqLhgO/nmcSwdpXrywTF7M=",
+        "usagesDigest": "Oq9onhnCk37s98GFpa6A2a6WuNjKty5V739SHYG6z00=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "vivado_hermetic": {
+            "repoRuleId": "@@//internal:vivado_installation.bzl%vivado_installation",
+            "attributes": {
+              "urls": [
+                "file:///home/filmil/Downloads/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar"
+              ],
+              "sha256": "cd1021b04166e43c0d59cbbded7b1687dda5e9dad890b82492f872b2fe32a725",
+              "strip_prefix": "",
+              "product": "Vivado",
+              "edition": "Vivado ML Standard",
+              "modules": [
+                "Artix-7"
+              ],
+              "install_options": [],
+              "eulas": [
+                "XilinxEULA",
+                "3rdPartyEULA"
+              ],
+              "install_cache": "",
+              "install_timeout": 14400,
+              "keep_installer": false,
+              "vivado_version": "2025.2"
+            }
+          }
+        }
+      }
+    },
     "@@rules_android+//rules/android_sdk_repository:rule.bzl%android_sdk_repository_extension": {
       "general": {
         "bzlTransitiveDigest": "qHbR00gVzVzkxX+PRtv4UGcUFMtBz7TK9CNYUWH8nIE=",

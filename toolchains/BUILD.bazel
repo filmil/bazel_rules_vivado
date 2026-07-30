@@ -36,3 +36,15 @@ toolchain(
     toolchain = ":host_vivado",
     toolchain_type = ":toolchain_type",
 )
+
+# The hermetic toolchain lives in the @vivado_hermetic repository created by
+# the `vivado` module extension (//:extensions.bzl): its vivado_path is only
+# known once Vivado has been downloaded and installed there. The `toolchain`
+# attribute is resolved lazily, so the ~100 GB repository is only fetched
+# when --//:vivado_mode=hermetic actually selects this entry.
+toolchain(
+    name = "hermetic_vivado_toolchain",
+    target_settings = ["//:vivado_mode_hermetic"],
+    toolchain = "@vivado_hermetic//:vivado_toolchain",
+    toolchain_type = ":toolchain_type",
+)

@@ -8,9 +8,12 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 # Selects how Vivado is executed: "docker" (the default) runs Vivado inside
 # the local `xilinx-vivado:<version>` Docker container; "host" runs a Vivado
 # installed on the host directly (see --//internal:vivado_path for its
-# location); "custom" matches none of the built-in toolchains, guaranteeing
-# that a toolchain registered by your module (or one of your dependencies)
-# is selected regardless of registration order. Set it in your `.bazelrc`:
+# location); "hermetic" runs the Bazel-managed Vivado installation that the
+# `vivado` module extension downloads and installs into @vivado_hermetic
+# (see //:extensions.bzl); "custom" matches none of the built-in toolchains,
+# guaranteeing that a toolchain registered by your module (or one of your
+# dependencies) is selected regardless of registration order. Set it in your
+# `.bazelrc`:
 #
 #   build --@rules_vivado//:vivado_mode=host
 string_flag(
@@ -19,6 +22,7 @@ string_flag(
     values = [
         "docker",
         "host",
+        "hermetic",
         "custom",
     ],
     visibility = ["//visibility:public"],
@@ -33,6 +37,12 @@ config_setting(
 config_setting(
     name = "vivado_mode_host",
     flag_values = {":vivado_mode": "host"},
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "vivado_mode_hermetic",
+    flag_values = {":vivado_mode": "hermetic"},
     visibility = ["//visibility:public"],
 )
 
@@ -60,6 +70,15 @@ gazelle(
 buildifier(name = "buildifier")
 
 bzl_library(
+    name = "extensions",
+    srcs = ["extensions.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal:vivado_installation",
+    ],
+)
+
+bzl_library(
     name = "doc",
     srcs = ["doc.bzl"],
     visibility = ["//visibility:public"],
@@ -78,9 +97,17 @@ stardoc(
     ],
 )
 
+stardoc(
+    name = "md_extensions",
+    out = "gen.extensions.md",
+    input = "extensions.bzl",
+    deps = [":extensions"],
+)
+
 write_source_files(
     name = "update",
     files = {
         "doc.md": "//:md",
+        "extensions.md": "//:md_extensions",
     },
 )

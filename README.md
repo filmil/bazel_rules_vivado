@@ -44,12 +44,13 @@ Alternatively, if you already have Vivado installed on your machine, you can con
 
 All rules in this repository invoke Vivado through a Bazel toolchain. The
 toolchain decides *how* Vivado runs; the rules themselves are agnostic to it.
-Two modes are built in:
+The following modes are available:
 
 | Mode | What it does | Requirements |
 | :--- | :--- | :--- |
 | `docker` (default) | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
 | `host` | Runs a Vivado installed on the host machine directly. | A local Vivado installation. |
+| `hermetic` | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); ~200 GB of transient disk space. |
 | `custom` | Matches no built-in toolchain; a toolchain registered by you or one of your dependency modules is selected instead. | A registered `vivado_toolchain` (see below). |
 
 ### Selecting the mode
@@ -84,6 +85,189 @@ build --@rules_vivado//:vivado_mode=host
 build --@rules_vivado//internal:vivado_version=2024.2
 build --@rules_vivado//internal:vivado_path=/tools/Xilinx/Vivado/2024.2
 ```
+
+### Hermetic mode: a Bazel-managed Vivado installation
+
+In `hermetic` mode, Bazel itself downloads the AMD/Xilinx unified installer
+(the "SDI" single-file download from the
+[AMD download site](https://www.xilinx.com/support/download.html)) and
+performs an unattended batch install into an external repository
+(`@vivado_hermetic`). Builds then use that installation: no host Vivado, no
+Docker image, and every machine building the same workspace gets the same
+Vivado, provisioned on first use.
+
+Configure it in your `MODULE.bazel` through the `vivado` module extension:
+
+```python
+vivado = use_extension("@rules_vivado//:extensions.bzl", "vivado")
+vivado.install(
+    # Any Bazel-supported URL scheme works. AMD downloads require a
+    # login, so typically you download the archive once and serve it
+    # from a file:// path or an internal mirror.
+    urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157.tar"],
+    sha256 = "...",  # Optional but recommended; see the caveats below.
+    # The device families (and optional tools) to install; everything
+    # not listed here is excluded, keeping the installation small.
+    modules = [
+        "Artix-7",
+        "Zynq-7000",
+    ],
+)
+```
+
+and select the mode in your `.bazelrc`:
+
+```
+build --@rules_vivado//:vivado_mode=hermetic
+```
+
+A ready-made example lives in this repository:
+[`//build/tests/vivado:blinky_synth_hermetic_test`](build/tests/vivado/BUILD.bazel)
+synthesizes a small design with the hermetic toolchain. It forces
+`vivado_mode=hermetic` through a configuration transition (see
+[`hermetic_build_test.bzl`](build/tests/vivado/hermetic_build_test.bzl),
+which you can copy into your own workspace), and it is tagged `manual`
+because a cold run performs the full ~100 GB installation:
+
+```sh
+bazel test //build/tests/vivado:blinky_synth_hermetic_test
+```
+
+The `install` tag accepts, most importantly (see
+`internal/vivado_installation.bzl` for the full list, with examples for
+every attribute):
+
+| Attribute | Meaning | Default |
+| :--- | :--- | :--- |
+| `urls` | Installer archive URLs (mandatory). | |
+| `sha256` | Archive checksum. | unset |
+| `product` | Installer product menu entry. | `Vivado` |
+| `edition` | Installer edition menu entry. | `Vivado ML Standard` |
+| `modules` | Device families / tools to install (see below). | installer defaults |
+| `install_options` | Post-install steps (see below). | installer defaults |
+| `eulas` | Agreements passed to `xsetup --agree`. | `XilinxEULA,3rdPartyEULA` |
+| `install_timeout` | Batch install timeout, seconds. | 4 hours |
+
+#### Selecting installation components
+
+The AMD installer organizes an installation as a *product* (`Vivado`),
+an *edition* (`Vivado ML Standard` or `Vivado ML Enterprise`), and a menu
+of *modules*: device families and optional tools that can each be switched
+on or off. The `modules` attribute lists the modules to install; everything
+not listed is excluded, which is what keeps a hermetic install small. Rules
+for writing the list:
+
+*   A name selects a menu entry either **exactly** or as a
+    **case-insensitive substring** that matches exactly one entry. So
+    `Artix-7` selects the entry `Artix-7 FPGAs`, and `zynq-7000` selects
+    `Zynq-7000 All Programmable SoC`. An ambiguous substring (for example
+    `UltraScale`, which matches several families) fails with the list of
+    candidate entries; an unknown name fails with the whole menu.
+*   Pick the device families that cover the FPGA parts you build for: for
+    example `part = "xc7a200tfbg484-2"` (an Artix-7 part) needs the
+    `Artix-7 FPGAs` module.
+*   An empty `modules` list installs the installer's *default* selection,
+    which is large; prefer an explicit list.
+*   The menu differs per installer version. To discover it for your
+    archive, request a nonexistent module (e.g. `modules = ["?"]`) and
+    read the failure message, which prints the full menu; or after a
+    successful install read `@vivado_hermetic//:defs.bzl`, where the menu
+    is recorded as `AVAILABLE_MODULES`.
+
+For reference, the 2025.2 `FPGAs_AdaptiveSoCs_Unified_SDI` installer
+(product `Vivado`, edition `Vivado ML Standard`) offers these modules --
+device families:
+
+*   `Spartan-7 FPGAs`, `Spartan UltraScale+`
+*   `Artix-7 FPGAs`, `Artix UltraScale+ FPGAs`
+*   `Kintex-7 FPGAs`, `Kintex UltraScale FPGAs`, `Kintex UltraScale+ FPGAs`
+*   `Virtex UltraScale+ FPGAs`, `Virtex UltraScale+ HBM FPGAs`,
+    `Virtex UltraScale+ 58G FPGAs`
+*   `Zynq-7000 All Programmable SoC`, `Zynq UltraScale+ MPSoCs`
+*   Versal parts, offered individually: `xcv80`, `xcvm1102`, `xcve2002`,
+    `xcve2102`, `xcve2202`, `xcve2302`, `Versal RF Series ES1`
+*   `Install devices for Alveo and edge acceleration platforms`,
+    `Install Devices for Kria SOMs and Starter Kits`
+
+and optional tools:
+
+*   `DocNav` (documentation navigator; on by default)
+*   `Vitis Model Composer(A toolbox for Simulink)` (on by default)
+*   `Vitis Embedded Development`, `Vitis Networking P4`,
+    `Power Design Manager (PDM)`
+
+The `install_options` attribute works the same way, but for the
+installer's post-install steps; 2025.2 offers only
+`Acquire or Manage a License Key`, off by default. Leave the attribute
+empty to keep the defaults.
+
+Caveats worth knowing:
+
+*   **Scale.** The installer archive is on the order of 100 GB; the first
+    hermetic build downloads it, extracts it (another ~100 GB, deleted after
+    the install), and installs the selected modules. Expect the first build
+    to take an hour or more. Subsequent builds reuse the repository.
+*   **Repository cache.** When `sha256` is set, Bazel also stores the
+    archive in its repository cache -- a further ~100 GB copy. Omit
+    `sha256` to skip that copy at the cost of reproducibility checking.
+*   **Licensing.** By using hermetic mode you accept the AMD/Xilinx EULAs
+    listed in the `eulas` attribute, exactly as if you had clicked through
+    the installer. Only the root module may configure the installation.
+*   **The installation survives `bazel clean --expunge`**: it lives in the
+    persistent install cache described below, not in the external
+    repository, precisely so that refetches do not redo the ~100 GB
+    install.
+*   Under the hood hermetic mode is host mode whose `vivado_path` points
+    at the cached installation; the "Notes on host mode" below apply to
+    it.
+
+#### Reinstalls and the install cache
+
+Bazel refetches an external repository whenever the repository rule's
+inputs change: its attributes (the `install` tag values), the `.bzl` file
+implementing it, the output base (`bazel clean --expunge`), or tracked
+environment variables. For most repositories a refetch is cheap; for a
+Vivado installation it would mean re-downloading and re-installing ~100 GB
+for a result that is bit-for-bit the same. Two measures keep this from
+happening:
+
+*   The actual installation lives *outside* the workspace's output base,
+    in a content-addressed **install cache** inside Bazel's per-user
+    output user root: by default
+    `~/.cache/bazel/_bazel_<user>/rules_vivado/<version>-<key>`, where
+    `<key>` is the archive `sha256` (or, if unset, a hash of the URLs and
+    the component selection). This ties the installation's lifetime to
+    the user's Bazel cache -- all workspaces of the user share it, and
+    deleting the Bazel cache deletes it -- while `bazel clean --expunge`
+    (which only removes one workspace's output base) leaves it intact. A
+    repository refetch that finds the cache entry's `COMPLETE` marker
+    skips the download and install entirely and merely regenerates the
+    repository's two small files -- it completes in seconds. Reinstalls
+    therefore only happen when the *selection* actually changes
+    (different archive, modules, edition, ...), which creates a new cache
+    entry.
+*   `internal/vivado_installation.bzl` deliberately `load()`s nothing, so
+    edits to the rest of the ruleset never invalidate the repository in
+    the first place.
+
+Knobs and consequences:
+
+*   The cache root is, in order: the `install_cache` attribute of the
+    `install` tag, the `RULES_VIVADO_CACHE` environment variable, then
+    `rules_vivado` inside Bazel's output user root. Point it at a shared
+    location (e.g. `/opt/bazel-vivado-cache`) to share one installation
+    across users on a machine; concurrent installs coordinate through a
+    lock file.
+*   `install_cache = "none"` restores the uncached behavior: the
+    installation lives inside the repository and every refetch redoes it.
+*   To reclaim the disk space without touching the rest of the Bazel
+    cache, delete the cache directory yourself
+    (`rm -rf ~/.cache/bazel/_bazel_$USER/rules_vivado`); afterwards run
+    `bazel fetch --force --repo=@vivado_hermetic` (or
+    `bazel clean --expunge`) so the repository notices and reinstalls on
+    the next hermetic build.
+*   Old cache entries (from previous selections) are not garbage
+    collected; prune them manually when disk space matters.
 
 ### Defining a custom toolchain
 
