@@ -17,3 +17,8 @@ set_property IOSTANDARD LVCMOS33 [all_inputs]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 set_property CFGBVS VCCO [current_design]
 
+# The blinky_flash target writes the bitstream to the board's QSPI flash
+# over a 4-bit bus (interface = "SPIx4"); write_cfgmem refuses a
+# bitstream whose SPI bus width does not match.
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+
