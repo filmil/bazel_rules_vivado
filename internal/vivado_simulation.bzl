@@ -22,7 +22,14 @@ def _vivado_simulation_impl(ctx):
       A list of providers, including DefaultInfo and OutputGroupInfo.
     """
     config = _vivado_config(ctx)
+
+    # This rule always produces VCD and WDB waveform outputs, and xsim can
+    # only write those when the snapshot was elaborated with trace
+    # information -- without a -debug flag the simulation aborts. Default
+    # to "typical", unless the caller picks a level via xelab_args.
     args = []
+    if "-debug" not in ctx.attr.xelab_args:
+        args += ["-debug", "typical"]
     args += ctx.attr.xelab_args
     files = []
     # elaborate first
