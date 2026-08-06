@@ -1,0 +1,35 @@
+# CI for Forgejo (git.hdlfactory.com), running on a self-hosted runner
+# whose `vivado` label maps to host mode on a machine with a persistent
+# rules_vivado hermetic install cache (RULES_VIVADO_CACHE is exported by
+# the runner). Unlike the GitHub workflow, which must exclude
+# //build/tests/..., this runs the *entire* suite with real Vivado via
+# --//:vivado_mode=hermetic.
+#
+# RUNNER_BAZEL_STARTUP_FLAGS / RUNNER_BAZEL_FLAGS come from the runner
+# configuration and carry machine-specific cache locations; they expand
+# to nothing on runners that do not define them.
+name: Test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test-hermetic:
+    runs-on: vivado
+    steps:
+      - name: Checkout
+        uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Test everything with the hermetic Vivado toolchain
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          bazel ${RUNNER_BAZEL_STARTUP_FLAGS:-} test ${RUNNER_BAZEL_FLAGS:-} \
+            --//:vivado_mode=hermetic \
+            --test_output=errors \
+            //...
+      - name: Hermetic transition example test
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          bazel ${RUNNER_BAZEL_STARTUP_FLAGS:-} test ${RUNNER_BAZEL_FLAGS:-} \
+            --test_output=errors \
+            //build/tests/vivado:blinky_synth_hermetic_test
