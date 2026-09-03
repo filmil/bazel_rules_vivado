@@ -50,7 +50,7 @@ The following modes are available:
 | :--- | :--- | :--- |
 | `docker` (default) | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
 | `host` | Runs a Vivado installed on the host machine directly. | A local Vivado installation. |
-| `hermetic` | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); ~200 GB of transient disk space. |
+| `hermetic` | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); about 300 GB of transient disk space, and Bazel 9.2.0 or later for a `file://` URL. |
 | `custom` | Matches no built-in toolchain; a toolchain registered by you or one of your dependency modules is selected instead. | A registered `vivado_toolchain` (see below). |
 
 ### Selecting the mode
@@ -207,11 +207,27 @@ Caveats worth knowing:
 
 *   **Scale.** The installer archive is on the order of 100 GB; the first
     hermetic build downloads it, extracts it (another ~100 GB, deleted after
-    the install), and installs the selected modules. Expect the first build
-    to take an hour or more. Subsequent builds reuse the repository.
-*   **Repository cache.** When `sha256` is set, Bazel also stores the
-    archive in its repository cache -- a further ~100 GB copy. Omit
-    `sha256` to skip that copy at the cost of reproducibility checking.
+    the install), and installs the selected modules. Subsequent builds
+    reuse the repository. See "What a cold install actually costs" below
+    for measured numbers.
+*   **Repository cache.** Bazel stores the archive in its repository
+    cache whether or not `sha256` is set. Measured on Bazel 9.2.0 with
+    no `sha256`: the archive appeared under
+    `<repository_cache>/content_addressable/sha256/<hash>/file` at the
+    archive's exact byte size, in a directory named with the archive's
+    own checksum, which Bazel computed itself. Budget for that copy in
+    either case. Since it costs the same either way, setting `sha256` is
+    close to free and buys integrity checking.
+*   **Bazel 9.2.0 or later is required** if the archive is named by a
+    `file://` URL, which is the usual way to serve it. Bazel 9.1.0
+    crashes partway through the fetch:
+    `NullPointerException: Cannot invoke "String.equals(Object)" because
+    the return value of "java.net.URI.getHost()" is null`, thrown from
+    `ProgressInputStream.reportProgress`. `URI.getHost()` is `null` for a
+    `file://` URL, and the download progress reporter calls `equals` on
+    it. The crash arrives on the first progress report, tens of megabytes
+    into the transfer, so a small archive may never reach it and a 100 GB
+    one always does.
 *   **Licensing.** By using hermetic mode you accept the AMD/Xilinx EULAs
     listed in the `eulas` attribute, exactly as if you had clicked through
     the installer. Only the root module may configure the installation.
@@ -222,6 +238,53 @@ Caveats worth knowing:
 *   Under the hood hermetic mode is host mode whose `vivado_path` points
     at the cached installation; the "Notes on host mode" below apply to
     it.
+
+#### What a cold install actually costs
+
+Measured once, end to end, on a single machine: 8 core x86-64, 62 GB
+RAM, `modules = ["Artix-7"]`, Bazel 9.2.0, Vivado 2025.2.
+
+The storage matters more than anything else here, so it is stated
+first: the installer archive and the Bazel output base were on the same
+volume, an LVM logical volume on a RAID-1 pair of 7200 RPM HGST
+HUS726020AL spinning disks. RAID-1 writes every block to both members,
+so write bandwidth is that of one disk. Anyone running this on NVMe
+should expect the copying phases to be several times faster, and should
+treat the timings below as an upper bound rather than a typical result.
+
+| Phase | Reached at | Duration |
+| :--- | ---: | ---: |
+| Copy the archive, write it to the repository cache, unpack it | 1h 52m | 1h 52m |
+| Batch install starts | 2h 01m | |
+| Install finishes, `COMPLETE` written | 2h 14m | 13m |
+| First simulation output | 2h 16m | |
+
+The shape of that is worth stating plainly, because it is the opposite
+of what the wording above implies. **The install is not the expensive
+part.** It took 13 minutes. The other 112 minutes went entirely on
+moving the archive around: copying it into the output base, writing a
+second copy into the repository cache, and unpacking it.
+
+Sizes measured in the same run:
+
+| Thing | Size |
+| :--- | ---: |
+| Installer archive | 95.7 GiB (102739568640 bytes) |
+| Copy in the repository cache | 97.3 GiB |
+| Unpacked installer tree | 95.7 GiB, deleted after the install |
+| Installed Vivado, `Artix-7` only | 51.2 GiB |
+| **Peak free space consumed** | **about 291 GB** |
+
+So the `~200 GB of transient disk space` figure in the mode table is
+low. Three copies of a 100 GB archive exist at once at the peak, before
+the archive is deleted. Plan for 300 GB free, plus the installed tree.
+
+These are single-run numbers from one machine, not a benchmark. The
+bottleneck is copying rather than compute: the install phase used
+several cores and finished in 13 minutes, while the three sequential
+passes over ~100 GB took nearly two hours on rotational storage. A
+machine with the archive on a separate device from the output base, or
+on flash, should do markedly better.
 
 #### Reinstalls and the install cache
 
