@@ -30,7 +30,7 @@ vivado_synthesis(
 #
 #   bazel test //build/tests/vivado:blinky_synth_hermetic_test
 #
-# See "Hermetic mode" in README.md for how to configure the installation
+# See "Hermetic mode" in docs/vivado-toolchain.md for how to configure the installation
 # (the vivado.install tag in MODULE.bazel names the installer archive URL).
 hermetic_build_test(
     name = "blinky_synth_hermetic_test",

@@ -52,6 +52,6 @@ vivado_program_flash = _vivado_program_flash
 
 # The Vivado execution toolchain: declare your own instance to customize how
 # Vivado is invoked (docker vs. host, install path, container image). See
-# //internal:toolchain.bzl and the README for details.
+# //internal:toolchain.bzl and docs/vivado-toolchain.md for details.
 vivado_toolchain = _vivado_toolchain
 VIVADO_TOOLCHAIN_TYPE = _VIVADO_TOOLCHAIN_TYPE
