@@ -564,7 +564,7 @@ vivado_installation(
     # matches a menu entry exactly or as an unambiguous substring:
     # "Artix-7" selects the 2025.2 menu entry "Artix-7 FPGAs". The full
     # 2025.2 menu is listed in the `vivado` module extension's docs and
-    # in the README ("Selecting installation components"); to list the
+    # in docs/vivado-toolchain.md ("Selecting installation components"); to list the
     # menu of any other installer version, request a nonexistent module
     # (e.g. `modules = ["?"]`) and read the error message.
     modules = [
