@@ -1,7 +1,18 @@
 {SCRIPT} \
 LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
 {VIVADO_PATH}/bin/setEnvAndRunCmd.sh vivado \
-    -notrace -mode batch -source {TCL_SCRIPT} 2>&1 > {LOG} || ( cat {LOG} && exit 1 )
+    -notrace -mode batch -source {TCL_SCRIPT} > {LOG} 2>&1 || ( cat {LOG} && exit 1 )
+
+# Vivado has been seen to leave with a clean status after an error, so
+# the log is read as well. Only the part of it before the generation
+# finished is read: the out-of-context synthesis the script attempts
+# after that is best effort, and an IP that will not synthesize on its
+# own still delivers its sources.
+if sed -n '1,/^RULES_VIVADO: .* generated$/p' {LOG} | grep -q '^ERROR:'; then
+    cat {LOG}
+    echo "vivado reported an error while generating {MODULE_NAME}" >&2
+    exit 1
+fi
 
 # Copy the generated IP files to the output directory.
 # When create_project {MODULE_NAME} is used, Vivado creates a directory {MODULE_NAME}
@@ -31,25 +42,29 @@ V_FILES=$(find "$SIM_DIR" -name "*.v")
 SV_FILES=$(find "$SIM_DIR" -name "*.sv")
 VHDL_FILES=$(find "$SIM_DIR" -name "*.vhd" -o -name "*.vhdl")
 
-# Compile into library
+# Compile into library. Each compiler's status is checked too: an IP
+# whose sources do not analyse is not a library anyone can use.
 if [ -n "$V_FILES" ] || [ -n "$SV_FILES" ] || [ -n "$VHDL_FILES" ]; then
     if [ -n "$V_FILES" ]; then
         {SCRIPT} \
         LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
         {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvlog \
-            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $V_FILES 2>&1 >> {LOG}
+            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $V_FILES >> {LOG} 2>&1 \
+            || ( cat {LOG} && exit 1 )
     fi
     if [ -n "$SV_FILES" ]; then
         {SCRIPT} \
         LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
         {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvlog --sv \
-            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $SV_FILES 2>&1 >> {LOG}
+            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $SV_FILES >> {LOG} 2>&1 \
+            || ( cat {LOG} && exit 1 )
     fi
     if [ -n "$VHDL_FILES" ]; then
         {SCRIPT} \
         LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
         {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvhdl -2008 \
-            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $VHDL_FILES 2>&1 >> {LOG}
+            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} $VHDL_FILES >> {LOG} 2>&1 \
+            || ( cat {LOG} && exit 1 )
     fi
 else
     echo "No HDL files found to compile for IP {MODULE_NAME} in $SIM_DIR" >> {LOG}
