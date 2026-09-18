@@ -62,3 +62,14 @@ vivado_simulation(
 )
 ```
 
+A configuration Vivado rejects fails the build. Vivado leaves with a
+clean exit status whether or not its script got where it was going, so
+the generation script checks each step itself, and the action reads the
+log as well; the error Vivado printed is shown. The out-of-context
+synthesis the script attempts after the sources are generated is best
+effort, and its errors do not fail the build: what the rule delivers is
+the IP's sources.
+
+`//ip/custom_ip:clk_wiz_rejected` in the integration workspace is such a
+configuration, kept so that the failure can be seen.
+

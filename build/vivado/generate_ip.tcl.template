@@ -1,14 +1,51 @@
 # {{COMMENT}}
 # IP Generation script for {{MODULE_NAME}}
 
-create_project {{MODULE_NAME}} -force -part {{PART}}
+# Vivado in batch mode exits 0 whether or not the script got where it was
+# going: a Tcl error stops the script, and Vivado still leaves with a
+# clean status, so the action that runs this would report success with
+# only the .xci written and no sources. Every step below therefore says
+# so itself. A step fails when it raises a Tcl error, and when Vivado
+# counted an error it did not raise, which is what a rejected CONFIG
+# value does.
+proc ip_step {what script} {
+    set before [get_msg_config -count -severity ERROR]
+    set failed [catch {uplevel 1 $script} msg]
+    set after [get_msg_config -count -severity ERROR]
+    if {$failed} {
+        puts "ERROR: {{MODULE_NAME}}: $what failed: $msg"
+        exit 1
+    }
+    if {$after > $before} {
+        puts "ERROR: {{MODULE_NAME}}: $what failed, see the errors above"
+        exit 1
+    }
+}
 
-create_ip -vlnv {{VLNV}} -module_name {{MODULE_NAME}}
+ip_step "create_project" {
+    create_project {{MODULE_NAME}} -force -part {{PART}}
+}
 
-{{CONFIG_COMMANDS}}
+ip_step "create_ip" {
+    create_ip -vlnv {{VLNV}} -module_name {{MODULE_NAME}}
+}
 
-generate_target all [get_ips {{MODULE_NAME}}]
+ip_step "the configuration" {
+    {{CONFIG_COMMANDS}}
+}
 
+ip_step "generate_target" {
+    generate_target all [get_ips {{MODULE_NAME}}]
+}
+
+# Everything that this rule delivers has been made by now. The line
+# below is what the shell script reads the log up to: an error after it
+# is the out-of-context synthesis's, and that run is best effort.
+puts "RULES_VIVADO: {{MODULE_NAME}} generated"
+
+# The out-of-context synthesis, attempted and not required: the sources
+# are what the rule delivers, and an IP that will not synthesize on its
+# own is a matter for whoever instantiates it.
 catch {
     launch_runs {{MODULE_NAME}}_synth_1
     wait_on_run {{MODULE_NAME}}_synth_1

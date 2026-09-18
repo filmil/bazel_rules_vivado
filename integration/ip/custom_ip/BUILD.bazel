@@ -14,6 +14,26 @@ vivado_ip(
     vlnv = "xilinx.com:ip:clk_wiz:6.0",
 )
 
+# The same IP with a frequency the part cannot make. Building it must
+# fail: Vivado rejects the configuration, and a rule that reported
+# success here would leave an output directory holding the .xci and no
+# sources, with the failure found much later or not at all.
+#
+#   bazel build //ip/custom_ip:clk_wiz_rejected   # must fail
+#
+# Manual, because a build of //... is expected to pass.
+vivado_ip(
+    name = "clk_wiz_rejected",
+    config = {
+        "PRIM_SOURCE": "Single_ended_clock_capable_pin",
+        # Valid values are 4.687 to 800.000 MHz.
+        "CLKOUT1_REQUESTED_OUT_FREQ": "999999.000",
+    },
+    part = "xc7a200tfbg484-2",
+    tags = ["manual"],
+    vlnv = "xilinx.com:ip:clk_wiz:6.0",
+)
+
 # This target shows how to use the generated IP as a dependency
 vivado_library(
     name = "lib_using_ip",
