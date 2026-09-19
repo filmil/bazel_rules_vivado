@@ -40,6 +40,7 @@ caveats — is covered in [docs/vivado-toolchain.md](docs/vivado-toolchain.md).
 
 | Document | Contents |
 | :--- | :--- |
+| [docs/hermetic-quickstart.md](docs/hermetic-quickstart.md) | Start here for a hermetic Vivado: what to download, the two lines that go in your own `user.bazelrc`, what the first build costs, how to tell it worked, and what to do when it does not. |
 | [docs/vivado-toolchain.md](docs/vivado-toolchain.md) | The Vivado toolchain in detail: mode selection, version and path flags, hermetic installation (configuration, component selection, measured costs, the install cache), custom and third-party toolchains, host mode notes. |
 | [docs/usage.md](docs/usage.md) | Using the rules: REPL, GUI, generating custom AMD IP. |
 | [docs/reference.md](docs/reference.md) | Per-file rule and API reference, generated from the `.bzl` sources. |
