@@ -54,6 +54,13 @@ performs an unattended batch install into an external repository
 Docker image, and every machine building the same workspace gets the same
 Vivado, provisioned on first use.
 
+If you are setting this up for the first time, or writing down what a
+new person on the project has to do,
+[hermetic-quickstart.md](hermetic-quickstart.md) walks through it one
+step at a time: what to download, what goes in `MODULE.bazel`, what
+goes in your own `user.bazelrc`, and what the first build costs. The
+rest of this section is the reference behind it.
+
 Configure it in your `MODULE.bazel` through the `vivado` module extension:
 
 ```python
