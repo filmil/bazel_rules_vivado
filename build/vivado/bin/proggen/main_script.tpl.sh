@@ -119,6 +119,30 @@ if [[ "${_prog_runner_binary}" != "" ]]; then
     # The args must be without quotes so that the spaces are expanded.
     log::debug "Running programmer binary: ${_prog_runner_binary} ${_prog_runner_args}"
     "${_prog_runner_binary}" ${_prog_runner_args} &
+    # The daemon may have a hardware server to start and a tunnel to
+    # stand before that server answers, which takes longer than Vivado
+    # takes to reach `connect_hw_server`; a server that had timed out
+    # is what a first run on a cold machine meets, and it failed there
+    # while working everywhere a server was already up. So the run
+    # waits here until the server speaks. A connection alone is not
+    # enough: a tunnel's local end accepts one whether or not the far
+    # end is there. A TCF server sends its hello on connection, so the
+    # wait asks for one byte, up to two minutes, and says which port it
+    # waited on if none ever comes (HDL/txhdl#392).
+    _wait_host="${gotopt2_hostport%:*}"
+    _wait_port="${gotopt2_hostport##*:}"
+    _waited=0
+    until timeout 6 bash -c \
+        'exec 3<>"/dev/tcp/$1/$2" && read -t 4 -n 1 _c <&3' _ \
+        "${_wait_host}" "${_wait_port}" 2>/dev/null; do
+        if [[ "${_waited}" -ge 120 ]]; then
+            log::error "the hardware server at ${gotopt2_hostport} did not answer in ${_waited} s"
+            exit 1
+        fi
+        sleep 1
+        _waited=$((_waited + 1))
+    done
+    log::debug "the hardware server at ${gotopt2_hostport} answers, after ${_waited} s"
 else
     log::warn "No programmer binary, skipping"
 fi
