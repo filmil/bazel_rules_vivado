@@ -18,7 +18,15 @@ else
 fi
 # --- End Runfiles Setup ---
 
-source "$(rlocation fshlib/log.sh)"
+_log_bash_loc="$(rlocation fshlib~/log.bash)"
+if [[ "${_log_bash_loc}" == "" ]]; then
+    _log_bash_loc="$(rlocation fshlib+/log.bash)"
+    if [[ "${_log_bash_loc}" == "" ]]; then
+        echo >2 "ERROR: could not find:fshlib/log.bash"
+        exit 1
+    fi
+fi
+source "${_log_bash_loc}"
 
 # The runner script comes from the Vivado toolchain: docker_run in docker
 # mode, host_run in host mode.
@@ -108,8 +116,8 @@ if { "${gotopt2_trigger}" != "" } {
     set_property TRIGGER_COMPARE_VALUE "${gotopt2_trigger}" [get_hw_probes -of_objects \$ila *]
 }
 
-puts "INFO: Arming ILA core \$ila"
-arm_hw_ila \$ila
+puts "INFO: Running ILA core \$ila"
+run_hw_ila \$ila
 wait_on_hw_ila \$ila
 
 puts "INFO: Uploading captured data and writing to VCD"
