@@ -329,7 +329,13 @@ flags and are therefore interchangeable:
 
 *   `@rules_bid//build:docker_run` wraps the command in `docker run`;
 *   `@rules_vivado//internal:host_run` ignores the docker-specific flags and
-    executes the command directly on the host.
+    executes the command directly on the host, as a transient systemd
+    service of the user where there is a user manager to ask. The service
+    owns the run's cgroup, so nothing the command starts outlives it:
+    Vivado's hardware manager leaves a `cs_server` behind otherwise, a
+    daemon that escapes the process tree and, once its client has hung
+    up, spins a core for good. Without a user manager (a container, a bare
+    CI runner) the command runs in place as before, with a warning.
 
 A custom `runner` may be supplied instead: any executable that accepts the
 same command line contract (flags first, the Vivado command tail after) can

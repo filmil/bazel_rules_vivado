@@ -74,6 +74,40 @@ done
 # identically under both runners.
 readonly _cmdline="$*"
 
+# The command runs as a transient systemd service of the user, so that the
+# run owns a cgroup and nothing it starts outlives it.
+#
+# Vivado's hardware manager starts `cs_server -D`, which daemonises out of
+# the process tree (a session of its own, reparented to init), and when its
+# client hangs up leaving a socket half closed it polls that socket for ever
+# at full CPU, so its own idle timeout never fires and it outlives the run.
+# Three such orphans were found spinning three cores for nine days. In the
+# container the docker runner gets this for free: the container ends and
+# its processes with it. On the host nothing in the process tree can reach
+# a daemonised child, and an exit trap is skipped when the run is killed,
+# so the cgroup is the thing: the service ends when the command exits,
+# however it exits, and systemd kills whatever is left in the cgroup. The
+# wrapper being killed does not stop that either, since the service does
+# not depend on it.
+#
+# `--wait` gives the command's exit status back, `--pipe` and `--pty`
+# connect the caller's streams whichever kind they are, `--same-dir` keeps
+# the working directory, and the environment is passed variable by
+# variable, since a service inherits none. Where there is no user manager
+# to ask, as in a container or on a bare CI runner, the command runs as it
+# always did, and a warning says what may be left behind.
+if command -v systemd-run >/dev/null 2>&1 \
+    && systemctl --user show --property=Version >/dev/null 2>&1; then
+  _setenv=()
+  while IFS= read -r -d "" _kv; do
+    _setenv+=(--setenv="${_kv}")
+  done < <(env -0)
+  exec systemd-run --user --wait --pipe --pty --collect --quiet --same-dir \
+    --unit="rules-vivado-$$-$(date +%s%N)" "${_setenv[@]}" \
+    -- bash -c "${_cmdline}"
+fi
+echo >&2 "host_run: no systemd user manager here; whatever the command" \
+  "daemonises, such as Vivado's cs_server, will outlive it"
 exec bash -c "${_cmdline}"
 
 # vim: filetype=bash
