@@ -94,8 +94,13 @@ readonly _cmdline="$*"
 # connect the caller's streams whichever kind they are, `--same-dir` keeps
 # the working directory, and the environment is passed variable by
 # variable, since a service inherits none. Where there is no user manager
-# to ask, as in a container or on a bare CI runner, the command runs as it
-# always did, and a warning says what may be left behind.
+# to ask, the command runs as it always did: silently where none could be,
+# which is a Bazel sandbox or a bare CI runner with no `XDG_RUNTIME_DIR`
+# in the environment, and with a warning where one should be and does not
+# answer, since that is worth knowing.
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+  exec bash -c "${_cmdline}"
+fi
 if command -v systemd-run >/dev/null 2>&1 \
     && systemctl --user show --property=Version >/dev/null 2>&1; then
   _setenv=()
