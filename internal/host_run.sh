@@ -103,8 +103,12 @@ if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
 fi
 if command -v systemd-run >/dev/null 2>&1 \
     && systemctl --user show --property=Version >/dev/null 2>&1; then
+  # Every exported variable, and only variables: bash exports its
+  # functions too, as `BASH_FUNC_name%%=() { ... }`, which is not a name
+  # systemd will take, and one of those refuses the whole service.
   _setenv=()
   while IFS= read -r -d "" _kv; do
+    [[ "${_kv%%=*}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     _setenv+=(--setenv="${_kv}")
   done < <(env -0)
   exec systemd-run --user --wait --pipe --pty --collect --quiet --same-dir \
