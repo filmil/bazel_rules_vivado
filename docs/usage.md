@@ -73,3 +73,14 @@ the IP's sources.
 `//ip/custom_ip:clk_wiz_rejected` in the integration workspace is such a
 configuration, kept so that the failure can be seen.
 
+An IP that ships an example design can keep it beside its sources:
+`example_design = True` opens the example project as well and copies
+what it imports, the testbench and the models Vivado writes for the
+IP, to `<name>.ip_gen/example/imports`. A `genrule` over the rule's
+output picks the files a simulation needs, and a `vivado_library` lists
+the headers among them in `hdrs`, whose directories are include
+directories, so the model's own `include`s resolve. The PCIe example
+design, say, holds a behavioural root port and the host that drives
+it, which is what a test of an endpoint needs on the other end of the
+link.
+

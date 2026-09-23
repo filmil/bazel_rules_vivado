@@ -33,6 +33,14 @@ fi
 # Find files for compilation in the generated IP directory.
 # We prioritize simulation files if available.
 # Some IPs have a 'sim' subdirectory, others have files at the root.
+# The example design's imported sources, when the rule opened one: the
+# testbench and the models Vivado ships for the IP, kept where a
+# library rule can be pointed at them.
+EXAMPLE_IMPORTS=$(ls -d {MODULE_NAME}.example/*/imports 2>/dev/null | head -1)
+if [ -n "$EXAMPLE_IMPORTS" ]; then
+    mkdir -p "{IP_OUTPUT_DIR}/example"
+    cp -R "$EXAMPLE_IMPORTS" "{IP_OUTPUT_DIR}/example/"
+fi
 # The exported simulation: Vivado's own compile order for the IP, its
 # includes, its compiler options and the precompiled libraries it
 # elaborates against. When it is there, the library is compiled from
