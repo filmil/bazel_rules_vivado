@@ -84,3 +84,8 @@ design, say, holds a behavioural root port and the host that drives
 it, which is what a test of an endpoint needs on the other end of the
 link.
 
+An IP configured from a file rather than from properties, MIG from its
+project file say, names the file in `config` as `data:<name>` and lists
+it in `data`; the rule copies it into the IP's own directory before the
+configuration is set, which is where such an IP reads it from.
+

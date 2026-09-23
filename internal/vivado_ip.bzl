@@ -39,15 +39,38 @@ def _vivado_ip_impl(ctx):
     # Generate TCL script
     tcl_script = ctx.actions.declare_file("{}.gen_ip.tcl".format(name))
 
+    # Files the configuration names, MIG's project file say: a value
+    # `data:<name>` names a file in `data`, which is copied into the
+    # IP's own directory before the configuration is set, and the value
+    # becomes the bare name, which is where and how such an IP reads it.
+    data_files = []
+    for target in ctx.attr.data:
+        data_files += target.files.to_list()
+    data_copies = []
     config_commands = ""
     if ctx.attr.config:
         config_list = []
         for k, v in ctx.attr.config.items():
-            config_list.append("CONFIG.{} {{{}}}".format(k, v))
-        config_commands = "set_property -dict [list {}] [get_ips {}]".format(
-            " ".join(config_list),
-            module_name,
-        )
+            if v.startswith("data:"):
+                wanted = v[len("data:"):]
+                found = [f for f in data_files if f.basename == wanted]
+                if len(found) != 1:
+                    fail("config %s names %s, which `data` must hold exactly once" % (k, wanted))
+                config_list.append("CONFIG.{} {{{}}}".format(k, wanted))
+                data_copies.append(
+                    "file copy -force {{{}}} [get_property IP_DIR [get_ips {}]]".format(
+                        found[0].path,
+                        module_name,
+                    ),
+                )
+            else:
+                config_list.append("CONFIG.{} {{{}}}".format(k, v))
+        config_commands = "\n    ".join(data_copies + [
+            "set_property -dict [list {}] [get_ips {}]".format(
+                " ".join(config_list),
+                module_name,
+            ),
+        ])
 
     # The IP's example design, kept beside the IP when asked for: its
     # testbench and models are what a simulation of the IP against a
@@ -112,7 +135,7 @@ def _vivado_ip_impl(ctx):
 
     ctx.actions.run_shell(
         progress_message = "Vivado generate IP \"{}\"".format(module_name),
-        inputs = [tcl_script, shell_script],
+        inputs = [tcl_script, shell_script] + data_files,
         outputs = outputs,
         tools = [runner],
         mnemonic = "VivadoIP",
@@ -160,6 +183,13 @@ vivado_ip = rule(
             doc = "Open the IP's example design as well, and keep its " +
                   "imported sources, the testbench and the models Vivado " +
                   "ships for the IP, under `<name>.ip_gen/example/imports`.",
+        ),
+        "data": attr.label_list(
+            allow_files = True,
+            doc = "Files the configuration names: a `config` value of the " +
+                  "form `data:<name>` is replaced by the path of the file " +
+                  "of that name here, for an IP configured from a file, " +
+                  "as MIG is from its project file.",
         ),
         "_template": attr.label(
             default = Label("//build/vivado:generate_ip.tcl.template"),
