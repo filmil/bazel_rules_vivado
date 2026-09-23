@@ -44,6 +44,8 @@ ip_step "generate_target" {
 # the top wrapper alone.
 export_simulation -simulator xsim -directory {{MODULE_NAME}}.export \
     -of_objects [get_ips {{MODULE_NAME}}] -absolute_path -force
+# The example design, when asked for; empty otherwise.
+{{EXAMPLE_DESIGN}}
 }
 
 # Everything that this rule delivers has been made by now. The line

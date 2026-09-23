@@ -49,6 +49,15 @@ def _vivado_ip_impl(ctx):
             module_name,
         )
 
+    # The IP's example design, kept beside the IP when asked for: its
+    # testbench and models are what a simulation of the IP against a
+    # partner needs, a root port for a PCIe endpoint say, and Vivado
+    # writes them only into an example project.
+    example_commands = ""
+    if ctx.attr.example_design:
+        example_commands = (
+            "open_example_project -force -dir {0}.example [get_ips {0}]"
+        ).format(module_name)
     ctx.actions.expand_template(
         output = tcl_script,
         template = ctx.file._template,
@@ -58,6 +67,7 @@ def _vivado_ip_impl(ctx):
             "{{VLNV}}": vlnv,
             "{{MODULE_NAME}}": module_name,
             "{{CONFIG_COMMANDS}}": config_commands,
+            "{{EXAMPLE_DESIGN}}": example_commands,
         },
     )
 
@@ -144,6 +154,12 @@ vivado_ip = rule(
         "part": attr.string(
             mandatory = True,
             doc = "The target FPGA part.",
+        ),
+        "example_design": attr.bool(
+            default = False,
+            doc = "Open the IP's example design as well, and keep its " +
+                  "imported sources, the testbench and the models Vivado " +
+                  "ships for the IP, under `<name>.ip_gen/example/imports`.",
         ),
         "_template": attr.label(
             default = Label("//build/vivado:generate_ip.tcl.template"),
