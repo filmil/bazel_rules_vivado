@@ -55,7 +55,7 @@ vivado_gui(<a href="#vivado_gui-name">name</a>, <a href="#vivado_gui-env">env</a
 <pre>
 load("@rules_vivado//build/vivado:rules.bzl", "vivado_ip")
 
-vivado_ip(<a href="#vivado_ip-name">name</a>, <a href="#vivado_ip-config">config</a>, <a href="#vivado_ip-env">env</a>, <a href="#vivado_ip-module_name">module_name</a>, <a href="#vivado_ip-mount">mount</a>, <a href="#vivado_ip-part">part</a>, <a href="#vivado_ip-vlnv">vlnv</a>)
+vivado_ip(<a href="#vivado_ip-name">name</a>, <a href="#vivado_ip-config">config</a>, <a href="#vivado_ip-env">env</a>, <a href="#vivado_ip-example_design">example_design</a>, <a href="#vivado_ip-module_name">module_name</a>, <a href="#vivado_ip-mount">mount</a>, <a href="#vivado_ip-part">part</a>, <a href="#vivado_ip-vlnv">vlnv</a>)
 </pre>
 
 
@@ -68,6 +68,7 @@ vivado_ip(<a href="#vivado_ip-name">name</a>, <a href="#vivado_ip-config">config
 | <a id="vivado_ip-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
 | <a id="vivado_ip-config"></a>config |  Configuration properties for the IP.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_ip-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
+| <a id="vivado_ip-example_design"></a>example_design |  Open the IP's example design as well, and keep its imported sources, the testbench and the models Vivado ships for the IP, under `<name>.ip_gen/example/imports`.   | Boolean | optional |  `False`  |
 | <a id="vivado_ip-module_name"></a>module_name |  The name of the IP module. Defaults to target name.   | String | optional |  `""`  |
 | <a id="vivado_ip-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_ip-part"></a>part |  The target FPGA part.   | String | required |  |
@@ -96,7 +97,7 @@ vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library
 | <a id="vivado_library-deps"></a>deps |  The list of files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-srcs"></a>srcs |  The list of files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-data"></a>data |  The list of target that should be available for compilation.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_library-hdrs"></a>hdrs |  The list of include files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="vivado_library-hdrs"></a>hdrs |  The list of include files in this library. The directory of each is an include directory, so a generated header is found where it lies.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-defines"></a>defines |  The list of key-to-value mappings to apply to the compilation   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_library-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_library-includes"></a>includes |  The list of additional directories to append to the include list   | List of strings | optional |  `[]`  |
