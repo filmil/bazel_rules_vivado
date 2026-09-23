@@ -24,7 +24,7 @@ vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library
 | <a id="vivado_library-deps"></a>deps |  The list of files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-srcs"></a>srcs |  The list of files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-data"></a>data |  The list of target that should be available for compilation.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="vivado_library-hdrs"></a>hdrs |  The list of include files in this library   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="vivado_library-hdrs"></a>hdrs |  The list of include files in this library. The directory of each is an include directory, so a generated header is found where it lies.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="vivado_library-defines"></a>defines |  The list of key-to-value mappings to apply to the compilation   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_library-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_library-includes"></a>includes |  The list of additional directories to append to the include list   | List of strings | optional |  `[]`  |
