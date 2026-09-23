@@ -184,6 +184,15 @@ def _vivado_library_impl(ctx):
             full_include = "/".join([ctx.attr.package, include])
         args += ["-i", full_include]
 
+    # A header in `hdrs` is found where it lies: its directory joins the
+    # include list, so a generated header, one a genrule extracted from
+    # an IP's example design say, is reached as a checked-in one is.
+    hdr_dirs = []
+    for hdr in hdrs:
+        if hdr.dirname not in hdr_dirs:
+            hdr_dirs.append(hdr.dirname)
+            args += ["-i", hdr.dirname]
+
     # Handle dependency libraries.
     for dep in ctx.attr.deps:
         provider = dep[VivadoLibraryProvider]
@@ -284,7 +293,9 @@ vivado_library = rule(
         ),
         "hdrs": attr.label_list(
             allow_files = ["h", "vh", "svh"],
-            doc = "The list of include files in this library",
+            doc = "The list of include files in this library. The directory of " +
+                  "each is an include directory, so a generated header is " +
+                  "found where it lies.",
         ),
         "data": attr.label_list(
             doc = "The list of target that should be available for compilation.",
