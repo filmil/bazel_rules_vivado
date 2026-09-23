@@ -36,6 +36,14 @@ ip_step "the configuration" {
 
 ip_step "generate_target" {
     generate_target all [get_ips {{MODULE_NAME}}]
+# What the IP needs to simulate, in the order Vivado's own flow compiles
+# it: every source of the core and of the IPs inside it, the include
+# directories, the compiler options and the precompiled libraries the
+# elaboration wants. The rule's script compiles from this rather than
+# from whatever it finds under `sim`, which for a core such as XDMA is
+# the top wrapper alone.
+export_simulation -simulator xsim -directory {{MODULE_NAME}}.export \
+    -of_objects [get_ips {{MODULE_NAME}}] -absolute_path -force
 }
 
 # Everything that this rule delivers has been made by now. The line

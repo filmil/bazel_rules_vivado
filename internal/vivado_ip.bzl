@@ -116,7 +116,12 @@ def _vivado_ip_impl(ctx):
             hdrs = depset([]),
             includes = depset([]),
             deps = depset([]),
-            deps_names = depset([module_name]),
+            # The names of the libraries in `deps`, which an IP has none
+            # of; its own name is `name`, as a library's is. Naming
+            # itself here made a library that depends on the IP take
+            # it for one already reached through another dependency,
+            # so no test elaborating that library was given the IP's.
+            deps_names = depset([]),
             library_dir = library_output_dir,
             unisims_libs = False,
         ),

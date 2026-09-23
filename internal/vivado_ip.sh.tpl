@@ -33,6 +33,41 @@ fi
 # Find files for compilation in the generated IP directory.
 # We prioritize simulation files if available.
 # Some IPs have a 'sim' subdirectory, others have files at the root.
+# The exported simulation: Vivado's own compile order for the IP, its
+# includes, its compiler options and the precompiled libraries it
+# elaborates against. When it is there, the library is compiled from
+# it; the walk over `sim` below is the fallback for an IP that exports
+# nothing.
+EXPORT="{MODULE_NAME}.export/{MODULE_NAME}/xsim"
+if [ -f "$EXPORT/vlog.prj" ] || [ -f "$EXPORT/vhdl.prj" ]; then
+    mkdir -p "{IP_OUTPUT_DIR}/export"
+    cp -R "$EXPORT" "{IP_OUTPUT_DIR}/export/"
+    # The options the export gives its compilers, less the incremental
+    # flag, which has nothing to be incremental against here.
+    XVLOG_OPTS=$(sed -n 's/^xvlog_opts="\(.*\)"/\1/p' "$EXPORT/{MODULE_NAME}.sh" | sed 's/--incr//')
+    XVHDL_OPTS=$(sed -n 's/^xvhdl_opts="\(.*\)"/\1/p' "$EXPORT/{MODULE_NAME}.sh" | sed 's/--incr//')
+    # Every source into the one library named for the IP, wherever the
+    # export put it, so that a user names one library and the sources
+    # find each other.
+    sed -i 's/^\(verilog\|sv\|vhdl\|vhdl2008\) [A-Za-z0-9_]* /\1 {MODULE_NAME} /' \
+        "$EXPORT/vlog.prj" "$EXPORT/vhdl.prj" 2>/dev/null || true
+    mkdir -p {LIBRARY_OUTPUT_DIR}
+    if grep -q '^\(verilog\|sv\) ' "$EXPORT/vlog.prj" 2>/dev/null; then
+        {SCRIPT} \
+        LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
+        {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvlog $XVLOG_OPTS \
+            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} -prj "$EXPORT/vlog.prj" 2>&1 >> {LOG} \
+            || ( cat {LOG} && exit 1 )
+    fi
+    if grep -q '^vhdl' "$EXPORT/vhdl.prj" 2>/dev/null; then
+        {SCRIPT} \
+        LD_LIBRARY_PATH="{VIVADO_PATH}/lib/lnx64.o" \
+        {VIVADO_PATH}/bin/setEnvAndRunCmd.sh xvhdl $XVHDL_OPTS \
+            --work {MODULE_NAME}={LIBRARY_OUTPUT_DIR} -prj "$EXPORT/vhdl.prj" 2>&1 >> {LOG} \
+            || ( cat {LOG} && exit 1 )
+    fi
+    exit 0
+fi
 SIM_DIR="{IP_OUTPUT_DIR}/sim"
 if [ ! -d "$SIM_DIR" ]; then
     SIM_DIR="{IP_OUTPUT_DIR}"
