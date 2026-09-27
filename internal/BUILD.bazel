@@ -2,6 +2,7 @@ load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 package(default_visibility = ["//visibility:public"])
@@ -433,4 +434,18 @@ write_source_files(
         "vivado_synthesis2.md": ":md_vivado_synthesis2",
         "vivado_unisims_library.md": ":md_vivado_unisims_library",
     },
+)
+
+# What a failed Vivado run writes to the console: its errors and the end
+# of its log, rather than the whole log, which Bazel would not print.
+sh_binary(
+    name = "failure_report",
+    srcs = ["failure_report.sh"],
+)
+
+sh_test(
+    name = "failure_report_test",
+    srcs = ["failure_report_test.sh"],
+    args = ["$(rootpath :failure_report)"],
+    data = [":failure_report"],
 )
