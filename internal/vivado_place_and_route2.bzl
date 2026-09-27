@@ -125,7 +125,7 @@ def _vivado_place_and_route2_impl(ctx):
         progress_message = "Vivado Place and Route(2): {}".format(name),
         inputs = inputs + [script_file],
         outputs = outputs + [output_dir, cache_dir, logfile],
-        tools = [runner, pnr_binary],
+        tools = [runner, pnr_binary, ctx.executable._failure_report],
         mnemonic = "VPNR2",
         command = """\
             {pnr_binary} --script-file={script} \
@@ -133,8 +133,9 @@ def _vivado_place_and_route2_impl(ctx):
                 --work-dir={work} \
                 --vivado-path={vivado_path} \
                 --tcl-file={tcl} \
-                2>&1 > {name} || (cat {name} && exit 1)
+                2>&1 > {name} || {report} {name}
         """.format(
+            report = ctx.executable._failure_report.path,
             pnr_binary = pnr_binary.path,
             script = script_file.path,
             vivado_path = config.vivado_path,
@@ -203,6 +204,12 @@ vivado_place_and_route2 = rule(
         "_batch_template": attr.label(
             doc = "pnr template",
             default = Label("//build/vivado:pnr_batch_tcl_template"),
+        ),
+        "_failure_report": attr.label(
+            doc = "What a failed run writes to the console: its errors and the end of its log",
+            default = Label("//internal:failure_report"),
+            executable = True,
+            cfg = "exec",
         ),
     },
 )
