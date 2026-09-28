@@ -1,0 +1,79 @@
+# What `vivado_program_flash` asks of `write_cfgmem`, read from the TCL
+# it writes rather than from a Vivado run: the bitstream at zero, and a
+# `loaddata` file at the address it is keyed to.
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//internal:vivado_program_flash.bzl", "vivado_program_flash")
+load(":fake.bzl", "fake_bitstream")
+
+fake_bitstream(
+    name = "design",
+    bit = "design.bit",
+)
+
+# Manual: building it whole would run Vivado. The test below asks only
+# for its TCL.
+vivado_program_flash(
+    name = "flash",
+    size = 16,
+    flash_part = "mt25ql128-spi-x1_x2_x4",
+    interface = "SPIx4",
+    loaddata = {"program.bin": "0x00A00000"},
+    tags = ["manual"],
+    deps = [":design"],
+)
+
+filegroup(
+    name = "flash_tcl",
+    srcs = [":flash"],
+    output_group = "cfgmem_tcl",
+    tags = ["manual"],
+)
+
+# A copy of the TCL alone. The filegroup is manual and read only through
+# this copy: built as a target, it would pass on the flash target's
+# runfiles, which hold the image, and building those runs Vivado.
+genrule(
+    name = "flash_tcl_copy",
+    srcs = [":flash_tcl"],
+    outs = ["flash_copy.tcl"],
+    cmd = "cp $< $@",
+)
+
+sh_test(
+    name = "loaddata_test",
+    srcs = ["loaddata_test.sh"],
+    args = ["$(rootpath :flash_tcl_copy)"],
+    data = [":flash_tcl_copy"],
+)
+
+# The same without `loaddata`: the TCL is what it was before the
+# attribute, so a target that does not use it sees no change.
+vivado_program_flash(
+    name = "flash_plain",
+    size = 16,
+    flash_part = "mt25ql128-spi-x1_x2_x4",
+    interface = "SPIx4",
+    tags = ["manual"],
+    deps = [":design"],
+)
+
+filegroup(
+    name = "flash_plain_tcl",
+    srcs = [":flash_plain"],
+    output_group = "cfgmem_tcl",
+    tags = ["manual"],
+)
+
+genrule(
+    name = "flash_plain_tcl_copy",
+    srcs = [":flash_plain_tcl"],
+    outs = ["flash_plain_copy.tcl"],
+    cmd = "cp $< $@",
+)
+
+sh_test(
+    name = "plain_test",
+    srcs = ["plain_test.sh"],
+    args = ["$(rootpath :flash_plain_tcl_copy)"],
+    data = [":flash_plain_tcl_copy"],
+)
