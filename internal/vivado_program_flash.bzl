@@ -29,6 +29,15 @@ load(
     "VivadoBitstreamProvider",
 )
 
+def _is_hex(s):
+    """Whether `s` is one or more hexadecimal digits."""
+    if not s:
+        return False
+    for c in s.elems():
+        if c not in "0123456789abcdefABCDEF":
+            return False
+    return True
+
 def _vivado_program_flash_impl(ctx):
     """Implementation for the vivado_program_flash rule.
 
@@ -57,17 +66,40 @@ def _vivado_program_flash_impl(ctx):
     # the container in docker mode, directly on the host in host mode), so
     # exec-root-relative paths (bitfile.path, mcs.path) resolve. The TCL
     # braces around `up 0x0 <bit>` are required by write_cfgmem.
+    # Files placed beside the bitstream, each at the address it is keyed
+    # to: `-loaddata {up <addr> <file> up <addr> <file> ...}`.
+    loadfiles = []
+    loaddata = []
+    for target, addr in ctx.attr.loaddata.items():
+        files = target.files.to_list()
+        if len(files) != 1:
+            fail("vivado_program_flash: loaddata target {} must be exactly one file, has {}".format(
+                target.label,
+                len(files),
+            ))
+        if not addr.startswith("0x") or not _is_hex(addr[2:]):
+            fail("vivado_program_flash: loaddata address for {} must be hex like 0x00A00000, got {}".format(
+                target.label,
+                repr(addr),
+            ))
+        loadfiles.append(files[0])
+        loaddata.append("up {} {}".format(addr, files[0].path))
+    loaddata_arg = ""
+    if loaddata:
+        loaddata_arg = " -loaddata {{{}}}".format(" ".join(loaddata))
+
     cfgmem_tcl = ctx.actions.declare_file("{}.cfgmem.tcl".format(ctx.attr.name))
     ctx.actions.write(
         output = cfgmem_tcl,
         content = (
             "write_cfgmem -force -format {fmt} -size {size} -interface {iface}" +
-            " -loadbit {{up 0x0 {bit}}} -file {mcs}\n"
+            " -loadbit {{up 0x0 {bit}}}{loaddata} -file {mcs}\n"
         ).format(
             fmt = ctx.attr.format,
             size = ctx.attr.size,
             iface = ctx.attr.interface,
             bit = bitfile.path,
+            loaddata = loaddata_arg,
             mcs = mcs.path,
         ),
     )
@@ -86,7 +118,7 @@ def _vivado_program_flash_impl(ctx):
             ctx.attr.format,
             ctx.attr.flash_part,
         ),
-        inputs = [cfgmem_tcl, bitfile],
+        inputs = [cfgmem_tcl, bitfile] + loadfiles,
         outputs = [mcs, cache_dir],
         tools = [runner],
         mnemonic = "VivadoCfgmem",
@@ -180,6 +212,9 @@ def _vivado_program_flash_impl(ctx):
             runfiles = runfiles,
             executable = outfile,
         ),
+        # The script alone, so that what it asks of Vivado can be read
+        # without running Vivado.
+        OutputGroupInfo(cfgmem_tcl = depset([cfgmem_tcl])),
     ]
 
 vivado_program_flash = rule(
@@ -214,6 +249,14 @@ vivado_program_flash = rule(
             default = "mcs",
             values = ["mcs", "bin"],
             doc = "The flash image format produced by `write_cfgmem`.",
+        ),
+        "loaddata": attr.label_keyed_string_dict(
+            allow_files = True,
+            doc = "Files to place in the flash image beside the bitstream, " +
+                  "each keyed to its start address in hex, e.g. " +
+                  "`{\"//sw:program_bin\": \"0x00A00000\"}`. Passed to " +
+                  "`write_cfgmem -loaddata`. Each must be exactly one file, " +
+                  "and the address must lie past the end of the bitstream.",
         ),
         "prog_daemon": attr.label(
             doc = "Optional binary to start before programming (e.g. a " +

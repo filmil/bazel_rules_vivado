@@ -25,8 +25,8 @@ It works in two phases:
 <pre>
 load("@rules_vivado//internal:vivado_program_flash.bzl", "vivado_program_flash")
 
-vivado_program_flash(<a href="#vivado_program_flash-name">name</a>, <a href="#vivado_program_flash-deps">deps</a>, <a href="#vivado_program_flash-data">data</a>, <a href="#vivado_program_flash-flash_part">flash_part</a>, <a href="#vivado_program_flash-format">format</a>, <a href="#vivado_program_flash-interface">interface</a>, <a href="#vivado_program_flash-prog_daemon">prog_daemon</a>, <a href="#vivado_program_flash-prog_daemon_args">prog_daemon_args</a>,
-                     <a href="#vivado_program_flash-size">size</a>)
+vivado_program_flash(<a href="#vivado_program_flash-name">name</a>, <a href="#vivado_program_flash-deps">deps</a>, <a href="#vivado_program_flash-data">data</a>, <a href="#vivado_program_flash-flash_part">flash_part</a>, <a href="#vivado_program_flash-format">format</a>, <a href="#vivado_program_flash-interface">interface</a>, <a href="#vivado_program_flash-loaddata">loaddata</a>, <a href="#vivado_program_flash-prog_daemon">prog_daemon</a>,
+                     <a href="#vivado_program_flash-prog_daemon_args">prog_daemon_args</a>, <a href="#vivado_program_flash-size">size</a>)
 </pre>
 
 Programs a bitstream into a device's non-volatile configuration flash (SPI/QSPI) so it loads automatically on power-up. `bazel build` produces the flash image (.mcs/.bin); `bazel run` writes it to the board (requires --hostport and --device).
@@ -42,6 +42,7 @@ Programs a bitstream into a device's non-volatile configuration flash (SPI/QSPI)
 | <a id="vivado_program_flash-flash_part"></a>flash_part |  The Vivado cfgmem part name of the target flash device, e.g. 'mt25ql256-spi-x1_x2_x4'. Board-specific; see `get_cfgmem_parts` in Vivado.   | String | required |  |
 | <a id="vivado_program_flash-format"></a>format |  The flash image format produced by `write_cfgmem`.   | String | optional |  `"mcs"`  |
 | <a id="vivado_program_flash-interface"></a>interface |  The flash programming interface, e.g. SPIx1/SPIx2/SPIx4.   | String | optional |  `"SPIx4"`  |
+| <a id="vivado_program_flash-loaddata"></a>loaddata |  Files to place in the flash image beside the bitstream, each keyed to its start address in hex, e.g. `{"//sw:program_bin": "0x00A00000"}`. Passed to `write_cfgmem -loaddata`. Each must be exactly one file, and the address must lie past the end of the bitstream.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: Label -> String</a> | optional |  `{}`  |
 | <a id="vivado_program_flash-prog_daemon"></a>prog_daemon |  Optional binary to start before programming (e.g. a hardware server).   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `None`  |
 | <a id="vivado_program_flash-prog_daemon_args"></a>prog_daemon_args |  Args for prog_daemon, subject to make var substitution.   | List of strings | optional |  `[]`  |
 | <a id="vivado_program_flash-size"></a>size |  The flash capacity in megabytes (MB), passed to `write_cfgmem -size`.   | Integer | required |  |
