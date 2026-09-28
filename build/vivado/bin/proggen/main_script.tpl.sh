@@ -147,7 +147,7 @@ else
     log::warn "No programmer binary, skipping"
 fi
 
-cat <<EOF > "${_tcl_script_file}" || log::error "Could not create the file: ${_tcl_script_file}"
+cat <<EOF > "${_tcl_script_file}" || { log::error "Could not create the file: ${_tcl_script_file}"; exit 1; }
 # Vivado tcl script here.
 #
 # https://stackoverflow.com/questions/50060337/programming-device-in-vivado-using-tcl
@@ -190,5 +190,8 @@ env RUNFILES_DIR="$PWD/.." \
     -notrace -mode batch \
     -source "${_work_dir}/${_tcl_script_file}" | log::prefix "[vivado] " \
     && log::info "OK" \
-    || log::error "The programming command failed."
+    || { log::error "The programming command failed."; exit 1; }
+# log::error only says so; the exit is what tells a script, or a person
+# reading the status, that the part still holds the previous bitstream.
+# With pipefail, set above, the status is Vivado's, not log::prefix's.
 
