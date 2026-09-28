@@ -87,7 +87,7 @@ log::debug "Using probes file:   ${_ltxfile}"
 log::debug "Using PWD:            ${PWD}"
 
 # We write the TCL script that Vivado executes.
-cat <<EOF > "${_tcl_script_file}" || log::error "Could not create the file: ${_tcl_script_file}"
+cat <<EOF > "${_tcl_script_file}" || { log::error "Could not create the file: ${_tcl_script_file}"; exit 1; }
 open_hw_manager
 puts "INFO: Connecting to hardware server ${gotopt2_hostport}"
 if { [catch { connect_hw_server -url ${gotopt2_hostport} } err] } {
@@ -127,6 +127,9 @@ puts "INFO: Done capturing."
 close_hw_target
 EOF
 
+# The status of the pipeline below is Vivado's, not log::prefix's, and a
+# failure exits non-zero rather than only saying so.
+set -o pipefail
 env RUNFILES_DIR="$PWD/.." \
 "${_run_docker}" \
     --container={{ .Container }} \
@@ -140,4 +143,4 @@ env RUNFILES_DIR="$PWD/.." \
     -notrace -mode batch \
     -source "${_work_dir}/${_tcl_script_file}" | log::prefix "[vivado] " \
     && log::info "VCD file successfully created at ${PWD}/${gotopt2_vcd}" \
-    || log::error "The ILA reading command failed."
+    || { log::error "The ILA reading command failed."; exit 1; }
