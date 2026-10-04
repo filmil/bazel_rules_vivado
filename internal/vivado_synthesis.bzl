@@ -103,6 +103,17 @@ def _vivado_synthesis_impl(ctx):
         container = config.container,
     )
 
+    # The files copied flat into the output directory: this rule's own Tcl,
+    # sources and headers, by path, plus the Tcl and HDL that the project
+    # generator wrote. A `find .` over the whole working directory used to
+    # pick up files from every input, the runner's runfiles included, and
+    # failed on any two with the same base name (#146).
+    own_files = [
+        f.path
+        for f in [synth_tcl_script] + srcs_files + hdrs_files
+        if f.extension in ("tcl", "vhd", "vhdl", "v", "sv")
+    ]
+
     # Run vivado with the script in the container
     # The copy/chmod shenanigans are needed to work around Vivado's hostile
     # attitude towards sandboxing.
@@ -120,21 +131,14 @@ def _vivado_synthesis_impl(ctx):
       cp --dereference {xpr_src} {xpr_file} && \
       chmod a+w {xpr_file} && \
       cp -R --dereference {xpr_gen_output_dir} $PWD && \
-      TCL_FILES="$(find . -name '*.tcl')" && \
-         if [[ "$TCL_FILES" != "" ]]; then \
-            cp -R --dereference $TCL_FILES {output_dir_path} ; \
+      COPY_FILES="{own_files} $(find {xpr_gen_output_basename} \\( -name '*.tcl' -o -name '*.vhd' -o -name '*.vhdl' -o -name '*.v' -o -name '*.sv' \\) 2>/dev/null)" && \
+      DUPLICATES="$(for f in $COPY_FILES; do basename "$f"; done | sort | uniq -d)" && \
+         if [[ "$DUPLICATES" != "" ]]; then \
+            echo "ERROR: these file names occur more than once among the files copied into {output_dir_path}, which is flat:" $DUPLICATES >&2 ; \
+            exit 1 ; \
          fi && \
-      VHDL_FILES="$(find . -name '*.vhd?')" && \
-         if [[ "$VHDL_FILES" != "" ]]; then \
-            cp -R --dereference $VHDL_FILES {output_dir_path} ; \
-         fi && \
-      V_FILES="$(find . -name '*.v')" && \
-         if [[ "$V_FILES" != "" ]]; then \
-            cp -R --dereference $V_FILES {output_dir_path} ; \
-         fi && \
-      SV_FILES="$(find . -name '*.sv')" && \
-         if [[ "$SV_FILES" != "" ]]; then \
-            cp -R --dereference $SV_FILES {output_dir_path} ; \
+         if [[ "$(echo $COPY_FILES)" != "" ]]; then \
+            cp --dereference $COPY_FILES {output_dir_path} ; \
          fi && \
       mkdir -p {user_files_dir} && \
       mkdir -p {test_gen_dir}/sources_1 && \
@@ -153,6 +157,8 @@ def _vivado_synthesis_impl(ctx):
             # Copy the results from the generator step.
             output_dir_path = output_dir.path,
             xpr_gen_output_dir = xpr_gen_output_dir.path,
+            xpr_gen_output_basename = xpr_gen_output_dir.basename,
+            own_files = " ".join(own_files),
             runs_dir_rpath = runs_dir_rpath,
             test_gen_dir = test_gen_rpath,
             test_hw_rpath = test_hw_rpath,
