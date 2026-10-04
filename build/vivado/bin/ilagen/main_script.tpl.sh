@@ -49,6 +49,15 @@ _yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/flags.yaml)
 if [[ "${_yaml_config}" == "" ]]; then
     _yaml_config="$(rlocation rules_vivado/build/vivado/bin/ilagen/flags.yaml)"
 fi
+_triggers_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/triggers.bash)"
+if [[ "${_triggers_lib}" == "" ]]; then
+    _triggers_lib="$(rlocation rules_vivado/build/vivado/bin/ilagen/triggers.bash)"
+fi
+if [[ "${_triggers_lib}" == "" ]]; then
+    log::error "triggers.bash not found"
+    exit 1
+fi
+source "${_triggers_lib}"
 
 readonly _ltxfile="{{ .LtxFile }}"
 if [[ ! -f "${_ltxfile}" && ! -L "${_ltxfile}" ]]; then
@@ -73,6 +82,30 @@ if [[ "${gotopt2_device}" == "" ]]; then
     exit 1
 fi
 
+# A relative --trigger_file is relative to where `bazel run` was started,
+# not to the runfiles directory the script runs in.
+_trigger_file="${gotopt2_trigger_file}"
+if [[ "${_trigger_file}" != "" && "${_trigger_file}" != /* ]]; then
+    _trigger_file="${BUILD_WORKING_DIRECTORY:-${PWD}}/${_trigger_file}"
+fi
+_trigger_tcl="$(ilagen::trigger_tcl "${_trigger_file}" "${gotopt2_trigger__list[@]}")" || exit 1
+
+for _flag in trigger_position window_count; do
+    _value="gotopt2_${_flag}"
+    if [[ "${!_value}" != "" && ! "${!_value}" =~ ^[0-9]+$ ]]; then
+        echo "--${_flag} must be a whole number, got: ${!_value}"
+        exit 1
+    fi
+done
+# The window count comes first: it bounds the trigger position.
+_control_tcl=""
+if [[ "${gotopt2_window_count}" != "" ]]; then
+    _control_tcl+="set_property CONTROL.WINDOW_COUNT ${gotopt2_window_count} \$ila"$'\n'
+fi
+if [[ "${gotopt2_trigger_position}" != "" ]]; then
+    _control_tcl+="set_property CONTROL.TRIGGER_POSITION ${gotopt2_trigger_position} \$ila"$'\n'
+fi
+
 readonly _tcl_script_file="read_ila.tcl"
 # The root of the Vivado installation (in the container's filesystem in
 # docker mode, on the host filesystem in host mode).
@@ -86,8 +119,40 @@ log::debug "Creating TCL script: ${_tcl_script_file}"
 log::debug "Using probes file:   ${_ltxfile}"
 log::debug "Using PWD:            ${PWD}"
 
-# We write the TCL script that Vivado executes.
-cat <<EOF > "${_tcl_script_file}" || { log::error "Could not create the file: ${_tcl_script_file}"; exit 1; }
+# We write the TCL script that Vivado executes. The procs come first, in a
+# quoted heredoc so that their TCL needs no shell escapes.
+cat <<'EOF' > "${_tcl_script_file}" || { log::error "Could not create the file: ${_tcl_script_file}"; exit 1; }
+# The probe of the core whose NAME is name. A trailing bus range such as
+# [34:0] may be given or left out.
+proc ila_probe {ila name} {
+    set probes [get_hw_probes -of_objects $ila]
+    set bare [regsub {\[[0-9]+:[0-9]+\]$} $name {}]
+    foreach p $probes {
+        set n [get_property NAME $p]
+        if {$n eq $name || [regsub {\[[0-9]+:[0-9]+\]$} $n {}] eq $bare} {
+            return $p
+        }
+    }
+    puts "ERROR: No probe named $name. The probes of the core are:"
+    foreach p $probes {
+        puts "    [get_property NAME $p] ([get_property WIDTH $p] bits)"
+    }
+    exit 1
+}
+
+proc ila_trigger {ila name value} {
+    set p [ila_probe $ila $name]
+    puts "INFO: Trigger: $name $value"
+    set_property TRIGGER_COMPARE_VALUE $value $p
+}
+
+proc ila_trigger_all {ila value} {
+    puts "INFO: Trigger on every probe: $value"
+    set_property TRIGGER_COMPARE_VALUE $value [get_hw_probes -of_objects $ila]
+}
+EOF
+
+cat <<EOF >> "${_tcl_script_file}" || { log::error "Could not write the file: ${_tcl_script_file}"; exit 1; }
 open_hw_manager
 puts "INFO: Connecting to hardware server ${gotopt2_hostport}"
 if { [catch { connect_hw_server -url ${gotopt2_hostport} } err] } {
@@ -110,11 +175,9 @@ if { \$ila == "" } {
     exit 1
 }
 
-# Apply trigger condition if specified
-if { "${gotopt2_trigger}" != "" } {
-    puts "INFO: Configuring trigger: ${gotopt2_trigger}"
-    set_property TRIGGER_COMPARE_VALUE "${gotopt2_trigger}" [get_hw_probes -of_objects \$ila *]
-}
+${_control_tcl}
+# Trigger conditions. Probes not named compare as don't-care.
+${_trigger_tcl}
 
 puts "INFO: Running ILA core \$ila"
 run_hw_ila \$ila
