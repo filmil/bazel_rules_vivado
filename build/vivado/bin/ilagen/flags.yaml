@@ -5,7 +5,20 @@ flags:
   type: string
   default: "*/xilinx_tcf/Digilent/210251130202"
 - name: "trigger"
+  type: stringlist
+  help: >-
+    Repeatable. probe=value sets that probe's TRIGGER_COMPARE_VALUE, for
+    example --trigger=state=eq3'h5. A bare value, such as --trigger=eq1'b1,
+    applies to every probe of the core.
+- name: "trigger_file"
   type: string
+  help: "A file of 'probe value' lines, read before the --trigger flags."
+- name: "trigger_position"
+  type: string
+  help: "The sample within the window where the trigger lands (CONTROL.TRIGGER_POSITION)."
+- name: "window_count"
+  type: string
+  help: "How many windows the capture depth is split into (CONTROL.WINDOW_COUNT)."
 - name: "vcd"
   type: string
   default: "ila_data.vcd"

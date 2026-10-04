@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -27,6 +28,7 @@ filegroup(
     srcs = [
         "flags.yaml",
         "main_script.tpl.sh",
+        "triggers.bash",
     ],
 )
 
@@ -34,4 +36,11 @@ go_test(
     name = "ilagen_test",
     srcs = ["main_test.go"],
     embed = [":ilagen_lib"],
+)
+
+sh_test(
+    name = "triggers_test",
+    srcs = ["triggers_test.sh"],
+    args = ["$(rootpath :triggers.bash)"],
+    data = [":triggers.bash"],
 )
