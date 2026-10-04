@@ -42,11 +42,19 @@ write_checkpoint -force {{ .SaveDcpFile }}
 # Step 7: Generate the final bitstream for the FPGA
 set_property SEVERITY {Warning} [get_drc_checks NSTD-1]
 set_property SEVERITY {Warning} [get_drc_checks UCIO-1]
+# A failed write_bitstream (a DRC violation, a missing licence) fails the
+# run, unless the target asked for a placeholder with placeholder_bitstream.
+# The placeholder is text, and the programming rules refuse it.
 if { [catch { write_bitstream -force {{ .BitstreamName }} } err] } {
-    puts "WARNING: Bitstream generation bypassed due to licensing restrictions or DRC violations: $err"
+{{- if .PlaceholderBitstream }}
+    puts "WARNING: write_bitstream failed; writing a placeholder, as placeholder_bitstream asks: $err"
     set bit_fd [open {{ .BitstreamName }} w]
-    puts $bit_fd "Dummy bitstream - Bypassed due to licensing restrictions or DRC."
+    puts $bit_fd "Placeholder, not a bitstream: write_bitstream failed and placeholder_bitstream is set."
     close $bit_fd
+{{- else }}
+    puts "ERROR: write_bitstream failed: $err"
+    exit 1
+{{- end }}
 }
 
 # Step 8: Write debug probes file (.ltx)

@@ -9,8 +9,8 @@ Vivado place and route2 rule.
 <pre>
 load("@rules_vivado//internal:vivado_place_and_route2.bzl", "vivado_place_and_route2")
 
-vivado_place_and_route2(<a href="#vivado_place_and_route2-name">name</a>, <a href="#vivado_place_and_route2-env">env</a>, <a href="#vivado_place_and_route2-mount">mount</a>, <a href="#vivado_place_and_route2-place_design_options">place_design_options</a>, <a href="#vivado_place_and_route2-post_place_design">post_place_design</a>,
-                        <a href="#vivado_place_and_route2-post_route_design">post_route_design</a>, <a href="#vivado_place_and_route2-route_design_options">route_design_options</a>, <a href="#vivado_place_and_route2-synthesis">synthesis</a>, <a href="#vivado_place_and_route2-xdcs">xdcs</a>)
+vivado_place_and_route2(<a href="#vivado_place_and_route2-name">name</a>, <a href="#vivado_place_and_route2-env">env</a>, <a href="#vivado_place_and_route2-mount">mount</a>, <a href="#vivado_place_and_route2-place_design_options">place_design_options</a>, <a href="#vivado_place_and_route2-placeholder_bitstream">placeholder_bitstream</a>,
+                        <a href="#vivado_place_and_route2-post_place_design">post_place_design</a>, <a href="#vivado_place_and_route2-post_route_design">post_route_design</a>, <a href="#vivado_place_and_route2-route_design_options">route_design_options</a>, <a href="#vivado_place_and_route2-synthesis">synthesis</a>, <a href="#vivado_place_and_route2-xdcs">xdcs</a>)
 </pre>
 
 
@@ -24,6 +24,7 @@ vivado_place_and_route2(<a href="#vivado_place_and_route2-name">name</a>, <a hre
 | <a id="vivado_place_and_route2-env"></a>env |  A dictionary of env variables to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_place_and_route2-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 | <a id="vivado_place_and_route2-place_design_options"></a>place_design_options |  Additional options to pass to the `place_design` command in Vivado   | String | optional |  `""`  |
+| <a id="vivado_place_and_route2-placeholder_bitstream"></a>placeholder_bitstream |  When `write_bitstream` fails, write a text placeholder as the `.bit` and succeed.<br><br>By default a failed `write_bitstream`, for example on a DRC violation or a missing IP licence, fails the build. Set this only for a target that is meant to be checked through place and route without a licence for all of its IP. The placeholder is not a bitstream, and `vivado_program_device` refuses it.   | Boolean | optional |  `False`  |
 | <a id="vivado_place_and_route2-post_place_design"></a>post_place_design |  TCL commands, one per line, to add after `place_design` command in Vivado   | List of strings | optional |  `[]`  |
 | <a id="vivado_place_and_route2-post_route_design"></a>post_route_design |  TCL commands, one per line, to add after `route_design` command in Vivado   | List of strings | optional |  `[]`  |
 | <a id="vivado_place_and_route2-route_design_options"></a>route_design_options |  Additional options to pass to the `route_design` command in Vivado   | String | optional |  `""`  |
