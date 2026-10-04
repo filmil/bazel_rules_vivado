@@ -56,7 +56,7 @@ if [[ ! -f "${_ltxfile}" && ! -L "${_ltxfile}" ]]; then
     exit 1
 fi
 
-GOTOPT2_OUTPUT=$(${_gotopt2} $@ <${_yaml_config})
+GOTOPT2_OUTPUT=$("${_gotopt2}" "$@" <"${_yaml_config}")
 if [[ "$?" == "11" ]]; then
   exit 1
 fi
