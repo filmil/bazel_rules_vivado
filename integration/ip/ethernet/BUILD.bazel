@@ -41,6 +41,9 @@ vivado_synthesis2(
 # 4. Place & Route the synthesized design using the Alinx A200T board pinout
 vivado_place_and_route2(
     name = "ethernet_pnr",
+    # The TEMAC core's licence is not available here, so write_bitstream
+    # fails. The test is that the design places and routes.
+    placeholder_bitstream = True,
     synthesis = ":ethernet_synth",
     xdcs = [
         "//boards:alinx-a200t-b",

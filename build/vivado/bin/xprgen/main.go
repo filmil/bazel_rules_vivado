@@ -64,6 +64,9 @@ type XPRBinding struct {
 	SaveDcpFile string
 	// BistreamName is an optional name of the bitstream to generate.
 	BitstreamName string
+	// PlaceholderBitstream: when write_bitstream fails, write a text
+	// placeholder under BitstreamName and go on, instead of failing.
+	PlaceholderBitstream bool
 
 	TimingSummaryFile, UtilizationFile, DRCFile string
 	SynthFileName, PnrFileName, CustomFileName  string
@@ -196,6 +199,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&xpr.LoadDcpFile, "load-dcp", "", "Input snapshot file")
 	fs.StringVar(&xpr.SaveDcpFile, "save-dcp", "", "Output snapshot file")
 	fs.StringVar(&xpr.BitstreamName, "bitstream", "", "Output bitstream file")
+	fs.BoolVar(&xpr.PlaceholderBitstream, "placeholder-bitstream", false, "When write_bitstream fails, write a text placeholder instead of failing")
 	fs.StringVar(&xpr.TimingSummaryFile, "timing-report", "", "The file to write the timing report to")
 	fs.StringVar(&xpr.UtilizationFile, "utilization-report", "", "The file to write the utilization report to")
 	fs.StringVar(&xpr.DRCFile, "drc-report", "", "The file to write the desitn rule check report to")

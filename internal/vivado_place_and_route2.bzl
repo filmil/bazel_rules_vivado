@@ -66,6 +66,8 @@ def _vivado_place_and_route2_impl(ctx):
     args.add("--drc-report", drc_report_file.path)
     args.add("--top-name", name)
     args.add("--bitstream", bit_file.path)
+    if ctx.attr.placeholder_bitstream:
+        args.add("--placeholder-bitstream")
     args.add("--probes-file", probes_file.path)
     args.add_all(xdc_files_paths, before_each = "--constraints")
     args.add("--place-design-options", ctx.attr.place_design_options)
@@ -188,6 +190,16 @@ vivado_place_and_route2 = rule(
         "post_route_design": attr.string_list(
             default = [],
             doc = "TCL commands, one per line, to add after `route_design` command in Vivado",
+        ),
+        "placeholder_bitstream": attr.bool(
+            default = False,
+            doc = """When `write_bitstream` fails, write a text placeholder as the `.bit` and succeed.
+
+By default a failed `write_bitstream`, for example on a DRC violation or a
+missing IP licence, fails the build. Set this only for a target that is
+meant to be checked through place and route without a licence for all of
+its IP. The placeholder is not a bitstream, and `vivado_program_device`
+refuses it.""",
         ),
         "_generator": attr.label(
             doc = "xprgen binary",

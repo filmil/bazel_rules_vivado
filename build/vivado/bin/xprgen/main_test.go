@@ -307,3 +307,62 @@ func TestRunCLI(t *testing.T) {
 		})
 	}
 }
+
+// The place-and-route template fails the run when write_bitstream fails,
+// and writes a placeholder only when --placeholder-bitstream asks for it.
+func TestPnrTemplateBitstreamFailure(t *testing.T) {
+	tpl := filepath.Join(os.Getenv("TEST_SRCDIR"), "_main", "build", "vivado", "pnr_batch.tcl.template")
+	if _, err := os.Stat(tpl); err != nil {
+		t.Fatalf("template not in runfiles: %v", err)
+	}
+	tests := []struct {
+		name        string
+		extra       []string
+		want, avoid string
+	}{
+		{
+			name:  "default fails",
+			want:  "    puts \"ERROR: write_bitstream failed: $err\"\n    exit 1",
+			avoid: "Placeholder",
+		},
+		{
+			name:  "placeholder on request",
+			extra: []string{"--placeholder-bitstream"},
+			want:  "Placeholder, not a bitstream",
+			avoid: "exit 1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := filepath.Join(t.TempDir(), "pnr.tcl")
+			args := append([]string{
+				"xprgen",
+				"--custom-template", tpl,
+				"--custom-filename", out,
+				"--bitstream", "top.bit",
+			}, tt.extra...)
+			if err := runCLI(args, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+				t.Fatalf("runCLI: %v", err)
+			}
+			b, err := os.ReadFile(out)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := string(b)
+			i := strings.Index(got, "write_bitstream -force top.bit")
+			if i < 0 {
+				t.Fatalf("no write_bitstream line in:\n%s", got)
+			}
+			block := got[i:]
+			if j := strings.Index(block, "\n}\n"); j >= 0 {
+				block = block[:j]
+			}
+			if !strings.Contains(block, tt.want) {
+				t.Errorf("want %q in:\n%s", tt.want, block)
+			}
+			if strings.Contains(block, tt.avoid) {
+				t.Errorf("did not want %q in:\n%s", tt.avoid, block)
+			}
+		})
+	}
+}
