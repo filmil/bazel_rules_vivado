@@ -160,6 +160,19 @@ cat <<EOF > "${_tcl_script_file}" || { log::error "Could not create the file: ${
 # Vivado tcl script here.
 #
 # https://stackoverflow.com/questions/50060337/programming-device-in-vivado-using-tcl
+# Close what open_hw_manager started. Without this the hardware manager's
+# cs_server, which daemonises itself, outlives this batch run and spins
+# at full CPU (#150). Each step may fail when the earlier steps never
+# ran, so each is caught.
+proc rules_vivado_close_hw {} {
+    catch { close_hw_target }
+    catch { disconnect_hw_server }
+    catch { close_hw_manager }
+}
+
+# Any error ends the run here, after the hardware manager is closed, with
+# a non-zero status.
+if { [catch {
 puts "INFO: Opening hardware manager"
 open_hw_manager
 
@@ -184,6 +197,12 @@ puts "INFO: DONE Programming device."
 puts "INFO: Refresh."
 refresh_hw_device \$Device
 puts "INFO: Done."
+} err] } {
+    puts "ERROR: \$err"
+    rules_vivado_close_hw
+    exit 1
+}
+rules_vivado_close_hw
 EOF
 
 env RUNFILES_DIR="$PWD/.." \
