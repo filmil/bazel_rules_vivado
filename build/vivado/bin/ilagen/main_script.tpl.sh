@@ -153,11 +153,23 @@ proc ila_trigger_all {ila value} {
 EOF
 
 cat <<EOF >> "${_tcl_script_file}" || { log::error "Could not write the file: ${_tcl_script_file}"; exit 1; }
+# Close what open_hw_manager started. Without this the hardware manager's
+# cs_server, which daemonises itself, outlives this batch run and spins
+# at full CPU (#150). Each step may fail when the earlier steps never
+# ran, so each is caught.
+proc rules_vivado_close_hw {} {
+    catch { close_hw_target }
+    catch { disconnect_hw_server }
+    catch { close_hw_manager }
+}
+
+# Any error ends the run here, after the hardware manager is closed, with
+# a non-zero status.
+if { [catch {
 open_hw_manager
 puts "INFO: Connecting to hardware server ${gotopt2_hostport}"
 if { [catch { connect_hw_server -url ${gotopt2_hostport} } err] } {
-    puts "ERROR: Could not connect to hw_server: \$err"
-    exit 1
+    error "Could not connect to hw_server: \$err"
 }
 
 current_hw_target [get_hw_targets ${gotopt2_device}]
@@ -171,8 +183,7 @@ refresh_hw_device \$dev
 
 set ila [get_hw_ilas -of_objects \$dev]
 if { \$ila == "" } {
-    puts "ERROR: No ILA debug cores found on device!"
-    exit 1
+    error "No ILA debug cores found on device!"
 }
 
 ${_control_tcl}
@@ -187,7 +198,12 @@ puts "INFO: Uploading captured data and writing to VCD"
 write_hw_ila_data -force -vcd ${gotopt2_vcd} [upload_hw_ila_data \$ila]
 
 puts "INFO: Done capturing."
-close_hw_target
+} err] } {
+    puts "ERROR: \$err"
+    rules_vivado_close_hw
+    exit 1
+}
+rules_vivado_close_hw
 EOF
 
 # The status of the pipeline below is Vivado's, not log::prefix's, and a
