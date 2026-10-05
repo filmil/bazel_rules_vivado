@@ -88,6 +88,14 @@ def _vivado_pnr_impl(ctx):
     # Run vivado with the script in the container
     # The copy/chmod shenanigans are needed to work around Vivado's hostile
     # attitude towards sandboxing.
+    #
+    # The synthesis output holds copies of the design's sources, and a
+    # source in the package at the root of the workspace has the same path
+    # in "$PWD", where it is a symlink to the user's file. `cp` alone opens
+    # that symlink and writes through it: it rewrote the user's source and,
+    # with `-a`, made it read-only, so the next build failed with
+    # "Permission denied". `--remove-destination` replaces the symlink
+    # instead.
     ctx.actions.run_shell(
         progress_message = "Vivado Place and Route: \"{}\"".format(name),
         inputs = inputs,
@@ -98,7 +106,7 @@ def _vivado_pnr_impl(ctx):
       echo "BAZEL: Vivado working directory is: $PWD" && \
       echo "BAZEL: Vivado output directory is : {vivado_workdir}" && \
       echo "BAZEL: XPR: {xpr_src}-> {project_name}.xpr" && \
-      cp -R -a --dereference {synth_output_dir_path}/* "$PWD" && \
+      cp -R -a --dereference --remove-destination {synth_output_dir_path}/* "$PWD" && \
       mkdir -p {project_name}.ip_user_files && \
       mkdir -p {project_name}.gen/sources_1 && \
       cp --dereference {xpr_src} {project_name}.xpr && \
