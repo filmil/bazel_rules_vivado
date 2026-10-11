@@ -44,7 +44,8 @@ vivado.install(
 )
 ```
 
-and select the mode in `.bazelrc`:
+Hermetic mode is the default since 4.0.0. To say so explicitly, or to
+switch back to it from another mode, put this in `.bazelrc`:
 
 ```
 build --@rules_vivado//:vivado_mode=hermetic

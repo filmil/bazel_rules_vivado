@@ -5,12 +5,12 @@ load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
-# Selects how Vivado is executed: "docker" (the default) runs Vivado inside
-# the local `xilinx-vivado:<version>` Docker container; "host" runs a Vivado
-# installed on the host directly (see --//internal:vivado_path for its
-# location); "hermetic" runs the Bazel-managed Vivado installation that the
-# `vivado` module extension downloads and installs into @vivado_hermetic
-# (see //:extensions.bzl); "custom" matches none of the built-in toolchains,
+# Selects how Vivado is executed: "hermetic" (the default) runs the
+# Bazel-managed Vivado installation that the `vivado` module extension
+# downloads and installs into @vivado_hermetic (see //:extensions.bzl);
+# "docker" runs Vivado inside the local `xilinx-vivado:<version>` Docker
+# container; "host" runs a Vivado installed on the host directly (see
+# --//internal:vivado_path for its location); "custom" matches none of the built-in toolchains,
 # guaranteeing that a toolchain registered by your module (or one of your
 # dependencies) is selected regardless of registration order. Set it in your
 # `.bazelrc`:
@@ -18,7 +18,7 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 #   build --@rules_vivado//:vivado_mode=host
 string_flag(
     name = "vivado_mode",
-    build_setting_default = "docker",
+    build_setting_default = "hermetic",
     values = [
         "docker",
         "host",

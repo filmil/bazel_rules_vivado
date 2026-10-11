@@ -508,6 +508,19 @@
           }
         }
       }
+    },
+    "@@rules_vivado+//:extensions.bzl%vivado": {
+      "general": {
+        "bzlTransitiveDigest": "tORog5Q0HlRSWOn01SQicjsYG72GCIX+xC7wA+raBGI=",
+        "usagesDigest": "rkHuX8W1HvimbyhkeEK06A1WFWPc+mao2GMe0B9i5RM=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "vivado_hermetic": {
+            "repoRuleId": "@@rules_vivado+//internal:vivado_installation.bzl%vivado_hermetic_stub",
+            "attributes": {}
+          }
+        }
+      }
     }
   },
   "facts": {

@@ -4,7 +4,8 @@ package(default_visibility = ["//visibility:public"])
 
 # The Vivado execution toolchain type. Rules that invoke Vivado depend on
 # this toolchain type; the registered instance decides whether Vivado runs
-# in the Docker container (the default) or directly on the host.
+# from the Bazel-managed installation (the default), in the Docker
+# container, or directly on the host.
 #
 # Select the mode with the `--//:vivado_mode` flag, e.g. in your `.bazelrc`:
 #
