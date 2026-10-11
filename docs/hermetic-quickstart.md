@@ -101,11 +101,12 @@ That is the whole of it. What each line does:
 
 *   **The mode.** `vivado_mode` chooses where Vivado comes from:
     `hermetic` is the one described here, `host` uses an installation
-    you made yourself, `docker` runs it in a container. A project that
-    expects hermetic mode may already select it in the committed
-    `.bazelrc`, in which case you can leave this line out; setting it
-    again in `user.bazelrc` does no harm, and it is how you switch your
-    own checkout without editing a shared file.
+    you made yourself, `docker` runs it in a container. Hermetic is the
+    default since rules_vivado 4.0.0, so with that version or later you
+    can leave this line out, unless the project's committed `.bazelrc`
+    selects another mode. Setting it in `user.bazelrc` does no harm, and
+    it is how you switch your own checkout without editing a shared
+    file.
 *   **The cache.** `RULES_VIVADO_CACHE` is the directory the
     installation is kept in. Leave the line out and it goes under
     Bazel's own per-user cache, roughly

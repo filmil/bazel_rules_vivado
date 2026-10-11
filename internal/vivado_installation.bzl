@@ -778,13 +778,17 @@ vivado_installation(
 def _vivado_hermetic_stub_impl(rctx):
     fail(
         "The @{} repository was requested (--@rules_vivado//:vivado_mode=".format(rctx.attr.user_repo_name) +
-        "hermetic is in effect), but no hermetic Vivado installation is " +
-        "configured. Add this to your MODULE.bazel:\n\n" +
+        "hermetic is in effect, and it is the default since rules_vivado " +
+        "4.0.0), but no hermetic Vivado installation is configured. Add " +
+        "this to your MODULE.bazel:\n\n" +
         "    vivado = use_extension(\"@rules_vivado//:extensions.bzl\", \"vivado\")\n" +
         "    vivado.install(\n" +
         "        urls = [\"file:///path/to/FPGAs_AdaptiveSoCs_Unified_SDI_<version>.tar\"],\n" +
         "        modules = [\"Artix-7\"],\n" +
-        "    )\n",
+        "    )\n\n" +
+        "Or, to run Vivado in the Docker container as before 4.0.0, add " +
+        "this to your .bazelrc:\n\n" +
+        "    build --@rules_vivado//:vivado_mode=docker\n",
     )
 
 vivado_hermetic_stub = repository_rule(

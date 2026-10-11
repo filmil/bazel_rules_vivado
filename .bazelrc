@@ -6,5 +6,11 @@ common --registry=https://raw.githubusercontent.com/filmil/bazel-registry/main
 
 # Allows temporary user settings to be placed here. From
 # https://bazel.build/configure/best-practices#bazelrc-file
+# Hermetic mode is the default since 4.0.0, but CI and BCR presubmit have
+# no installer archive, and these tests only analyse the rules. Docker mode
+# resolves without fetching anything. To use hermetic mode here, set
+# `common --//:vivado_mode=hermetic` in user.bazelrc.
+common --//:vivado_mode=docker
+
 try-import %workspace%/user.bazelrc
 

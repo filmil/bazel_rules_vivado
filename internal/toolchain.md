@@ -2,9 +2,10 @@
 
 The Vivado execution toolchain.
 
-The toolchain decides *how* Vivado tools are invoked: either inside the local
-`xilinx-vivado:<version>` Docker container (the default), or directly on the
-host, using a preexisting Vivado installation.
+The toolchain decides *how* Vivado tools are invoked: from the Bazel-managed
+installation of hermetic mode (the default), inside the local
+`xilinx-vivado:<version>` Docker container, or directly on the host, using a
+preexisting Vivado installation.
 
 Selection happens through the `//:vivado_mode` build setting flag. Users pick
 the host mode by adding this to their `.bazelrc`:

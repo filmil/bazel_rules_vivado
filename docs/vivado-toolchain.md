@@ -6,9 +6,9 @@ The following modes are available:
 
 | Mode | What it does | Requirements |
 | :--- | :--- | :--- |
-| `docker` (default) | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
+| `hermetic` (default) | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); about 300 GB of transient disk space, and Bazel 9.2.0 or later for a `file://` URL. |
+| `docker` | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
 | `host` | Runs a Vivado installed on the host machine directly. | A local Vivado installation. |
-| `hermetic` | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); about 300 GB of transient disk space, and Bazel 9.2.0 or later for a `file://` URL. |
 | `custom` | Matches no built-in toolchain; a toolchain registered by you or one of your dependency modules is selected instead. | A registered `vivado_toolchain` (see below). |
 
 ## Selecting the mode
@@ -23,8 +23,14 @@ build --@rules_vivado//:vivado_mode=host
 ```
 
 (Adjust the repo name if you imported the module under a different name.)
-Omitting the flag, or setting it to `docker`, keeps the default dockerized
-behavior.
+Omitting the flag, or setting it to `hermetic`, uses the default: the
+Vivado installation that Bazel manages, configured with a `vivado.install`
+tag in `MODULE.bazel` (see "Hermetic mode" below). Before 4.0.0 the default
+was `docker`; to keep that behavior, set it explicitly:
+
+```
+build --@rules_vivado//:vivado_mode=docker
+```
 
 ## Configuring versions and paths
 
@@ -82,7 +88,9 @@ vivado.install(
 )
 ```
 
-and select the mode in your `.bazelrc`:
+Hermetic mode is the default since 4.0.0, so nothing else is needed. To
+select it explicitly, for example over a project-wide `docker` setting,
+put this in your `.bazelrc`:
 
 ```
 build --@rules_vivado//:vivado_mode=hermetic
