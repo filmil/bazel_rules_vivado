@@ -788,7 +788,7 @@ def _vivado_hermetic_stub_impl(rctx):
         "    )\n\n" +
         "Or, to run Vivado in the Docker container as before 4.0.0, add " +
         "this to your .bazelrc:\n\n" +
-        "    build --@rules_vivado//:vivado_mode=docker\n",
+        "    common --@rules_vivado//:vivado_mode=docker\n",
     )
 
 vivado_hermetic_stub = repository_rule(

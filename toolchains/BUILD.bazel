@@ -7,9 +7,10 @@ package(default_visibility = ["//visibility:public"])
 # from the Bazel-managed installation (the default), in the Docker
 # container, or directly on the host.
 #
-# Select the mode with the `--//:vivado_mode` flag, e.g. in your `.bazelrc`:
+# Select the mode with the `--@rules_vivado//:vivado_mode` flag, e.g. in
+# your `.bazelrc`:
 #
-#   build --@rules_vivado//:vivado_mode=host
+#   common --@rules_vivado//:vivado_mode=docker   # or host
 toolchain_type(name = "toolchain_type")
 
 vivado_toolchain(

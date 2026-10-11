@@ -6,7 +6,7 @@ The following modes are available:
 
 | Mode | What it does | Requirements |
 | :--- | :--- | :--- |
-| `hermetic` (default) | Downloads the AMD/Xilinx installer and batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); about 300 GB of transient disk space, and Bazel 9.2.0 or later for a `file://` URL. |
+| `hermetic` (default) | Takes an AMD/Xilinx installer archive you provide (AMD downloads need a login), batch-installs Vivado into a Bazel-managed external repository, then runs it from there. | The installer archive URL (see below); about 300 GB of transient disk space, and Bazel 9.2.0 or later for a `file://` URL. |
 | `docker` | Runs Vivado inside the local `xilinx-vivado:<version>` Docker image. | Docker, plus the locally built Vivado image (see prerequisites). |
 | `host` | Runs a Vivado installed on the host machine directly. | A local Vivado installation. |
 | `custom` | Matches no built-in toolchain; a toolchain registered by you or one of your dependency modules is selected instead. | A registered `vivado_toolchain` (see below). |
@@ -29,7 +29,7 @@ tag in `MODULE.bazel` (see "Hermetic mode" below). Before 4.0.0 the default
 was `docker`; to keep that behavior, set it explicitly:
 
 ```
-build --@rules_vivado//:vivado_mode=docker
+common --@rules_vivado//:vivado_mode=docker
 ```
 
 ## Configuring versions and paths
