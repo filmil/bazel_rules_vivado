@@ -58,7 +58,9 @@ vivado.install(
 
 If the project you are building already has those lines, you have
 nothing to do in this step, except to make sure the file the `urls`
-line names actually exists on your machine at that path.
+line names actually exists on your machine at that path. If your copy
+of the archive is somewhere else, leave the shared `urls` line alone:
+Step 2 shows how to point Bazel at your own copy.
 
 `modules` is what keeps the installation from being enormous: it lists
 the device families to install and leaves out everything else.
@@ -89,6 +91,10 @@ common --@rules_vivado//:vivado_mode=hermetic
 
 # Where that installation lives. Any path you can write to.
 common --repo_env=RULES_VIVADO_CACHE=/data/cache/vivado-install
+
+# Only if your copy of the installer archive is not where the project's
+# MODULE.bazel says it is.
+common --repo_env=VIVADO_INSTALLER_URL=file:///home/me/Downloads/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar
 ```
 
 That is the whole of it. What each line does:
@@ -109,6 +115,21 @@ That is the whole of it. What each line does:
     `--repo_env` is how a bazelrc sets a variable that a repository rule
     reads; exporting `RULES_VIVADO_CACHE` in your shell does the same
     thing.
+
+*   **Your archive.** `VIVADO_INSTALLER_URL` is the archive Bazel reads
+    instead of the one the project's `urls` names, so you never keep a
+    local edit to the shared `MODULE.bazel`. Leave the line out if your
+    copy is where the project expects it. The URL must end in the
+    archive's `.tar` name, because Bazel tells the archive type from it.
+    If the project sets `sha256`, that still applies, so a copy that is
+    not the same archive fails the fetch instead of installing something
+    else. To use a genuinely different archive, also set
+    `VIVADO_INSTALLER_SHA256` to its checksum
+    (`sha256sum <archive>`).
+
+    A CI machine does the same in its system-wide `/etc/bazel.bazelrc`,
+    so every job on it finds the archive without a change to the
+    project.
 
 If the project sets `install_cache` in its `vivado.install` block, that
 wins over your variable. That is deliberate: a project that pins a
