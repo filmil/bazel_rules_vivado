@@ -62,10 +62,72 @@ Consequences to be aware of:
     coordinate through a lock file; the second server waits for the first
     install to finish and then reuses it.
 
+### Environment variables
+
+*   `VIVADO_INSTALLER_URL` -- overrides the `urls` declared in
+    `MODULE.bazel`. AMD downloads require a login, so the archive is
+    usually a local file whose path differs per machine, while
+    `MODULE.bazel` is committed and shared; this lets each machine point
+    at its own copy without editing a tracked file. Set it with
+    `--repo_env=VIVADO_INSTALLER_URL=file:///...`, for example from a
+    gitignored `user.bazelrc`, or from `/etc/bazel.bazelrc` on a CI host.
+*   `VIVADO_INSTALLER_SHA256` -- overrides `sha256`. Needed only when the
+    URL override points at a *different* archive; for a mirror of the
+    same one the committed checksum still applies and catches a
+    substitution.
+*   `RULES_VIVADO_CACHE` -- overrides the install cache root (see above).
+
+All three are read with `getenv`, which registers a watch, so changing one
+refetches this repository. That is cheap when it lands on an installed
+cache entry: the fetch completes in seconds.
+
+This follows the design of the same variables in
+https://github.com/filmil/bazel_toolchains_vivado.
+
 IMPORTANT: this file deliberately load()s nothing. The transitive `.bzl`
 digest of a repository rule is part of its identity, so any load edge
 would make unrelated edits (e.g. to `toolchain.bzl`) invalidate the
 repository and trigger a refetch. Keep it self-contained.
+
+<a id="resolve_source"></a>
+
+## resolve_source
+
+<pre>
+load("@rules_vivado//internal:vivado_installation.bzl", "resolve_source")
+
+resolve_source(<a href="#resolve_source-urls">urls</a>, <a href="#resolve_source-sha256">sha256</a>, <a href="#resolve_source-env_url">env_url</a>, <a href="#resolve_source-env_sha256">env_sha256</a>)
+</pre>
+
+Decides where the installer archive is actually read from.
+
+AMD downloads sit behind a login, so in practice the archive is a local
+file and its path differs per machine, while `MODULE.bazel` is committed
+and shared. `VIVADO_INSTALLER_URL` therefore takes precedence over the
+declared `urls`, so each machine can point at its own copy without
+editing a tracked file. `VIVADO_INSTALLER_SHA256` overrides the checksum
+alongside it, which is required when the override is a *different*
+archive rather than a mirror of the same one; without it the committed
+`sha256` still applies and a substitution is caught.
+
+Pure, so that //internal/tests can exercise it without a repository_ctx.
+
+
+**PARAMETERS**
+
+
+| Name  | Description | Default Value |
+| :------------- | :------------- | :------------- |
+| <a id="resolve_source-urls"></a>urls |  the `urls` attribute.   |  none |
+| <a id="resolve_source-sha256"></a>sha256 |  the `sha256` attribute.   |  none |
+| <a id="resolve_source-env_url"></a>env_url |  value of `VIVADO_INSTALLER_URL`, or "" when unset.   |  none |
+| <a id="resolve_source-env_sha256"></a>env_sha256 |  value of `VIVADO_INSTALLER_SHA256`, or "" when unset.   |  none |
+
+**RETURNS**
+
+A struct with `urls`, `sha256` and `overridden` fields describing the
+source to use.
+
 
 <a id="vivado_hermetic_stub"></a>
 
@@ -180,7 +242,7 @@ vivado_installation(
 | <a id="vivado_installation-product"></a>product |  The product to install, as named in the installer's product menu. Example: `product = "Vivado"` (other menu entries, e.g. `"Vitis"`, are untested).   | String | optional |  `"Vivado"`  |
 | <a id="vivado_installation-sha256"></a>sha256 |  SHA-256 of the installer archive, as printed by `sha256sum <archive>`. Strongly recommended for reproducibility, and used as the install cache key; note that providing it also causes the ~100 GB archive to be stored in Bazel's repository cache. Example: `sha256 = "0f1e...e1f0"`.   | String | optional |  `""`  |
 | <a id="vivado_installation-strip_prefix"></a>strip_prefix |  Directory prefix to strip from the extracted archive. Usually unnecessary: the rule finds `xsetup` one level deep on its own. Example: `strip_prefix = "FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157"`.   | String | optional |  `""`  |
-| <a id="vivado_installation-urls"></a>urls |  URLs of the AMD/Xilinx unified SDI installer archive (the single-file download, e.g. `FPGAs_AdaptiveSoCs_Unified_SDI_<version>_<build>.tar`). Any Bazel-supported URL scheme works, including `file:///...` for a manually downloaded archive. Example: `urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar"]`.   | List of strings | required |  |
+| <a id="vivado_installation-urls"></a>urls |  URLs of the AMD/Xilinx unified SDI installer archive (the single-file download, e.g. `FPGAs_AdaptiveSoCs_Unified_SDI_<version>_<build>.tar`). Any Bazel-supported URL scheme works, including `file:///...` for a manually downloaded archive. Example: `urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar"]`. The `VIVADO_INSTALLER_URL` environment variable overrides this at fetch time, so a path that differs per machine does not have to be committed.   | List of strings | optional |  `[]`  |
 | <a id="vivado_installation-vivado_version"></a>vivado_version |  Expected Vivado version; part of the install cache key and informational (the installed version is detected from the install layout). Example: `vivado_version = "2025.2"`.   | String | optional |  `"2025.2"`  |
 
 

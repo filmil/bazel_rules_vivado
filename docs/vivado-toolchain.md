@@ -106,7 +106,7 @@ every attribute):
 
 | Attribute | Meaning | Default |
 | :--- | :--- | :--- |
-| `urls` | Installer archive URLs (mandatory). | |
+| `urls` | Installer archive URLs; `VIVADO_INSTALLER_URL` overrides them. | |
 | `sha256` | Archive checksum. | unset |
 | `product` | Installer product menu entry. | `Vivado` |
 | `edition` | Installer edition menu entry. | `Vivado ML Standard` |
@@ -114,6 +114,41 @@ every attribute):
 | `install_options` | Post-install steps (see below). | installer defaults |
 | `eulas` | Agreements passed to `xsetup --agree`. | `XilinxEULA,3rdPartyEULA` |
 | `install_timeout` | Batch install timeout, seconds. | 4 hours |
+
+### Overriding the archive location per machine
+
+The archive's path is usually machine-specific, while `MODULE.bazel` is
+committed and shared. The `VIVADO_INSTALLER_URL` environment variable
+overrides the declared `urls`, so nobody has to keep a local edit to a
+tracked file. Set it in a bazelrc that belongs to the machine, not the
+project: a gitignored `user.bazelrc` or `~/.bazelrc` on a workstation,
+or `/etc/bazel.bazelrc` on a CI host.
+
+```
+# user.bazelrc
+common --repo_env=VIVADO_INSTALLER_URL=file:///home/me/Downloads/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar
+```
+
+For a single command:
+
+```sh
+bazel build \
+  --repo_env=VIVADO_INSTALLER_URL=file:///home/me/Downloads/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar \
+  //your:target
+```
+
+The committed `sha256` still applies, so redirecting to a mirror of the
+same archive is safe and a substituted one fails the fetch. Pair it with
+`VIVADO_INSTALLER_SHA256` when pointing at a genuinely different archive.
+Both variables are read with `getenv`, so changing either refetches the
+repository; a refetch that lands on an installed cache entry takes
+seconds. The install cache key follows the archive actually used: with a
+`sha256`, the same archive at another path reuses its installation;
+without one, each distinct URL gets its own entry.
+
+The same variables exist in
+[bazel_toolchains_vivado](https://github.com/filmil/bazel_toolchains_vivado),
+and behave the same way.
 
 ### Selecting installation components
 
@@ -266,7 +301,8 @@ happening:
     output user root: by default
     `~/.cache/bazel/_bazel_<user>/rules_vivado/<version>-<key>`, where
     `<key>` is the archive `sha256` (or, if unset, a hash of the URLs and
-    the component selection). This ties the installation's lifetime to
+    the component selection), after `VIVADO_INSTALLER_URL` and
+    `VIVADO_INSTALLER_SHA256` are applied. This ties the installation's lifetime to
     the user's Bazel cache -- all workspaces of the user share it, and
     deleting the Bazel cache deletes it -- while `bazel clean --expunge`
     (which only removes one workspace's output base) leaves it intact. A

@@ -50,6 +50,20 @@ and select the mode in `.bazelrc`:
 build --@rules_vivado//:vivado_mode=hermetic
 ```
 
+Because the archive's path usually differs per machine while
+`MODULE.bazel` is committed and shared, `VIVADO_INSTALLER_URL` overrides
+whatever the module declared:
+
+```
+# user.bazelrc, which is gitignored
+common --repo_env=VIVADO_INSTALLER_URL=file:///home/me/Downloads/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar
+```
+
+The committed `sha256` still applies, so redirecting to a mirror of the
+same archive is safe and a substituted one is caught; use
+`VIVADO_INSTALLER_SHA256` alongside it when pointing at a genuinely
+different archive.
+
 All attributes of the `install` tag mirror the attributes of the
 `vivado_installation` repository rule
 (`@rules_vivado//internal:vivado_installation.bzl`); see there for the
@@ -94,9 +108,9 @@ Configures the hermetic Vivado installation. Only the root module's tag is honor
 | <a id="vivado.install-keep_installer"></a>keep_installer |  Keep the extracted installer payload (debugging only; ~100 GB). Example: `keep_installer = True`.   | Boolean | optional |  `False`  |
 | <a id="vivado.install-modules"></a>modules |  Installer modules (device families, optional tools) to enable; everything else is disabled. Names match menu entries exactly or as an unambiguous substring. Example: `modules = ["Artix-7", "Zynq-7000"]`.   | List of strings | optional |  `[]`  |
 | <a id="vivado.install-product"></a>product |  Installer product menu entry to install. Example: `product = "Vivado"`.   | String | optional |  `"Vivado"`  |
-| <a id="vivado.install-sha256"></a>sha256 |  SHA-256 of the installer archive (`sha256sum <archive>`). Example: `sha256 = "0f1e...e1f0"`.   | String | optional |  `""`  |
+| <a id="vivado.install-sha256"></a>sha256 |  SHA-256 of the installer archive (`sha256sum <archive>`). Still applies when `VIVADO_INSTALLER_URL` redirects to a mirror, so a substituted archive is caught; override it with `VIVADO_INSTALLER_SHA256` when pointing at a genuinely different one. Example: `sha256 = "0f1e...e1f0"`.   | String | optional |  `""`  |
 | <a id="vivado.install-strip_prefix"></a>strip_prefix |  Directory prefix to strip from the extracted archive (usually autodetected). Example: `strip_prefix = "FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157"`.   | String | optional |  `""`  |
-| <a id="vivado.install-urls"></a>urls |  URLs of the AMD/Xilinx unified SDI installer archive; `file:///...` URLs work for a manually downloaded copy. Example: `urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar"]`.   | List of strings | required |  |
+| <a id="vivado.install-urls"></a>urls |  URLs of the AMD/Xilinx unified SDI installer archive; `file:///...` URLs work for a manually downloaded copy. Example: `urls = ["file:///opt/archives/FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar"]`. The `VIVADO_INSTALLER_URL` environment variable overrides this at fetch time, so a path that differs per machine does not have to be committed.   | List of strings | optional |  `[]`  |
 | <a id="vivado.install-vivado_version"></a>vivado_version |  Expected Vivado version (informational). Example: `vivado_version = "2025.2"`.   | String | optional |  `""`  |
 
 

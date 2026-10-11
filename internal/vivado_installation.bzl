@@ -60,6 +60,28 @@ Consequences to be aware of:
     coordinate through a lock file; the second server waits for the first
     install to finish and then reuses it.
 
+### Environment variables
+
+*   `VIVADO_INSTALLER_URL` -- overrides the `urls` declared in
+    `MODULE.bazel`. AMD downloads require a login, so the archive is
+    usually a local file whose path differs per machine, while
+    `MODULE.bazel` is committed and shared; this lets each machine point
+    at its own copy without editing a tracked file. Set it with
+    `--repo_env=VIVADO_INSTALLER_URL=file:///...`, for example from a
+    gitignored `user.bazelrc`, or from `/etc/bazel.bazelrc` on a CI host.
+*   `VIVADO_INSTALLER_SHA256` -- overrides `sha256`. Needed only when the
+    URL override points at a *different* archive; for a mirror of the
+    same one the committed checksum still applies and catches a
+    substitution.
+*   `RULES_VIVADO_CACHE` -- overrides the install cache root (see above).
+
+All three are read with `getenv`, which registers a watch, so changing one
+refetches this repository. That is cheap when it lands on an installed
+cache entry: the fetch completes in seconds.
+
+This follows the design of the same variables in
+https://github.com/filmil/bazel_toolchains_vivado.
+
 IMPORTANT: this file deliberately load()s nothing. The transitive `.bzl`
 digest of a repository rule is part of its identity, so any load edge
 would make unrelated edits (e.g. to `toolchain.bzl`) invalidate the
@@ -290,17 +312,61 @@ def _install_cache_root(rctx):
     output_user_root = rctx.path(".").dirname.dirname.dirname
     return str(output_user_root) + "/rules_vivado"
 
-def _cache_key(rctx):
+def resolve_source(urls, sha256, env_url, env_sha256):
+    """Decides where the installer archive is actually read from.
+
+    AMD downloads sit behind a login, so in practice the archive is a local
+    file and its path differs per machine, while `MODULE.bazel` is committed
+    and shared. `VIVADO_INSTALLER_URL` therefore takes precedence over the
+    declared `urls`, so each machine can point at its own copy without
+    editing a tracked file. `VIVADO_INSTALLER_SHA256` overrides the checksum
+    alongside it, which is required when the override is a *different*
+    archive rather than a mirror of the same one; without it the committed
+    `sha256` still applies and a substitution is caught.
+
+    Pure, so that //internal/tests can exercise it without a repository_ctx.
+
+    Args:
+      urls: the `urls` attribute.
+      sha256: the `sha256` attribute.
+      env_url: value of `VIVADO_INSTALLER_URL`, or "" when unset.
+      env_sha256: value of `VIVADO_INSTALLER_SHA256`, or "" when unset.
+
+    Returns:
+      A struct with `urls`, `sha256` and `overridden` fields describing the
+      source to use.
+    """
+    url = env_url.strip()
+    effective_sha256 = env_sha256.strip() or sha256
+    if url:
+        return struct(overridden = True, sha256 = effective_sha256, urls = [url])
+    return struct(overridden = False, sha256 = effective_sha256, urls = urls)
+
+def _resolve_source(rctx):
+    """Reads the overrides with `getenv`, so changing one refetches."""
+    return resolve_source(
+        urls = rctx.attr.urls,
+        sha256 = rctx.attr.sha256,
+        env_url = rctx.getenv("VIVADO_INSTALLER_URL") or "",
+        env_sha256 = rctx.getenv("VIVADO_INSTALLER_SHA256") or "",
+    )
+
+def _cache_key(rctx, source):
     """Computes the content-address of this installation in the cache.
 
     The archive checksum identifies the installation best; without one,
-    a hash of the URLs and the component selection is used instead.
+    a hash of the URLs and the component selection is used instead. Both
+    are taken from the resolved source, so an environment override that
+    redirects to a different archive gets its own cache entry rather than
+    reusing the one the declared source produced. Without an override,
+    the key is the same as before the overrides existed, so existing
+    installations are reused.
     """
     version = rctx.attr.vivado_version or _DEFAULT_VIVADO_VERSION
-    if rctx.attr.sha256:
-        return version + "-" + rctx.attr.sha256[:16]
+    if source.sha256:
+        return version + "-" + source.sha256[:16]
     material = "\n".join(
-        rctx.attr.urls + [rctx.attr.product, rctx.attr.edition] +
+        source.urls + [rctx.attr.product, rctx.attr.edition] +
         rctx.attr.modules + rctx.attr.install_options + rctx.attr.eulas,
     )
     rctx.file("cache_key_material.txt", material, executable = False)
@@ -443,12 +509,16 @@ def _emit_repo_files(rctx, marker_text):
     )
 
 def _vivado_installation_impl(rctx):
-    if not rctx.attr.urls:
-        fail("vivado_installation: the `urls` attribute must not be empty.")
+    source = _resolve_source(rctx)
+    if not source.urls:
+        fail(
+            "vivado_installation: the `urls` attribute must not be empty " +
+            "(or set VIVADO_INSTALLER_URL, e.g. with --repo_env).",
+        )
 
     cache_root = _install_cache_root(rctx)
     if cache_root:
-        cache_dir = cache_root + "/" + _cache_key(rctx)
+        cache_dir = cache_root + "/" + _cache_key(rctx, source)
     else:
         # Caching disabled: install inside the repository, restoring the
         # old behavior where `bazel clean --expunge` removes everything.
@@ -466,10 +536,12 @@ def _vivado_installation_impl(rctx):
     rctx.execute(["mkdir", "-p", home])
 
     rctx.report_progress("Downloading and extracting the Vivado installer archive (~100 GB, this takes a while)")
+    if source.overridden:
+        rctx.report_progress("Using the installer archive from VIVADO_INSTALLER_URL")
     rctx.download_and_extract(
-        url = rctx.attr.urls,
+        url = source.urls,
         output = "installer_sdi",
-        sha256 = rctx.attr.sha256,
+        sha256 = source.sha256,
         stripPrefix = rctx.attr.strip_prefix,
     )
     xsetup_dir = _find_xsetup_dir(rctx)
@@ -594,14 +666,16 @@ vivado_installation(
 """,
     attrs = {
         "urls": attr.string_list(
-            mandatory = True,
             doc = "URLs of the AMD/Xilinx unified SDI installer archive " +
                   "(the single-file download, e.g. " +
                   "`FPGAs_AdaptiveSoCs_Unified_SDI_<version>_<build>.tar`). " +
                   "Any Bazel-supported URL scheme works, including " +
                   "`file:///...` for a manually downloaded archive. " +
                   "Example: `urls = [\"file:///opt/archives/" +
-                  "FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar\"]`.",
+                  "FPGAs_AdaptiveSoCs_Unified_SDI_2025.2_1114_2157_1.tar\"]`. " +
+                  "The `VIVADO_INSTALLER_URL` environment variable overrides " +
+                  "this at fetch time, so a path that differs per machine " +
+                  "does not have to be committed.",
         ),
         "sha256": attr.string(
             doc = "SHA-256 of the installer archive, as printed by " +
