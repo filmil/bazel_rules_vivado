@@ -5,11 +5,11 @@ installation of hermetic mode (the default), inside the local
 `xilinx-vivado:<version>` Docker container, or directly on the host, using a
 preexisting Vivado installation.
 
-Selection happens through the `//:vivado_mode` build setting flag. Users pick
-the host mode by adding this to their `.bazelrc`:
+Selection happens through the `@rules_vivado//:vivado_mode` build setting
+flag. Users pick another mode by adding a line like this to their `.bazelrc`:
 
 ```
-build --@rules_vivado//:vivado_mode=host
+common --@rules_vivado//:vivado_mode=docker   # or host
 ```
 
 Both modes share a single command line format: rules generate a command that
