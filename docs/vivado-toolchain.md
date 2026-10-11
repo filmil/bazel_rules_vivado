@@ -106,7 +106,7 @@ every attribute):
 
 | Attribute | Meaning | Default |
 | :--- | :--- | :--- |
-| `urls` | Installer archive URLs; `VIVADO_INSTALLER_URL` overrides them. | |
+| `urls` | Installer archive URLs; `VIVADO_INSTALLER_URL` overrides them. | `[]`; then `VIVADO_INSTALLER_URL` must be set |
 | `sha256` | Archive checksum. | unset |
 | `product` | Installer product menu entry. | `Vivado` |
 | `edition` | Installer edition menu entry. | `Vivado ML Standard` |

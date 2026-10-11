@@ -535,9 +535,11 @@ def _vivado_installation_impl(rctx):
     home = str(rctx.path("xhome"))
     rctx.execute(["mkdir", "-p", home])
 
-    rctx.report_progress("Downloading and extracting the Vivado installer archive (~100 GB, this takes a while)")
-    if source.overridden:
-        rctx.report_progress("Using the installer archive from VIVADO_INSTALLER_URL")
+    rctx.report_progress(
+        "Downloading and extracting the Vivado installer archive " +
+        ("from VIVADO_INSTALLER_URL " if source.overridden else "") +
+        "(~100 GB, this takes a while)",
+    )
     rctx.download_and_extract(
         url = source.urls,
         output = "installer_sdi",
@@ -679,7 +681,10 @@ vivado_installation(
         ),
         "sha256": attr.string(
             doc = "SHA-256 of the installer archive, as printed by " +
-                  "`sha256sum <archive>`. Strongly recommended for " +
+                  "`sha256sum <archive>`. Still applies when " +
+                  "`VIVADO_INSTALLER_URL` redirects to a mirror; " +
+                  "`VIVADO_INSTALLER_SHA256` overrides it for a different " +
+                  "archive. Strongly recommended for " +
                   "reproducibility, and used as the install cache key; " +
                   "note that providing it also causes the ~100 GB archive " +
                   "to be stored in Bazel's repository cache. Example: " +
