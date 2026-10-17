@@ -70,21 +70,15 @@ if [[ "${_yaml_config}" == "" ]]; then
     _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/flags.yaml)"
 fi
 
-readonly _bitfile="{{ .BitFile }}"
-if [[ ! -f "${_bitfile}" && ! -L "${_bitfile}" ]]; then
-    echo "bit file not found at ${_bitfile}"
-    ls -lR
+_bitfile_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/bitfile.bash)"
+if [[ "${_bitfile_lib}" == "" ]]; then
+    _bitfile_lib="$(rlocation rules_vivado/build/vivado/bin/proggen/bitfile.bash)"
+fi
+if [[ "${_bitfile_lib}" == "" ]]; then
+    log::error "bitfile.bash not found"
     exit 1
 fi
-# A Xilinx .bit file starts with this 13-byte header. A placeholder that
-# vivado_place_and_route2 wrote for a failed write_bitstream does not.
-readonly _bit_header="00090ff00ff00ff00ff0000001"
-if [[ "$(head -c 13 "${_bitfile}" | od -An -tx1 | tr -d ' \n')" != "${_bit_header}" ]]; then
-    echo "not a bitstream: ${_bitfile}"
-    head -c 200 "${_bitfile}"
-    echo
-    exit 1
-fi
+source "${_bitfile_lib}"
 
 GOTOPT2_OUTPUT=$(${_gotopt2} $@ <${_yaml_config})
 if [[ "$?" == "11" ]]; then
@@ -93,6 +87,16 @@ if [[ "$?" == "11" ]]; then
 fi
 
 eval "${GOTOPT2_OUTPUT}"
+
+# The target's own bitstream, or the one --bitfile names, copied to where
+# Vivado sees it. See bitfile.bash.
+readonly _bitfile_copy="rules_vivado_program.bit"
+_bitfile="$(proggen::bitfile "{{ .BitFile }}" "${gotopt2_bitfile}" "${gotopt2_sha256}" "${_bitfile_copy}")" \
+    || exit 1
+readonly _bitfile
+if [[ "${_bitfile}" == "${_bitfile_copy}" ]]; then
+    trap 'rm -f "${_bitfile_copy}"' EXIT
+fi
 
 if [[ "${gotopt2_hostport}" == "" ]]; then
     echo "--hostport is required, often the value should be 'localhost:3122'"
@@ -115,6 +119,9 @@ readonly _work_dir="{{ .WorkDir }}"
 
 log::debug "Creating script file: ${_tcl_script_file}"
 log::debug "Using bitfile:        ${_bitfile}"
+if [[ "${gotopt2_bitfile}" != "" ]]; then
+    log::info "Programming ${gotopt2_bitfile}, not the target's own bitstream"
+fi
 log::debug "Using PWD:            ${PWD}"
 
 # Now, run the daemon.

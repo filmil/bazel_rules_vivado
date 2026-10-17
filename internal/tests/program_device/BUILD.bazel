@@ -1,0 +1,67 @@
+# Which bitstream `vivado_program_device`'s script programs by default,
+# read from the script it writes rather than from a run: the bitstream of
+# its deps, or, for a target without deps, none, so that --bitfile is
+# required. bitfile.bash, tested in //build/vivado/bin/proggen, does the
+# rest.
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//internal:vivado_program_device.bzl", "vivado_program_device")
+load("//internal/tests/program_flash:fake.bzl", "fake_bitstream")
+
+fake_bitstream(
+    name = "design",
+    bit = "design.bit",
+)
+
+sh_binary(
+    name = "daemon",
+    srcs = ["daemon.sh"],
+)
+
+# Manual: built whole, with its runfiles, a target would bring in the
+# Vivado runner. The test reads only the scripts, through the copy below.
+vivado_program_device(
+    name = "program",
+    prog_daemon = ":daemon",
+    tags = ["manual"],
+    deps = [":design"],
+)
+
+vivado_program_device(
+    name = "program_any",
+    prog_daemon = ":daemon",
+    tags = ["manual"],
+)
+
+genrule(
+    name = "scripts",
+    srcs = [
+        ":program",
+        ":program_any",
+    ],
+    outs = [
+        "program.sh.txt",
+        "program_any.sh.txt",
+    ],
+    cmd = """
+for f in $(locations :program); do
+    case "$$f" in *.sh) cp "$$f" $(location program.sh.txt) ;; esac
+done
+for f in $(locations :program_any); do
+    case "$$f" in *.sh) cp "$$f" $(location program_any.sh.txt) ;; esac
+done
+""",
+)
+
+sh_test(
+    name = "default_bitfile_test",
+    srcs = ["default_bitfile_test.sh"],
+    args = [
+        "$(rootpath program.sh.txt)",
+        "$(rootpath program_any.sh.txt)",
+    ],
+    data = [
+        "program.sh.txt",
+        "program_any.sh.txt",
+    ],
+)

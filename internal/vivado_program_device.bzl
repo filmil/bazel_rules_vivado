@@ -21,17 +21,16 @@ def _vivado_program_device(ctx):
       A DefaultInfo provider.
     """
 
-    # For now, only one bitstream.
-    bitstream = None
+    # For now, only one bitstream. A target without deps has none of its
+    # own, and its script takes one from --bitfile.
     bittarget = None
     for target in ctx.attr.deps:
         bittarget = target
-        for file in target.files.to_list():
-            bitstream = file
-            break
 
-    bitstream_provider = bittarget[VivadoBitstreamProvider]
-    bitfile = bitstream_provider.bitstream
+    bitfile = None
+    if bittarget != None:
+        bitfile = bittarget[VivadoBitstreamProvider].bitstream
+    bitfile_files = [bitfile] if bitfile != None else []
 
     # Needed binaries
     config = _vivado_config(ctx)
@@ -48,13 +47,16 @@ def _vivado_program_device(ctx):
     # wrong template.
     tpl1 = None
     yaml = None
+    bitfile_lib = None
     for f in data:
         if f.basename == "main_script.tpl.sh":
             tpl1 = f
         elif f.basename == "flags.yaml":
             yaml = f
-    if tpl1 == None or yaml == None:
-        fail("vivado_program_device: could not find main_script.tpl.sh/flags.yaml in proggen data")
+        elif f.basename == "bitfile.bash":
+            bitfile_lib = f
+    if tpl1 == None or yaml == None or bitfile_lib == None:
+        fail("vivado_program_device: could not find main_script.tpl.sh/flags.yaml/bitfile.bash in proggen data")
 
     for target in ctx.attr._tools:
         data += target.files.to_list()
@@ -71,7 +73,10 @@ def _vivado_program_device(ctx):
     args.add("--run-docker", script.path)
     args.add("--runner-rlocation", _rlocation_path(ctx, script))
     args.add("--template", tpl1.path)
-    args.add("--bitfile", bitfile.short_path)
+    if bitfile != None:
+        args.add("--bitfile", bitfile.short_path)
+    else:
+        args.add("--no-bitfile")
     args.add("--vivado-version", config.vivado_version)
     args.add("--vivado-path", config.vivado_path)
     args.add("--container", config.container)
@@ -86,7 +91,7 @@ def _vivado_program_device(ctx):
     args.add("--prog-runner-binary", ctx.files.prog_daemon[0].short_path)
 
     ctx.actions.run(
-        inputs = [generator, gotopt2, script, bitfile] + daemon_outputs,
+        inputs = [generator, gotopt2, script] + bitfile_files + daemon_outputs,
         outputs = [outfile],
         executable = generator,
         tools = [
@@ -99,7 +104,7 @@ def _vivado_program_device(ctx):
     )
 
     runfiles = ctx.runfiles(
-        files = [script, gotopt2, yaml, bitfile],
+        files = [script, gotopt2, yaml, bitfile_lib] + bitfile_files,
         collect_data = True,
     )
     tools_files = []
@@ -130,11 +135,33 @@ def _vivado_program_device(ctx):
 vivado_program_device = rule(
     implementation = _vivado_program_device,
     executable = True,
+    doc = """Loads a bitstream into the FPGA's volatile configuration memory.
+
+`bazel run` the target. It connects to a hw_server and programs the
+bitstream of the target in `deps`, unless `--bitfile` names another.
+
+Flags:
+
+- `--hostport`: the hw_server, often `localhost:3122`. Required.
+- `--device`: the hardware target.
+- `--bitfile`: a bitstream to program in place of the target's own, such
+  as one that another session already built and checked. A relative path
+  is relative to where `bazel run` was started. It is required when the
+  target has no `deps`, which lets one target program bitstreams that
+  were built elsewhere, without running place and route.
+- `--sha256`: the SHA-256 that the bitstream must have, in hex. When the
+  file's differs, the device is not programmed. It checks the `--bitfile`
+  file when there is one, and the target's own bitstream otherwise.
+
+The script refuses a file that does not start as a Xilinx `.bit` file
+does, such as the placeholder that `vivado_place_and_route2` writes for a
+failed `write_bitstream`.
+""",
     toolchains = [VIVADO_TOOLCHAIN_TYPE],
     attrs = {
         "deps": attr.label_list(
             providers = [VivadoBitstreamProvider],
-            doc = "The list of deps containing bitstream code",
+            doc = "The target whose bitstream to program. Without one, `--bitfile` is required when the target is run.",
         ),
         "_gotopt2": attr.label(
             default = "@gotopt2//:bin",
