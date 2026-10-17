@@ -51,12 +51,12 @@ def _vivado_program_device(ctx):
     for f in data:
         if f.basename == "main_script.tpl.sh":
             tpl1 = f
-        elif f.basename == "flags.yaml":
+        elif f.basename == "program_flags.yaml":
             yaml = f
         elif f.basename == "bitfile.bash":
             bitfile_lib = f
     if tpl1 == None or yaml == None or bitfile_lib == None:
-        fail("vivado_program_device: could not find main_script.tpl.sh/flags.yaml/bitfile.bash in proggen data")
+        fail("vivado_program_device: could not find main_script.tpl.sh/program_flags.yaml/bitfile.bash in proggen data")
 
     for target in ctx.attr._tools:
         data += target.files.to_list()
@@ -148,7 +148,9 @@ Flags:
   as one that another session already built and checked. A relative path
   is relative to where `bazel run` was started. It is required when the
   target has no `deps`, which lets one target program bitstreams that
-  were built elsewhere, without running place and route.
+  were built elsewhere, without running place and route. A target with
+  `deps` still builds its own bitstream when it is run, `--bitfile` or
+  not, since that bitstream is among its runfiles.
 - `--sha256`: the SHA-256 that the bitstream must have, in hex. When the
   file's differs, the device is not programmed. It checks the `--bitfile`
   file when there is one, and the target's own bitstream otherwise.
@@ -161,7 +163,7 @@ failed `write_bitstream`.
     attrs = {
         "deps": attr.label_list(
             providers = [VivadoBitstreamProvider],
-            doc = "The target whose bitstream to program. Without one, `--bitfile` is required when the target is run.",
+            doc = "The target whose bitstream to program. Give one: of several, only the last is used. Without one, `--bitfile` is required when the target is run.",
         ),
         "_gotopt2": attr.label(
             default = "@gotopt2//:bin",

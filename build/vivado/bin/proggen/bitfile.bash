@@ -10,7 +10,8 @@
 readonly _proggen_bit_header="00090ff00ff00ff00ff0000001"
 
 # proggen::bitfile chooses the bitstream to program, checks it, and prints
-# its path.
+# its path. A copy that it made of a --bitfile that fails a check is
+# removed.
 #
 # Usage: proggen::bitfile BUILT FLAG SHA256 COPY
 #
@@ -31,12 +32,28 @@ function proggen::bitfile() {
 			echo "ERROR: --bitfile: no such file: ${_flag}" >&2
 			return 1
 		fi
-		if ! cp -f "${_flag}" "${_copy}"; then
-			echo "ERROR: --bitfile: could not copy ${_flag} to ${_copy}" >&2
-			return 1
+		if [[ ! "${_flag}" -ef "${_copy}" ]]; then
+			if ! cp -f "${_flag}" "${_copy}"; then
+				echo "ERROR: --bitfile: could not copy ${_flag} to ${_copy}" >&2
+				rm -f "${_copy}"
+				return 1
+			fi
 		fi
 		_bitfile="${_copy}"
 	fi
+	if ! proggen::_check "${_bitfile}" "${_sha256}"; then
+		if [[ "${_flag}" != "" && ! "${_flag}" -ef "${_copy}" ]]; then
+			rm -f "${_copy}"
+		fi
+		return 1
+	fi
+	echo "${_bitfile}"
+}
+
+# proggen::_check checks that the bitstream $1 is there, has the SHA-256
+# $2 when $2 is not empty, and starts as a Xilinx .bit file does.
+function proggen::_check() {
+	local _bitfile="$1" _sha256="$2"
 	if [[ "${_bitfile}" == "" ]]; then
 		echo "ERROR: this target has no bitstream of its own, so --bitfile is required" >&2
 		return 1
@@ -56,10 +73,9 @@ function proggen::bitfile() {
 		fi
 	fi
 	if [[ "$(head -c 13 "${_bitfile}" | od -An -tx1 | tr -d ' \n')" != "${_proggen_bit_header}" ]]; then
-		echo "ERROR: not a bitstream: ${_bitfile}" >&2
-		head -c 200 "${_bitfile}" >&2
+		echo "ERROR: not a bitstream: ${_bitfile}. It starts:" >&2
+		head -c 200 "${_bitfile}" | cat -v >&2
 		echo >&2
 		return 1
 	fi
-	echo "${_bitfile}"
 }

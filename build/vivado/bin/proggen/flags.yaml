@@ -6,14 +6,3 @@ flags:
   type: string
   #Not sure what should be here.
   default: "*/xilinx_tcf/Digilent/210251130202"
-- name: "bitfile"
-  type: string
-  help: >-
-    The bitstream to program, in place of the target's own. A relative
-    path is relative to where `bazel run` was started. Required when the
-    target has no deps.
-- name: "sha256"
-  type: string
-  help: >-
-    The SHA-256 the bitstream must have, in hex. The device is not
-    programmed when it differs.

@@ -223,6 +223,15 @@ func TestRunCLI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := runCLI(tt.args)
+			if err == nil && tt.name == "no bitstream of its own" {
+				out, rerr := os.ReadFile(filepath.Join(tmpDir, "out_cli_3.sh"))
+				if rerr != nil {
+					t.Fatal(rerr)
+				}
+				if got := string(out); got != "BitFile: " {
+					t.Errorf("the script without a bitstream says %q, want %q", got, "BitFile: ")
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("runCLI() error = %v, wantErr %v", err, tt.wantErr)
 			}
