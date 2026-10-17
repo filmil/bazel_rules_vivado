@@ -187,6 +187,31 @@ func TestRunCLI(t *testing.T) {
 			wantErr: true, // run() will error out
 		},
 		{
+			name: "no bitstream of its own",
+			args: []string{
+				"--no-bitfile",
+				"--run-docker", "docker.sh",
+				"--gotopt2", "gotopt2",
+				"--outfile", filepath.Join(tmpDir, "out_cli_3.sh"),
+				"--template", templatePath,
+				"--vivado-version", "2025.1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "both --no-bitfile and --bitfile",
+			args: []string{
+				"--no-bitfile",
+				"--bitfile", "test.bit",
+				"--run-docker", "docker.sh",
+				"--gotopt2", "gotopt2",
+				"--outfile", filepath.Join(tmpDir, "out_cli_4.sh"),
+				"--template", templatePath,
+				"--vivado-version", "2025.1",
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid flag",
 			args: []string{
 				"--invalid-flag",

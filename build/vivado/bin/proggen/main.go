@@ -19,6 +19,9 @@ type Args struct {
 	RunnerRlocation string
 	GotoptFile      string
 	BitFile         string
+	// NoBitfile says that the target has no bitstream of its own: the
+	// generated script then takes one from its --bitfile flag only.
+	NoBitfile bool
 
 	// Flash (cfgmem) programming mode. When McsFile is set, the generator
 	// emits a script that programs the device's non-volatile configuration
@@ -52,8 +55,11 @@ func printEnv() {
 func run(args Args) error {
 	printEnv()
 
-	if args.BitFile == "" && args.McsFile == "" {
-		return fmt.Errorf("one of --bitfile or --mcs-file is required.")
+	if args.BitFile == "" && args.McsFile == "" && !args.NoBitfile {
+		return fmt.Errorf("one of --bitfile, --mcs-file or --no-bitfile is required.")
+	}
+	if args.NoBitfile && args.BitFile != "" {
+		return fmt.Errorf("--no-bitfile and --bitfile cannot both be given.")
 	}
 	if args.RunDockerFile == "" {
 		return fmt.Errorf("param --run-docker is required.")
@@ -114,7 +120,8 @@ func runCLI(cmdArgs []string) error {
 	fs.StringVar(&args.RunDockerFile, "run-docker", "", "The script for running docker")
 	fs.StringVar(&args.RunnerRlocation, "runner-rlocation", "", "The rlocation path of the runner script (docker_run or host_run)")
 	fs.StringVar(&args.GotoptFile, "gotopt2", "", "the gotopt2 binary to use")
-	fs.StringVar(&args.BitFile, "bitfile", "", "")
+	fs.StringVar(&args.BitFile, "bitfile", "", "The target's own bitstream, the default for the script's --bitfile flag")
+	fs.BoolVar(&args.NoBitfile, "no-bitfile", false, "The target has no bitstream; the script requires its --bitfile flag")
 	fs.StringVar(&args.McsFile, "mcs-file", "", "The flash image (.mcs/.bin) to program into configuration flash")
 	fs.StringVar(&args.FlashPart, "flash-part", "", "The Vivado cfgmem part name of the target flash device")
 	fs.StringVar(&args.FlashInterface, "flash-interface", "", "The flash programming interface, e.g. SPIx4")
