@@ -30,6 +30,7 @@ filegroup(
         "flags.yaml",
         "flash_script.tpl.sh",
         "main_script.tpl.sh",
+        "program_flags.yaml",
     ],
 )
 

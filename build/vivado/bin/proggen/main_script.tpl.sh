@@ -65,9 +65,9 @@ if [[ "${_gotopt2}" == "" ]]; then
         exit 1
     fi
 fi
-_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/flags.yaml)"
+_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/program_flags.yaml)"
 if [[ "${_yaml_config}" == "" ]]; then
-    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/flags.yaml)"
+    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/program_flags.yaml)"
 fi
 
 _bitfile_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/bitfile.bash)"
@@ -120,7 +120,7 @@ readonly _work_dir="{{ .WorkDir }}"
 log::debug "Creating script file: ${_tcl_script_file}"
 log::debug "Using bitfile:        ${_bitfile}"
 if [[ "${gotopt2_bitfile}" != "" ]]; then
-    log::info "Programming ${gotopt2_bitfile}, not the target's own bitstream"
+    log::info "Programming the --bitfile: ${gotopt2_bitfile}"
 fi
 log::debug "Using PWD:            ${PWD}"
 

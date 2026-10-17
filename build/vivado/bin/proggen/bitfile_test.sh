@@ -75,6 +75,40 @@ refuse "a placeholder, not a bitstream" "not a bitstream" placeholder.bit "" "" 
 refuse "a --bitfile that is a placeholder" "not a bitstream" built.bit "${tmp}/placeholder.bit" "" copy.bit
 refuse "the target's own, missing" "not found" gone.bit "" "" copy.bit
 
+# A --bitfile that a check refuses leaves no copy behind.
+refuse "a SHA-256 that differs, again" "--sha256" built.bit "${tmp}/checked.bit" \
+	"0000000000000000000000000000000000000000000000000000000000000000" copy.bit
+if [[ -e copy.bit ]]; then
+	echo "FAIL: the copy of a --bitfile with the wrong SHA-256 was left behind"
+	failures=$((failures + 1))
+fi
+refuse "a placeholder, again" "not a bitstream" built.bit "${tmp}/placeholder.bit" "" copy.bit
+if [[ -e copy.bit ]]; then
+	echo "FAIL: the copy of a placeholder --bitfile was left behind"
+	failures=$((failures + 1))
+fi
+
+# A --bitfile that is the copy itself is neither copied onto itself nor,
+# when refused, removed.
+cp checked.bit copy.bit
+expect "a --bitfile that is the copy" "copy.bit" built.bit "${tmp}/copy.bit" "${checked_sha}" copy.bit
+refuse "a --bitfile that is the copy, refused" "--sha256" built.bit "${tmp}/copy.bit" \
+	"0000000000000000000000000000000000000000000000000000000000000000" copy.bit
+if ! cmp -s checked.bit copy.bit; then
+	echo "FAIL: a refused --bitfile that is the copy itself was changed or removed"
+	failures=$((failures + 1))
+fi
+rm -f copy.bit
+
+# The start of a file that is not a bitstream is shown so that a terminal
+# shows it as text.
+printf '\033[2Jbinary\001\002' > binary.bit
+got="$(proggen::bitfile binary.bit "" "" copy.bit 2>&1)"
+if [[ "${got}" == *$'\033'* ]]; then
+	echo "FAIL: a control character of a non-bitstream reached the terminal"
+	failures=$((failures + 1))
+fi
+
 if [[ "${failures}" -gt 0 ]]; then
 	echo "${failures} failed"
 	exit 1
