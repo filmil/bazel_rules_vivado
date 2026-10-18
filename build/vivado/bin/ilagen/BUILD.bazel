@@ -44,3 +44,8 @@ sh_test(
     args = ["$(rootpath :triggers.bash)"],
     data = [":triggers.bash"],
 )
+
+exports_files(
+    ["main_script.tpl.sh"],
+    visibility = ["//build/vivado/bin/proggen:__pkg__"],
+)

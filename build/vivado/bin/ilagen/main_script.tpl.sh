@@ -18,11 +18,11 @@ else
 fi
 # --- End Runfiles Setup ---
 
-_log_bash_loc="$(rlocation fshlib~/log.bash)"
+_log_bash_loc="$(rlocation fshlib~/log.bash)" || true
 if [[ "${_log_bash_loc}" == "" ]]; then
-    _log_bash_loc="$(rlocation fshlib+/log.bash)"
+    _log_bash_loc="$(rlocation fshlib+/log.bash)" || true
     if [[ "${_log_bash_loc}" == "" ]]; then
-        echo >2 "ERROR: could not find:fshlib/log.bash"
+        echo >&2 "ERROR: could not find:fshlib/log.bash"
         exit 1
     fi
 fi
@@ -32,26 +32,26 @@ source "${_log_bash_loc}"
 # mode, host_run in host mode.
 _run_docker=""
 if [[ "{{ .RunnerRlocation }}" != "" ]]; then
-    _run_docker="$(rlocation "{{ .RunnerRlocation }}")"
+    _run_docker="$(rlocation "{{ .RunnerRlocation }}")" || true
 fi
 if [[ "${_run_docker}" == "" ]]; then
-    _run_docker="$(rlocation rules_bid/build/docker_run)"
+    _run_docker="$(rlocation rules_bid/build/docker_run)" || true
 fi
-_gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)"
+_gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)" || true
 if [[ "${_gotopt2}" == "" ]]; then
-    _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)"
+    _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)" || true
     if [[ "${_gotopt2}" == "" ]]; then
         log::error "gotopt2 not found"
         exit 1
     fi
 fi
-_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/flags.yaml)"
+_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/flags.yaml)" || true
 if [[ "${_yaml_config}" == "" ]]; then
-    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/ilagen/flags.yaml)"
+    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/ilagen/flags.yaml)" || true
 fi
-_triggers_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/triggers.bash)"
+_triggers_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/ilagen/triggers.bash)" || true
 if [[ "${_triggers_lib}" == "" ]]; then
-    _triggers_lib="$(rlocation rules_vivado/build/vivado/bin/ilagen/triggers.bash)"
+    _triggers_lib="$(rlocation rules_vivado/build/vivado/bin/ilagen/triggers.bash)" || true
 fi
 if [[ "${_triggers_lib}" == "" ]]; then
     log::error "triggers.bash not found"
