@@ -13,9 +13,17 @@
 # Usage: template_lint_test.sh <template>...
 set -uo pipefail
 
+if [[ "$#" -eq 0 ]]; then
+  echo "FAIL: no templates to check" >&2
+  exit 1
+fi
+
 failed=0
 for template in "$@"; do
-  if bad="$(grep -nE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*="?\$\(rlocation [^)]*\)"?[[:space:]]*$' "${template}")"; then
+  # Any line that calls rlocation, other than a comment or one already
+  # guarded, whatever it assigns to (local, readonly, plain).
+  if bad="$(grep -nE '\$\(rlocation |`rlocation ' "${template}" \
+      | grep -vE '^[0-9]+:[[:space:]]*#' | grep -vE '\|\|[[:space:]]*true')"; then
     echo "FAIL: ${template}: rlocation assignment without '|| true':" >&2
     echo "${bad}" >&2
     failed=1

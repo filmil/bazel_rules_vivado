@@ -54,6 +54,10 @@ fi
 if [[ "${_run_docker}" == "" ]]; then
     _run_docker="$(rlocation rules_bid+/build/docker_run_/docker_run)" || true
 fi
+if [[ "${_run_docker}" == "" ]]; then
+    log::error "the Vivado runner script not found"
+    exit 1
+fi
 readonly _run_docker
 
 _gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)" || true
@@ -68,6 +72,10 @@ fi
 _yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/program_flags.yaml)" || true
 if [[ "${_yaml_config}" == "" ]]; then
     _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/program_flags.yaml)" || true
+fi
+if [[ "${_yaml_config}" == "" ]]; then
+    log::error "the flags file not found"
+    exit 1
 fi
 
 _bitfile_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/bitfile.bash)" || true
