@@ -28,11 +28,11 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
-_log_bash_loc="$(rlocation fshlib~/log.bash)"
+_log_bash_loc="$(rlocation fshlib~/log.bash)" || true
 if [[ "${_log_bash_loc}" == "" ]]; then
-    _log_bash_loc="$(rlocation fshlib+/log.bash)"
+    _log_bash_loc="$(rlocation fshlib+/log.bash)" || true
     if [[ "${_log_bash_loc}" == "" ]]; then
-        echo >2 "ERROR: could not find:fshlib/log.bash"
+        echo >&2 "ERROR: could not find:fshlib/log.bash"
         exit 1
     fi
 fi
@@ -45,34 +45,34 @@ log::debug "this_dir: ${_this_dir}"
 # mode, host_run in host mode.
 _run_docker=""
 if [[ "{{ .RunnerRlocation }}" != "" ]]; then
-    _run_docker="$(rlocation "{{ .RunnerRlocation }}")"
+    _run_docker="$(rlocation "{{ .RunnerRlocation }}")" || true
 fi
 # These fallbacks should be immune to path changes.
 if [[ "${_run_docker}" == "" ]]; then
-    _run_docker="$(rlocation rules_bid+/build/docker_run.sh)"
+    _run_docker="$(rlocation rules_bid+/build/docker_run.sh)" || true
 fi
 if [[ "${_run_docker}" == "" ]]; then
-    _run_docker="$(rlocation rules_bid+/build/docker_run_/docker_run)"
+    _run_docker="$(rlocation rules_bid+/build/docker_run_/docker_run)" || true
 fi
 readonly _run_docker
 
-_gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)"
+_gotopt2="$(rlocation rules_multitool~~multitool~multitool/tools/gotopt2/gotopt2)" || true
 if [[ "${_gotopt2}" == "" ]]; then
     # Try for the new repo names.
-    _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)"
+    _gotopt2="$(rlocation rules_multitool++multitool+multitool/tools/gotopt2/gotopt2)" || true
     if [[ "${_gotopt2}" == "" ]]; then
-        eilo::error "gotopt2 not found"
+        log::error "gotopt2 not found"
         exit 1
     fi
 fi
-_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/program_flags.yaml)"
+_yaml_config="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/program_flags.yaml)" || true
 if [[ "${_yaml_config}" == "" ]]; then
-    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/program_flags.yaml)"
+    _yaml_config="$(rlocation rules_vivado/build/vivado/bin/proggen/program_flags.yaml)" || true
 fi
 
-_bitfile_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/bitfile.bash)"
+_bitfile_lib="$(rlocation bazel_rules_vivado/build/vivado/bin/proggen/bitfile.bash)" || true
 if [[ "${_bitfile_lib}" == "" ]]; then
-    _bitfile_lib="$(rlocation rules_vivado/build/vivado/bin/proggen/bitfile.bash)"
+    _bitfile_lib="$(rlocation rules_vivado/build/vivado/bin/proggen/bitfile.bash)" || true
 fi
 if [[ "${_bitfile_lib}" == "" ]]; then
     log::error "bitfile.bash not found"

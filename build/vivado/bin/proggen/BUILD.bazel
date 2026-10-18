@@ -51,3 +51,18 @@ sh_test(
     args = ["$(rootpath :bitfile.bash)"],
     data = [":bitfile.bash"],
 )
+
+sh_test(
+    name = "template_lint_test",
+    srcs = ["template_lint_test.sh"],
+    args = [
+        "$(rootpath :main_script.tpl.sh)",
+        "$(rootpath :flash_script.tpl.sh)",
+        "$(rootpath //build/vivado/bin/ilagen:main_script.tpl.sh)",
+    ],
+    data = [
+        ":flash_script.tpl.sh",
+        ":main_script.tpl.sh",
+        "//build/vivado/bin/ilagen:main_script.tpl.sh",
+    ],
+)
