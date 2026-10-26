@@ -3,6 +3,7 @@
 # registered.
 
 load("@rules_vivado//build/vivado:rules.bzl", "vivado_toolchain")
+load(":vivado_config_test.bzl", "vivado_config_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -21,4 +22,12 @@ toolchain(
     target_settings = ["@rules_vivado//:vivado_mode_custom"],
     toolchain = ":provider_vivado",
     toolchain_type = "@rules_vivado//toolchains:toolchain_type",
+)
+
+# A rule defined in this module, not in rules_vivado, that declares the
+# Vivado toolchain and calls vivado_config(ctx). Run it from the
+# integration module:
+#   bazel test @vivado_toolchain_provider//:vivado_config_test
+vivado_config_test(
+    name = "vivado_config_test",
 )

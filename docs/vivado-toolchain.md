@@ -441,6 +441,35 @@ if none is registered, toolchain resolution fails with a clear error rather
 than silently falling back to Docker). A working example lives in
 [`integration/toolchain_provider`](../integration/toolchain_provider/).
 
+## Writing a rule that runs Vivado
+
+A rule of your own, in your own repository, can run Vivado the same way
+the rules_vivado rules do. Load the toolchain type and `vivado_config`
+from the public `rules.bzl`, declare the toolchain, and ask for the
+resolved configuration in the implementation:
+
+```python
+load("@rules_vivado//build/vivado:rules.bzl", "VIVADO_TOOLCHAIN_TYPE", "vivado_config")
+
+def _my_rule_impl(ctx):
+    config = vivado_config(ctx)
+    # config.mode, config.vivado_path, config.container,
+    # config.vivado_version, config.runner, config.runner_default_runfiles
+    ...
+
+my_rule = rule(
+    implementation = _my_rule_impl,
+    toolchains = [VIVADO_TOOLCHAIN_TYPE],
+)
+```
+
+`VIVADO_TOOLCHAIN_TYPE` is a `Label`, so it names rules_vivado's
+toolchain type wherever the rule is defined. Pass `config.runner` in the
+`tools` of each action that runs Vivado. The test
+`@vivado_toolchain_provider//:vivado_config_test` in
+[`integration/toolchain_provider`](../integration/toolchain_provider/) is
+such a rule; run it from `integration/`.
+
 ## Notes on host mode
 
 *   The host installation must contain `bin/setEnvAndRunCmd.sh` (present in
