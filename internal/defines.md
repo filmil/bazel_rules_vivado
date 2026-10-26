@@ -99,8 +99,9 @@ A struct with fields:
   container: the Docker image (meaningful in docker mode only).
   vivado_path: the Vivado install path.
   runner: the runner executable, as a FilesToRunProvider. Pass it in
-    `tools = [...]` of actions that run Vivado, and use
-    `runner.executable.path` as the script path for `script_cmd`.
+    `tools = [...]` of actions that run Vivado, and start their
+    command line with `runner.executable.path`: docker-mode flags
+    first, then the Vivado command (see docs/vivado-toolchain.md).
   runner_default_runfiles: the runner's default runfiles, for rules
     that place the runner into runfiles of generated scripts.
 

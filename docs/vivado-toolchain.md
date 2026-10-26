@@ -453,7 +453,7 @@ load("@rules_vivado//build/vivado:rules.bzl", "VIVADO_TOOLCHAIN_TYPE", "vivado_c
 
 def _my_rule_impl(ctx):
     config = vivado_config(ctx)
-    # config.mode, config.vivado_path, config.container,
+    # config.mode, config.is_host, config.vivado_path, config.container,
     # config.vivado_version, config.runner, config.runner_default_runfiles
     ...
 
@@ -465,7 +465,11 @@ my_rule = rule(
 
 `VIVADO_TOOLCHAIN_TYPE` is a `Label`, so it names rules_vivado's
 toolchain type wherever the rule is defined. Pass `config.runner` in the
-`tools` of each action that runs Vivado. The test
+`tools` of each action that runs Vivado, and start the action's command
+line with `config.runner.executable.path`, followed by the runner flags
+and the Vivado command as described for the `runner` attribute above; in
+`docker` mode the Vivado install is `config.vivado_path` inside
+`config.container`. The test
 `@vivado_toolchain_provider//:vivado_config_test` in
 [`integration/toolchain_provider`](../integration/toolchain_provider/) is
 such a rule; run it from `integration/`.

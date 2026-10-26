@@ -13,11 +13,19 @@ def _vivado_config_test_impl(ctx):
         output = script,
         is_executable = True,
         content = """#!/bin/sh
-mode='{mode}'
-vivado_path='{vivado_path}'
-echo "mode=$mode vivado_path=$vivado_path"
-test -n "$mode" && test -n "$vivado_path"
-""".format(mode = config.mode, vivado_path = config.vivado_path),
+set -e
+echo "mode={mode} is_host={is_host} vivado_path={vivado_path} runner={runner}"
+case '{mode}' in docker|host) ;; *) echo "unexpected mode" >&2; exit 1 ;; esac
+test '{is_host}' = '{want_host}'
+test -n '{vivado_path}'
+test -n '{runner}'
+""".format(
+            mode = config.mode,
+            is_host = config.is_host,
+            want_host = config.mode == "host",
+            vivado_path = config.vivado_path,
+            runner = config.runner.executable.path,
+        ),
     )
     return [DefaultInfo(executable = script)]
 
