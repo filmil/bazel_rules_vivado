@@ -26,8 +26,10 @@ load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 # The toolchain type label. Rules that invoke Vivado must declare
 # `toolchains = [VIVADO_TOOLCHAIN_TYPE]` and use `vivado_config(ctx)` to
-# obtain the resolved configuration.
-VIVADO_TOOLCHAIN_TYPE = "//toolchains:toolchain_type"
+# obtain the resolved configuration. It is a Label, not a string, so that
+# it names rules_vivado's toolchain type in rules defined in any repository:
+# a string would resolve in the repository of the rule that uses it.
+VIVADO_TOOLCHAIN_TYPE = Label("//toolchains:toolchain_type")
 
 DEFAULT_VIVADO_VERSION = "2025.2"
 
