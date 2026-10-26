@@ -1,0 +1,7 @@
+# Runs the rule defined in a module other than rules_vivado that uses the
+# public VIVADO_TOOLCHAIN_TYPE and vivado_config, so `bazel test //...`
+# here covers it.
+test_suite(
+    name = "vivado_config_test",
+    tests = ["@vivado_toolchain_provider//:vivado_config_test"],
+)
