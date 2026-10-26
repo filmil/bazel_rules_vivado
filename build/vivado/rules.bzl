@@ -3,6 +3,7 @@
 load(
     "//internal:toolchain.bzl",
     _VIVADO_TOOLCHAIN_TYPE = "VIVADO_TOOLCHAIN_TYPE",
+    _vivado_config = "vivado_config",
     _vivado_toolchain = "vivado_toolchain",
 )
 load("//internal:vivado_extract.bzl", _vivado_extract = "vivado_extract")
@@ -55,3 +56,8 @@ vivado_program_flash = _vivado_program_flash
 # //internal:toolchain.bzl and docs/vivado-toolchain.md for details.
 vivado_toolchain = _vivado_toolchain
 VIVADO_TOOLCHAIN_TYPE = _VIVADO_TOOLCHAIN_TYPE
+
+# For rules of your own that run Vivado: declare
+# `toolchains = [VIVADO_TOOLCHAIN_TYPE]` and call `vivado_config(ctx)` for
+# the resolved mode, install path and runner. See docs/vivado-toolchain.md.
+vivado_config = _vivado_config

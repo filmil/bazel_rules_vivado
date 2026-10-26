@@ -604,6 +604,40 @@ vivado_view(
 | <a id="vivado_view-mount"></a>mount |  A dictionary of mounts to define for the run.   | <a href="https://bazel.build/rules/lib/core/dict">Dictionary: String -> String</a> | optional |  `{}`  |
 
 
+<a id="vivado_config"></a>
+
+## vivado_config
+
+<pre>
+load("@rules_vivado//build/vivado:rules.bzl", "vivado_config")
+
+vivado_config(<a href="#vivado_config-ctx">ctx</a>)
+</pre>
+
+Resolves the Vivado configuration from the Vivado toolchain.
+
+**PARAMETERS**
+
+
+| Name  | Description | Default Value |
+| :------------- | :------------- | :------------- |
+| <a id="vivado_config-ctx"></a>ctx |  The rule context. The rule must declare `toolchains = [VIVADO_TOOLCHAIN_TYPE]`.   |  none |
+
+**RETURNS**
+
+A struct with fields:
+  mode: "docker" or "host".
+  is_host: convenience bool, True in host mode.
+  vivado_version: the Vivado version string.
+  container: the Docker image (meaningful in docker mode only).
+  vivado_path: the Vivado install path.
+  runner: the runner executable, as a FilesToRunProvider. Pass it in
+    `tools = [...]` of actions that run Vivado, and use
+    `runner.executable.path` as the script path for `script_cmd`.
+  runner_default_runfiles: the runner's default runfiles, for rules
+    that place the runner into runfiles of generated scripts.
+
+
 <a id="vivado_generics"></a>
 
 ## vivado_generics
