@@ -1,0 +1,39 @@
+# vivado_library's xvlog_args, checked on the analysed xvlog action. No
+# test here runs Vivado: the libraries are tagged manual and only analysed.
+load("//internal:vivado_library.bzl", "vivado_library")
+load(":xvlog_args_test.bzl", "vhdl_test", "with_args_test", "without_args_test")
+
+vivado_library(
+    name = "with_args",
+    srcs = ["lib.v"],
+    tags = ["manual"],
+    xvlog_args = ["--relax"],
+)
+
+vivado_library(
+    name = "without_args",
+    srcs = ["lib.v"],
+    tags = ["manual"],
+)
+
+vivado_library(
+    name = "vhdl_with_args",
+    srcs = ["lib.vhd"],
+    tags = ["manual"],
+    xvlog_args = ["--relax"],
+)
+
+with_args_test(
+    name = "with_args_test",
+    target_under_test = ":with_args",
+)
+
+without_args_test(
+    name = "without_args_test",
+    target_under_test = ":without_args",
+)
+
+vhdl_test(
+    name = "vhdl_test",
+    target_under_test = ":vhdl_with_args",
+)

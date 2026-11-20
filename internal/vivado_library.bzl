@@ -222,6 +222,9 @@ def _vivado_library_impl(ctx):
             defines += ["-d", "{}".format(k)]
     if command == "xvlog":
         args += defines
+        args += ctx.attr.xvlog_args
+    elif ctx.attr.xvlog_args:
+        fail("xvlog_args applies to Verilog and SystemVerilog libraries only")
 
     for file in files:
         args += [file.path]
@@ -314,6 +317,13 @@ vivado_library = rule(
         "library_name": attr.string(
             doc = """An optional library name, in the case the target name
                      can not be used for some reason.""",
+        ),
+        "xvlog_args": attr.string_list(
+            default = [],
+            doc = "Extra options for xvlog, given before the source files. " +
+                  "For example `[\"--relax\"]` accepts code that the strict " +
+                  "checks reject, such as a net used before its declaration. " +
+                  "Verilog and SystemVerilog libraries only.",
         ),
         "use_glbl": attr.bool(
             default = False,
