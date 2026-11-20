@@ -1,20 +1,33 @@
 name: Tag and Release
 
 on:
-  # Release after every push to main, so a merged change reaches the
-  # registry without waiting for the monthly run. The tag action bumps
-  # only for feat: and fix: commits (default_bump: false), so a docs- or
-  # chore-only push releases nothing. The tag it pushes is not a branch
-  # push, so it does not start this workflow again.
-  push:
+  # Release after every push to main that passes the Test workflow, so a
+  # merged change reaches the registry without waiting for the monthly run.
+  # The release waits for Test and tags exactly the commit Test checked.
+  # It releases everything since the last tag, once per push.
+  #
+  # The tag action (default_bump: false) bumps only when a commit since the
+  # last tag asks for it: feat: (minor), fix: (patch), or a breaking change
+  # marker such as feat!: or a BREAKING CHANGE footer (major). Pushes with
+  # only docs:, chore: or ci: commits release nothing. GitHub's default
+  # revert message ("Revert ...") releases nothing either, so write a revert
+  # that must ship as "fix: revert ...".
+  #
+  # The tag this workflow pushes uses GITHUB_TOKEN, which starts no new
+  # workflow runs, so a release does not trigger itself.
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
     branches: [main]
   schedule:
     - cron: '0 0 5 * *'
   workflow_dispatch:
 
-# Two pushes close together must not race to compute the same next tag.
-# The second run waits for the first; it does not cancel it, because a
-# cancelled run can leave a tag without its release or registry entry.
+# Two runs close together must not race to compute the same next tag, so
+# they run one at a time. A running release is never cancelled, because a
+# cancelled run could leave a tag without its release or registry entry.
+# GitHub keeps at most one run waiting: a newer one replaces it. Nothing is
+# lost by that, because each run releases every commit since the last tag.
 concurrency:
   group: tag-and-release
   cancel-in-progress: false
@@ -26,6 +39,11 @@ jobs:
   # anything get committed since the last release? -- and every job below
   # hangs off the answer.
   check:
+    # On workflow_run, release only after Test passed on a push to main.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.changes.outputs.changed }}
@@ -33,6 +51,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # The commit Test checked, not whatever main is now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           # Full history and tags: `git describe` needs both, and the default
           # shallow checkout has neither.
           fetch-depth: 0
@@ -48,6 +68,11 @@ jobs:
           fi
           if [ "$(git rev-list -n 1 "${latest}")" = "$(git rev-parse HEAD)" ]; then
             echo "HEAD is already released as ${latest}. Nothing to release."
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          elif git merge-base --is-ancestor HEAD "${latest}"; then
+            # A re-run of an older run, after a newer commit was released.
+            # Tagging this commit would give an older tree a higher version.
+            echo "HEAD is older than the release ${latest}. Nothing to release."
             echo "changed=false" >> "${GITHUB_OUTPUT}"
           else
             echo "$(git rev-list --count "${latest}"..HEAD) commit(s) since ${latest}; releasing."
@@ -69,11 +94,16 @@ jobs:
           repository-cache: true
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Tag the commit Test checked. On workflow_run, GITHUB_SHA is main's
+          # newest commit, which may be newer and untested.
+          commit_sha: ${{ github.event.workflow_run.head_sha || github.sha }}
           release_branches: main
           # Without this the action bumps the patch version on every run, even
           # when no commit landed since the last tag. The cron then released the
