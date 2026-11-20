@@ -78,7 +78,7 @@ jobs:
             echo "changed=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
-          latest="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+          latest="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
           if [ -z "${latest}" ]; then
             echo "No tag yet; releasing."
             echo "changed=true" >> "${GITHUB_OUTPUT}"
