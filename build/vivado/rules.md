@@ -84,7 +84,7 @@ vivado_ip(<a href="#vivado_ip-name">name</a>, <a href="#vivado_ip-data">data</a>
 load("@rules_vivado//build/vivado:rules.bzl", "vivado_library")
 
 vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library-deps">deps</a>, <a href="#vivado_library-srcs">srcs</a>, <a href="#vivado_library-data">data</a>, <a href="#vivado_library-hdrs">hdrs</a>, <a href="#vivado_library-defines">defines</a>, <a href="#vivado_library-env">env</a>, <a href="#vivado_library-includes">includes</a>, <a href="#vivado_library-library_name">library_name</a>, <a href="#vivado_library-mount">mount</a>, <a href="#vivado_library-standard">standard</a>,
-               <a href="#vivado_library-use_glbl">use_glbl</a>, <a href="#vivado_library-vhdl1993">vhdl1993</a>)
+               <a href="#vivado_library-use_glbl">use_glbl</a>, <a href="#vivado_library-vhdl1993">vhdl1993</a>, <a href="#vivado_library-xvlog_args">xvlog_args</a>)
 </pre>
 
 
@@ -107,6 +107,7 @@ vivado_library(<a href="#vivado_library-name">name</a>, <a href="#vivado_library
 | <a id="vivado_library-standard"></a>standard |  Specify the language standard to use   | String | optional |  `"2008"`  |
 | <a id="vivado_library-use_glbl"></a>use_glbl |  Whether to use the global glbl.v.   | Boolean | optional |  `False`  |
 | <a id="vivado_library-vhdl1993"></a>vhdl1993 |  Use VHDL-1993 standard else use VHDL-2008   | Boolean | optional |  `False`  |
+| <a id="vivado_library-xvlog_args"></a>xvlog_args |  Extra options for xvlog, for example `["--relax"]`, which accepts code the strict checks reject, such as a net used before its declaration. Each entry is one argument, quoted for the shell and given as is, with no `$(location)` expansion. They come after the rule's own options and defines, and before the source files. Do not use them for options the rule sets (`--work`, `--log`, `--sv`, `--lib`), nor for options that read files (`-f`, `-i`, `--sourcelibdir`): such files are not inputs of the action. Verilog and SystemVerilog libraries only: a VHDL library with xvlog_args fails.   | List of strings | optional |  `[]`  |
 
 
 <a id="vivado_library_transition"></a>
