@@ -1,5 +1,6 @@
 """Vivado library rule."""
 
+load("@bazel_skylib//lib:shell.bzl", "shell")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load(
     "//internal:defines.bzl",
@@ -222,7 +223,9 @@ def _vivado_library_impl(ctx):
             defines += ["-d", "{}".format(k)]
     if command == "xvlog":
         args += defines
-        args += ctx.attr.xvlog_args
+
+        # Quoted: the command line below is run by a shell.
+        args += [shell.quote(a) for a in ctx.attr.xvlog_args]
     elif ctx.attr.xvlog_args:
         fail("xvlog_args applies to Verilog and SystemVerilog libraries only")
 
@@ -320,10 +323,17 @@ vivado_library = rule(
         ),
         "xvlog_args": attr.string_list(
             default = [],
-            doc = "Extra options for xvlog, given before the source files. " +
-                  "For example `[\"--relax\"]` accepts code that the strict " +
-                  "checks reject, such as a net used before its declaration. " +
-                  "Verilog and SystemVerilog libraries only.",
+            doc = "Extra options for xvlog, for example `[\"--relax\"]`, " +
+                  "which accepts code the strict checks reject, such as a " +
+                  "net used before its declaration. Each entry is one " +
+                  "argument, quoted for the shell and given as is, with no " +
+                  "`$(location)` expansion. They come after the rule's own " +
+                  "options and defines, and before the source files. Do not " +
+                  "use them for options the rule sets (`--work`, `--log`, " +
+                  "`--sv`, `--lib`), nor for options that read files " +
+                  "(`-f`, `-i`, `--sourcelibdir`): such files are not " +
+                  "inputs of the action. Verilog and SystemVerilog " +
+                  "libraries only: a VHDL library with xvlog_args fails.",
         ),
         "use_glbl": attr.bool(
             default = False,
