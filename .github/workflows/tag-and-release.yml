@@ -1,9 +1,23 @@
 name: Tag and Release
 
 on:
+  # Release after every push to main, so a merged change reaches the
+  # registry without waiting for the monthly run. The tag action bumps
+  # only for feat: and fix: commits (default_bump: false), so a docs- or
+  # chore-only push releases nothing. The tag it pushes is not a branch
+  # push, so it does not start this workflow again.
+  push:
+    branches: [main]
   schedule:
     - cron: '0 0 5 * *'
   workflow_dispatch:
+
+# Two pushes close together must not race to compute the same next tag.
+# The second run waits for the first; it does not cancel it, because a
+# cancelled run can leave a tag without its release or registry entry.
+concurrency:
+  group: tag-and-release
+  cancel-in-progress: false
 
 jobs:
   # The scheduled run used to bump a version whether or not anything had
