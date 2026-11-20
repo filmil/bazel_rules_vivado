@@ -1,10 +1,12 @@
 name: Tag and Release
 
 on:
-  # Release after every push to main that passes the Test workflow, so a
-  # merged change reaches the registry without waiting for the monthly run.
-  # The release waits for Test and tags exactly the commit Test checked.
-  # It releases everything since the last tag, once per push.
+  # Release after every push to main, once the Test workflow has passed
+  # for it, so a merged change reaches the registry without waiting for
+  # the monthly run. Every run, whatever started it, releases main's
+  # current head, and only if Test passed on a push of that exact commit.
+  # A run for an older commit, a failed Test run, or a run started after
+  # main moved on releases nothing; the newest push's own run does it.
   #
   # The tag action (default_bump: false) bumps only when a commit since the
   # last tag asks for it: feat: (minor), fix: (patch), or a breaking change
@@ -23,56 +25,58 @@ on:
     - cron: '0 0 5 * *'
   workflow_dispatch:
 
-# Two runs close together must not race to compute the same next tag, so
-# they run one at a time. A running release is never cancelled, because a
-# cancelled run could leave a tag without its release or registry entry.
-# GitHub keeps at most one run waiting: a newer one replaces it. Nothing is
-# lost by that, because each run releases every commit since the last tag.
-concurrency:
-  group: tag-and-release
-  cancel-in-progress: false
-
 jobs:
-  # The scheduled run used to bump a version whether or not anything had
-  # landed, so the same tree was released again and again (see the tags that
-  # share one commit). This job asks the only question that matters -- did
-  # anything get committed since the last release? -- and every job below
-  # hangs off the answer.
+  # Decides whether to release, and what: main's head, if Test passed on a
+  # push of it, and if no tag is on it yet. The scheduled run used to bump a
+  # version whether or not anything had landed; this job also stops that.
   check:
-    # On workflow_run, release only after Test passed on a push to main.
+    # A failed or cancelled Test run, or one not started by a push, needs
+    # no release run at all.
     if: >-
       github.event_name != 'workflow_run' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       changed: ${{ steps.changes.outputs.changed }}
+      sha: ${{ steps.changes.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # The commit Test checked, not whatever main is now.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: main
           # Full history and tags: `git describe` needs both, and the default
           # shallow checkout has neither.
           fetch-depth: 0
-      - name: Look for commits since the last release
+      - name: Decide whether main's head is released, tested and new
         id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -o errexit -o nounset -o pipefail
+          sha="$(git rev-parse HEAD)"
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          if [ -n "${RUN_SHA}" ] && [ "${RUN_SHA}" != "${sha}" ]; then
+            echo "Test ran on ${RUN_SHA}, but main is now ${sha}. The newer push releases."
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          passed="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?head_sha=${sha}&event=push&status=success" --jq '.total_count')"
+          if [ "${passed}" -eq 0 ]; then
+            echo "Test has not passed on a push of ${sha}. Nothing to release."
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
           latest="$(git describe --tags --abbrev=0 2>/dev/null || true)"
           if [ -z "${latest}" ]; then
             echo "No tag yet; releasing."
             echo "changed=true" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-          if [ "$(git rev-list -n 1 "${latest}")" = "$(git rev-parse HEAD)" ]; then
-            echo "HEAD is already released as ${latest}. Nothing to release."
-            echo "changed=false" >> "${GITHUB_OUTPUT}"
-          elif git merge-base --is-ancestor HEAD "${latest}"; then
-            # A re-run of an older run, after a newer commit was released.
-            # Tagging this commit would give an older tree a higher version.
-            echo "HEAD is older than the release ${latest}. Nothing to release."
+          elif [ "$(git rev-list -n 1 "${latest}")" = "${sha}" ]; then
+            echo "${sha} is already released as ${latest}. Nothing to release."
             echo "changed=false" >> "${GITHUB_OUTPUT}"
           else
             echo "$(git rev-list --count "${latest}"..HEAD) commit(s) since ${latest}; releasing."
@@ -82,6 +86,15 @@ jobs:
   tag:
     needs: check
     if: ${{ needs.check.outputs.changed == 'true' }}
+    # Releases run one at a time, so two cannot compute the same next tag.
+    # Only this job queues, so failed Test runs never take a queue place.
+    # A running release is never cancelled: that could leave a tag without
+    # its release or registry entry. GitHub keeps at most one release
+    # waiting, and a newer one replaces it; nothing is lost, because every
+    # release covers main's head and all commits since the last tag.
+    concurrency:
+      group: tag-and-release
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.tag_version.outputs.new_tag }}
@@ -95,15 +108,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: main
+      - name: Confirm main has not moved since the check
+        id: same
+        env:
+          CHECKED: ${{ needs.check.outputs.sha }}
+        run: |
+          now="$(git rev-parse HEAD)"
+          if [ "${now}" = "${CHECKED}" ]; then
+            echo "ok=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "main moved from ${CHECKED} to ${now}; its own run releases it."
+            echo "ok=false" >> "${GITHUB_OUTPUT}"
+          fi
       - name: Bump version and push tag
         id: tag_version
+        if: ${{ steps.same.outputs.ok == 'true' }}
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Tag the commit Test checked. On workflow_run, GITHUB_SHA is main's
-          # newest commit, which may be newer and untested.
-          commit_sha: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # The commit the check found tested; on workflow_run, GITHUB_SHA
+          # may be newer.
+          commit_sha: ${{ needs.check.outputs.sha }}
           release_branches: main
           # Without this the action bumps the patch version on every run, even
           # when no commit landed since the last tag. The cron then released the
