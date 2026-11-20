@@ -35,8 +35,10 @@ on:
 # A running release is never cancelled: that could leave a tag without its
 # release or registry entry. GitHub keeps at most one run waiting, and a
 # newer one replaces it; that loses nothing, since all runs do the same.
+# The group includes the ref, so a manual run from another branch (which
+# releases nothing) cannot push a waiting main release out of the queue.
 concurrency:
-  group: tag-and-release
+  group: tag-and-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -73,12 +75,18 @@ jobs:
           sha="$(git rev-parse HEAD)"
           echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
           passed="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?head_sha=${sha}&branch=main&event=push&status=success" --jq '.total_count')"
+          case "${passed}" in
+            ''|*[!0-9]*)
+              echo "Unexpected answer from the Actions API: '${passed}'. Not releasing."
+              exit 1
+              ;;
+          esac
           if [ "${passed}" -eq 0 ]; then
             echo "Test has not passed on a push of ${sha} to main. Nothing to release."
             echo "changed=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
-          latest="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
+          latest="$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' 2>/dev/null || true)"
           if [ -z "${latest}" ]; then
             echo "No tag yet; releasing."
             echo "changed=true" >> "${GITHUB_OUTPUT}"
@@ -116,7 +124,7 @@ jobs:
           if [ "${now}" = "${CHECKED}" ]; then
             echo "ok=true" >> "${GITHUB_OUTPUT}"
           else
-            echo "main moved from ${CHECKED} to ${now}; the run for its Test releases it."
+            echo "main moved from ${CHECKED} to ${now}. Not releasing now; a later run releases ${now} once Test passes on it."
             echo "ok=false" >> "${GITHUB_OUTPUT}"
           fi
       - name: Bump version and push tag
@@ -125,8 +133,8 @@ jobs:
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # The commit the check found tested; on workflow_run, GITHUB_SHA
-          # may be newer.
+          # The commit the check found tested. GITHUB_SHA is main as of when
+          # the run was queued, which may differ.
           commit_sha: ${{ needs.check.outputs.sha }}
           release_branches: main
           # Without this the action bumps the patch version on every run, even
